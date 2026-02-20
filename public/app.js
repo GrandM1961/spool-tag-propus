@@ -214,6 +214,7 @@ const app = {
   },
 
   init() {
+    this.loadTheme();
     this.checkNFC();
     if (typeof ColorPicker !== 'undefined' && ColorPicker && typeof ColorPicker.init === 'function') {
       ColorPicker.init(this);
@@ -229,6 +230,7 @@ const app = {
     this.applyTemperaturePreset();
     this.updateRecordSize();
     this.initSpoolman();
+    this.checkURLParams();
   },
 
   // === Spoolman Integration ===
@@ -309,6 +311,8 @@ const app = {
     this.showMobileToast('Spoolman URL gespeichert', 'success');
   },
 
+  _spoolmanSpools: [],
+
   async loadSpoolmanSpools() {
     if (!this.spoolmanUrl) {
       this.showSpoolmanSetup();
@@ -318,6 +322,8 @@ const app = {
     const listEl = document.getElementById('spoolmanSpoolList');
     listEl.innerHTML = '<p style="color: var(--text-secondary);">Lade Spulen...</p>';
     this.showStatus('spoolmanStatus', 'warning', 'Verbinde mit Spoolman...');
+    const searchEl = document.getElementById('spoolmanSearch');
+    if (searchEl) searchEl.value = '';
 
     try {
       const resp = await fetch(`${this.spoolmanUrl}/api/v1/spool`, {
@@ -327,6 +333,7 @@ const app = {
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
       const spools = await resp.json();
+      this._spoolmanSpools = spools;
 
       if (!spools.length) {
         listEl.innerHTML = '<p style="color: var(--text-secondary);">Keine Spulen in Spoolman gefunden.</p>';
@@ -335,36 +342,64 @@ const app = {
       }
 
       this.showStatus('spoolmanStatus', 'success', `${spools.length} Spule(n) geladen`);
-      listEl.innerHTML = '';
-
-      spools.forEach(spool => {
-        const filament = spool.filament || {};
-        const vendor = filament.vendor || {};
-        const color = filament.color_hex || 'CCCCCC';
-        const material = filament.material || 'Unknown';
-        const brand = vendor.name || 'Unbekannt';
-        const name = filament.name || material;
-        const remaining = spool.remaining_weight != null
-          ? `${Math.round(spool.remaining_weight)}g übrig`
-          : '';
-
-        const card = document.createElement('div');
-        card.className = 'spool-card';
-        card.onclick = () => this.importFromSpoolman(spool);
-        card.innerHTML = `
-          <div class="spool-color-dot" style="background: #${color};"></div>
-          <div class="spool-info">
-            <strong>${brand} ${name}</strong>
-            <small>${material} | ID: ${spool.id}${spool.lot_nr ? ` | Lot: ${spool.lot_nr}` : ''}</small>
-          </div>
-          <div class="spool-weight">${remaining}</div>
-        `;
-        listEl.appendChild(card);
-      });
+      this.renderSpoolmanList(spools);
     } catch (e) {
       listEl.innerHTML = '';
       this.showStatus('spoolmanStatus', 'error', `Fehler: ${e.message}`);
     }
+  },
+
+  renderSpoolmanList(spools) {
+    const listEl = document.getElementById('spoolmanSpoolList');
+    listEl.innerHTML = '';
+
+    if (!spools.length) {
+      listEl.innerHTML = '<p style="color: var(--text-secondary);">Keine Spulen gefunden.</p>';
+      return;
+    }
+
+    spools.forEach(spool => {
+      const filament = spool.filament || {};
+      const vendor = filament.vendor || {};
+      const color = filament.color_hex || 'CCCCCC';
+      const material = filament.material || 'Unknown';
+      const brand = vendor.name || 'Unbekannt';
+      const name = filament.name || material;
+      const remaining = spool.remaining_weight != null
+        ? `${Math.round(spool.remaining_weight)}g übrig`
+        : '';
+
+      const card = document.createElement('div');
+      card.className = 'spool-card';
+      card.onclick = () => this.importFromSpoolman(spool);
+      card.innerHTML = `
+        <div class="spool-color-dot" style="background: #${color};"></div>
+        <div class="spool-info">
+          <strong>${brand} ${name}</strong>
+          <small>${material} | ID: ${spool.id}${spool.lot_nr ? ` | Lot: ${spool.lot_nr}` : ''}</small>
+        </div>
+        <div class="spool-weight">${remaining}</div>
+      `;
+      listEl.appendChild(card);
+    });
+  },
+
+  filterSpoolmanSpools() {
+    const q = (document.getElementById('spoolmanSearch').value || '').toLowerCase().trim();
+    if (!q) {
+      this.renderSpoolmanList(this._spoolmanSpools);
+      return;
+    }
+    const filtered = this._spoolmanSpools.filter(spool => {
+      const f = spool.filament || {};
+      const v = f.vendor || {};
+      const text = [
+        v.name, f.name, f.material, spool.id,
+        spool.lot_nr, f.color_hex
+      ].filter(Boolean).join(' ').toLowerCase();
+      return text.includes(q);
+    });
+    this.renderSpoolmanList(filtered);
   },
 
   importFromSpoolman(spool) {
@@ -667,11 +702,15 @@ const app = {
 
   setMode(mode) {
     this.stopScanning();
+    if (typeof QR !== 'undefined' && QR.isScanning()) {
+      QR.stopScan(document.getElementById('qrVideo'));
+    }
 
     const sections = [
       'modeSelection', 'readSection', 'tagSummarySection', 'formSection',
       'spoolmanSection', 'spoolmanSetup', 'filamentDbSection',
-      'profilesSection', 'filamentListSection'
+      'profilesSection', 'filamentListSection', 'dryingSection', 'qrScanSection',
+      'aboutSection'
     ];
     sections.forEach(id => {
       const el = document.getElementById(id);
@@ -708,6 +747,13 @@ const app = {
     } else if (mode === 'filamentlist') {
       document.getElementById('filamentListSection').classList.remove('hidden');
       this.initFilamentListPage();
+    } else if (mode === 'about') {
+      document.getElementById('aboutSection').classList.remove('hidden');
+    } else if (mode === 'drying') {
+      document.getElementById('dryingSection').classList.remove('hidden');
+      this.renderDryingProfiles();
+    } else if (mode === 'qrscan') {
+      document.getElementById('qrScanSection').classList.remove('hidden');
     } else if (mode === 'spoolman-import') {
       if (!this.spoolmanUrl) {
         this.showSpoolmanSetup();
@@ -1575,41 +1621,109 @@ const app = {
 
       const grouped = {};
       data.profiles.forEach(p => {
+        const isBase = p.source_path && p.source_path.includes('@base');
+        if (isBase) return;
+
         const key = `${p.vendor}|${p.filament_name}|${p.material_type}`;
-        if (!grouped[key]) grouped[key] = { ...p, printers: [] };
-        grouped[key].printers.push({ id: p.id, printer: p.printer });
+        if (!grouped[key]) grouped[key] = { ...p, printers: [], _bestData: p };
+        grouped[key].printers.push({
+          id: p.id,
+          printer: p.printer,
+          nozzle_temp_min: p.nozzle_temp_min,
+          nozzle_temp_max: p.nozzle_temp_max,
+          bed_temp_min: p.bed_temp_min,
+          bed_temp_max: p.bed_temp_max,
+          max_volumetric_speed: p.max_volumetric_speed,
+          source_path: p.source_path || ''
+        });
+        const best = grouped[key]._bestData;
+        if (!best.nozzle_temp_min && p.nozzle_temp_min) grouped[key]._bestData = p;
+        else if (!best.bed_temp_min && p.bed_temp_min) grouped[key]._bestData = p;
       });
 
       Object.values(grouped).forEach(g => {
         const card = document.createElement('div');
         card.className = 'profile-card';
 
-        const temps = [];
-        if (g.nozzle_temp_min || g.nozzle_temp_max)
-          temps.push(`🌡️ ${g.nozzle_temp_min || '?'}–${g.nozzle_temp_max || '?'}°C`);
-        if (g.bed_temp_min || g.bed_temp_max)
-          temps.push(`🛏️ ${g.bed_temp_min || '?'}–${g.bed_temp_max || '?'}°C`);
-        if (g.max_volumetric_speed)
-          temps.push(`⚡ ${g.max_volumetric_speed} mm³/s`);
+        const d = g._bestData || g;
+        const nozzle = (d.nozzle_temp_min || d.nozzle_temp_max)
+          ? `${d.nozzle_temp_min || '?'}–${d.nozzle_temp_max || '?'}°C` : null;
+        const bed = (d.bed_temp_min || d.bed_temp_max)
+          ? `${d.bed_temp_min || '?'}–${d.bed_temp_max || '?'}°C` : null;
+        const mvs = d.max_volumetric_speed ? `${d.max_volumetric_speed} mm³/s` : null;
+        const density = g.filament_density ? `${g.filament_density} g/cm³` : null;
+        const cost = g.filament_cost ? `${g.filament_cost} €/kg` : null;
+
+        const infoChips = [];
+        if (nozzle) infoChips.push(`<span class="pcard-chip">🌡️ Düse ${nozzle}</span>`);
+        if (bed) infoChips.push(`<span class="pcard-chip">🛏️ Bett ${bed}</span>`);
+        if (mvs) infoChips.push(`<span class="pcard-chip">⚡ ${mvs}</span>`);
+        if (density) infoChips.push(`<span class="pcard-chip">⚖️ ${density}</span>`);
+        if (cost) infoChips.push(`<span class="pcard-chip">💰 ${cost}</span>`);
+
+        const printerMap = new Map();
+        g.printers.forEach(p => {
+          let printerName = p.printer || null;
+          if (printerName && /^\d+\.?\d*\s+nozzle$/i.test(printerName)) {
+            printerName = null;
+          }
+
+          let nozzleSize = null;
+          const nzMatch = (p.source_path || '').match(/(\d+\.?\d*)\s*nozzle/i);
+          if (nzMatch) nozzleSize = nzMatch[1];
+
+          const mapKey = `${printerName || '__default__'}|${nozzleSize || 'std'}`;
+          if (!printerMap.has(mapKey)) {
+            printerMap.set(mapKey, { id: p.id, printer: printerName, nozzleSize });
+          }
+        });
+
+        const entries = Array.from(printerMap.values());
+        const hasSpecific = entries.some(e => e.printer);
+        const filtered = hasSpecific ? entries.filter(e => e.printer || e.nozzleSize) : entries;
+        const dedupPrinters = new Map();
+        (filtered.length ? filtered : entries).forEach(e => {
+          const key = e.printer || '__default__';
+          if (!dedupPrinters.has(key)) dedupPrinters.set(key, []);
+          dedupPrinters.get(key).push(e);
+        });
+
+        let printerBtns = '';
+        dedupPrinters.forEach((variants, key) => {
+          if (key !== '__default__') {
+            const label = key.replace(/^BBL\s*/i, '').replace(/^@\s*/, '').trim();
+            if (variants.length === 1) {
+              const v = variants[0];
+              const nzLabel = v.nozzleSize ? ` (${v.nozzleSize}mm)` : '';
+              printerBtns += `<a href="${ProfileDB.getDownloadUrl(v.id)}" class="profile-dl-btn" download title="${key}${nzLabel}">📥 ${label}${nzLabel}</a>`;
+            } else {
+              variants.forEach(v => {
+                const nzLabel = v.nozzleSize ? ` ${v.nozzleSize}mm` : '';
+                printerBtns += `<a href="${ProfileDB.getDownloadUrl(v.id)}" class="profile-dl-btn" download title="${key}${nzLabel}">📥 ${label}${nzLabel}</a>`;
+              });
+            }
+          } else {
+            if (variants.length === 1 && !hasSpecific) {
+              printerBtns += `<a href="${ProfileDB.getDownloadUrl(variants[0].id)}" class="profile-dl-btn" download>📥 Download</a>`;
+            } else {
+              variants.forEach(v => {
+                const nzLabel = v.nozzleSize ? ` ${v.nozzleSize}mm` : '';
+                printerBtns += `<a href="${ProfileDB.getDownloadUrl(v.id)}" class="profile-dl-btn" download>📥 Standard${nzLabel}</a>`;
+              });
+            }
+          }
+        });
 
         card.innerHTML = `
-          <div class="profile-card-header">
-            <div>
-              <strong>${g.filament_name}</strong>
-              <span class="profile-badge">${g.material_type}</span>
+          <div class="pcard-top">
+            <div class="pcard-title-row">
+              <span class="profile-badge pcard-mat">${g.material_type || '?'}</span>
+              <strong class="pcard-name">${g.filament_name}</strong>
             </div>
-            <span style="color: var(--text-secondary); font-size: 0.8rem;">${g.vendor}</span>
+            <span class="pcard-vendor">${g.vendor}</span>
           </div>
-          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.3rem;">
-            ${temps.join(' · ')}
-          </div>
-          <div class="profile-download-row">
-            ${g.printers.map(p =>
-              `<a href="${ProfileDB.getDownloadUrl(p.id)}" class="profile-dl-btn" download>
-                📥 ${p.printer || 'Allgemein'}
-              </a>`
-            ).join('')}
-          </div>
+          ${infoChips.length ? `<div class="pcard-chips">${infoChips.join('')}</div>` : ''}
+          <div class="pcard-downloads">${printerBtns}</div>
         `;
         container.appendChild(card);
       });
@@ -1822,6 +1936,206 @@ const app = {
     } catch (e) {
       this.showMobileToast('Fehler beim Laden: ' + e.message, 'error');
     }
+  },
+
+  // === Theme Toggle ===
+
+  loadTheme() {
+    const saved = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    const toggle = document.getElementById('themeToggle');
+    if (toggle) toggle.textContent = saved === 'dark' ? '☀️' : '🌙';
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = saved === 'dark' ? '#0b1120' : '#f0f4f8';
+  },
+
+  toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    const toggle = document.getElementById('themeToggle');
+    if (toggle) toggle.textContent = next === 'dark' ? '☀️' : '🌙';
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = next === 'dark' ? '#0b1120' : '#f0f4f8';
+  },
+
+  // === URL Parameters (QR code deep links) ===
+
+  checkURLParams() {
+    const params = new URLSearchParams(window.location.search);
+    const spoolData = params.get('spool') || params.get('d');
+    if (spoolData && typeof QR !== 'undefined') {
+      try {
+        const decoded = QR.decodeData(atob(spoolData));
+        if (decoded) {
+          window.history.replaceState({}, '', window.location.pathname);
+          this._lastTagData = decoded;
+          this._lastTagFormat = 'openspool_extended';
+          this.showTagSummary(decoded, 'openspool_extended', null);
+        }
+      } catch (e) {}
+    }
+  },
+
+  // === QR Code Generator ===
+
+  showQRCode() {
+    const formData = this.getFormData();
+    const container = document.getElementById('qrCodeContainer');
+    const appUrl = `${window.location.origin}${window.location.pathname}`;
+    QR.generate(container, formData, appUrl);
+    document.getElementById('qrOverlay').classList.remove('hidden');
+  },
+
+  closeQRModal() {
+    document.getElementById('qrOverlay').classList.add('hidden');
+  },
+
+  downloadQR() {
+    const canvas = document.querySelector('#qrCodeContainer canvas');
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = 'spool-propus-qr.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } else {
+      const img = document.querySelector('#qrCodeContainer img');
+      if (img) {
+        const link = document.createElement('a');
+        link.download = 'spool-propus-qr.png';
+        link.href = img.src;
+        link.target = '_blank';
+        link.click();
+      }
+    }
+  },
+
+  // === QR Code Scanner ===
+
+  toggleQRScan() {
+    if (typeof QR === 'undefined') return;
+    if (QR.isScanning()) {
+      this.stopQRScan();
+    } else {
+      this.startQRScan();
+    }
+  },
+
+  async startQRScan() {
+    const video = document.getElementById('qrVideo');
+    const container = document.getElementById('qrScannerContainer');
+    const btn = document.getElementById('qrScanBtn');
+
+    if (!QR.hasCamera) {
+      this.showStatus('qrScanStatus', 'error', 'Keine Kamera verfügbar');
+      return;
+    }
+
+    if (!QR.hasBarcodeDetector) {
+      this.showStatus('qrScanStatus', 'warning', 'Browser unterstützt kein QR-Scanning. Bitte Chrome 83+ oder Safari 17.2+ verwenden.');
+      return;
+    }
+
+    container.classList.remove('hidden');
+    btn.textContent = '⏹ Scanner stoppen';
+    btn.classList.remove('btn-success');
+    btn.classList.add('btn-secondary');
+    this.showStatus('qrScanStatus', 'warning', 'Halte den QR-Code vor die Kamera...');
+
+    await QR.startScan(video,
+      (rawValue) => {
+        this.handleQRResult(rawValue);
+      },
+      (error) => {
+        this.stopQRScan();
+        this.showStatus('qrScanStatus', 'error', error);
+      }
+    );
+  },
+
+  stopQRScan() {
+    const video = document.getElementById('qrVideo');
+    const container = document.getElementById('qrScannerContainer');
+    const btn = document.getElementById('qrScanBtn');
+
+    QR.stopScan(video);
+    container.classList.add('hidden');
+    btn.textContent = '📷 Kamera starten';
+    btn.classList.remove('btn-secondary');
+    btn.classList.add('btn-success');
+    this.showStatus('qrScanStatus', '', '');
+  },
+
+  handleQRResult(rawValue) {
+    this.stopQRScan();
+
+    let data;
+    try {
+      if (rawValue.includes('spool=') || rawValue.includes('d=')) {
+        const url = new URL(rawValue);
+        const param = url.searchParams.get('spool') || url.searchParams.get('d');
+        data = QR.decodeData(atob(param));
+      } else {
+        data = QR.decodeData(rawValue);
+      }
+    } catch (e) {}
+
+    if (data) {
+      this.showMobileToast('QR-Code erkannt!', 'success');
+      this._lastTagData = data;
+      this._lastTagFormat = 'openspool_extended';
+      this.showTagSummary(data, 'openspool_extended', null);
+    } else {
+      this.showStatus('qrScanStatus', 'error', 'QR-Code erkannt, aber keine gültigen Filament-Daten gefunden.');
+    }
+  },
+
+  // === Drying Profiles ===
+
+  renderDryingProfiles(filter) {
+    if (typeof DryingProfiles === 'undefined') return;
+
+    const grid = document.getElementById('dryingGrid');
+    let profiles = DryingProfiles.getAllSorted();
+
+    if (filter) {
+      const q = filter.toLowerCase();
+      profiles = profiles.filter(p =>
+        p.material.toLowerCase().includes(q) ||
+        (p.notes && p.notes.toLowerCase().includes(q)) ||
+        p.humidity.toLowerCase().includes(q)
+      );
+    }
+
+    grid.innerHTML = '';
+    profiles.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'drying-card';
+      card.innerHTML = `
+        <div class="drying-icon">${p.icon}</div>
+        <div class="drying-info">
+          <strong>${p.material}</strong>
+          <div class="drying-chips">
+            <span class="drying-chip">🌡️ ${p.temp}°C</span>
+            <span class="drying-chip">⏱️ ${p.time}h</span>
+            <span class="drying-chip">📈 max ${p.maxTemp}°C</span>
+            <span class="drying-chip">💧 ${p.humidity}</span>
+          </div>
+          ${p.notes ? `<div class="drying-note">${p.notes}</div>` : ''}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    if (profiles.length === 0) {
+      grid.innerHTML = '<p style="color:var(--text-secondary);text-align:center;">Kein Material gefunden.</p>';
+    }
+  },
+
+  filterDryingProfiles() {
+    const q = document.getElementById('dryingSearch').value;
+    this.renderDryingProfiles(q);
   }
 };
 

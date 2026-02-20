@@ -8,8 +8,25 @@ from database import get_db
 
 log = logging.getLogger(__name__)
 
-ORCA_RAW = 'https://raw.githubusercontent.com/SoftFever/OrcaSlicer/main'
+GITHUB_API = 'https://api.github.com'
+ORCA_REPO = 'SoftFever/OrcaSlicer'
+ORCA_RAW = f'https://raw.githubusercontent.com/{ORCA_REPO}/main'
+BAMBU_REPO = 'bambulab/BambuStudio'
+BAMBU_RAW = f'https://raw.githubusercontent.com/{BAMBU_REPO}/master'
 FILAMENT_DB_API = 'https://api.openfilamentdatabase.org/api/v1'
+
+RATE_DELAY = 0.3
+
+VENDOR_DIRS = {
+    'orca': [
+        'BBL', 'Creality', 'Elegoo', 'Prusa', 'Anycubic', 'Qidi',
+        'Snapmaker', 'Voron', 'Raise3D', 'FLSun', 'Sovol', 'Flashforge',
+        'Kingroon', 'Artillery', 'BIQU', 'Ratrig', 'TwoTrees', 'Geeetech',
+        'Eryone', 'Comgrow', 'LONGER', 'Lulzbot', 'UltiMaker',
+        'Anker', 'Phrozen', 'Tronxy', 'Voxelab', 'Vzbot',
+        'OrcaFilamentLibrary'
+    ]
+}
 
 VENDOR_NAME_MAP = {
     'BBL': 'Bambu Lab',
@@ -17,12 +34,48 @@ VENDOR_NAME_MAP = {
 }
 
 
+def _gh_get(url, retries=3):
+    for attempt in range(retries):
+        try:
+            resp = requests.get(url, timeout=30,
+                                headers={'Accept': 'application/vnd.github.v3+json'})
+            if resp.status_code == 403 and 'rate limit' in resp.text.lower():
+                log.warning("GitHub rate limit, waiting 60s...")
+                time.sleep(60)
+                continue
+            resp.raise_for_status()
+            return resp
+        except requests.RequestException as e:
+            if attempt < retries - 1:
+                time.sleep(2 ** attempt)
+            else:
+                raise
+    return None
+
+
+def _parse_temp_range(profile_data, key_min, key_max):
+    """Extract temperature from profile JSON, handling various formats."""
+    def _val(k):
+        v = profile_data.get(k)
+        if isinstance(v, list):
+            v = v[0] if v else None
+        if v is None:
+            return None
+        try:
+            return int(float(str(v)))
+        except (ValueError, TypeError):
+            return None
+    return _val(key_min), _val(key_max)
+
+
 def _extract_material_type(name, profile_data):
+    """Guess material type from filament name or profile data."""
     ft = profile_data.get('filament_type')
     if isinstance(ft, list):
         ft = ft[0] if ft else None
     if ft:
         return ft.upper()
+
     name_upper = name.upper()
     for mat in ['PLA-CF', 'PETG-CF', 'PA-CF', 'ABS-GF', 'PET-CF',
                 'PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'PA', 'PC',
@@ -32,86 +85,111 @@ def _extract_material_type(name, profile_data):
     return 'OTHER'
 
 
-def _float_val(d, key):
-    v = d.get(key)
-    if isinstance(v, list): v = v[0] if v else None
-    if v is None: return None
-    try: return float(str(v))
-    except: return None
-
-
-def _int_val(d, key):
-    v = d.get(key)
-    if isinstance(v, list): v = v[0] if v else None
-    if v is None: return None
-    try: return int(float(str(v)))
-    except: return None
-
-
-VENDORS = [
-    'BBL', 'Creality', 'Elegoo', 'Prusa', 'Anycubic', 'Qidi',
-    'Snapmaker', 'Sovol', 'Flashforge', 'FLSun', 'Artillery',
-    'Eryone', 'Comgrow', 'UltiMaker', 'Anker', 'Tronxy',
-    'TwoTrees', 'BIQU', 'Geeetech', 'Lulzbot', 'OrcaFilamentLibrary',
-]
+def _float_val(profile_data, key):
+    v = profile_data.get(key)
+    if isinstance(v, list):
+        v = v[0] if v else None
+    if v is None:
+        return None
+    try:
+        return float(str(v))
+    except (ValueError, TypeError):
+        return None
 
 
 def sync_orca_profiles():
-    """Fetch filament profiles directly from raw.githubusercontent.com (no API rate limits)."""
+    """Fetch all filament profiles from OrcaSlicer GitHub repo."""
     log.info("Starting Orca Slicer profile sync...")
     db = get_db()
     count = 0
 
-    for vendor_dir in VENDORS:
+    for vendor_dir in VENDOR_DIRS['orca']:
         vendor_display = VENDOR_NAME_MAP.get(vendor_dir, vendor_dir)
-        log.info(f"  Syncing: {vendor_display}")
+        log.info(f"  Syncing vendor: {vendor_display} ({vendor_dir})")
 
         try:
-            index_url = f'{ORCA_RAW}/resources/profiles/{vendor_dir}.json'
-            resp = requests.get(index_url, timeout=30)
-            if resp.status_code != 200:
-                log.warning(f"    No index file for {vendor_dir}")
-                continue
-            vendor_meta = resp.json()
-
-            filament_list = vendor_meta.get('filament_list', [])
-            if not filament_list:
-                log.info(f"    No filaments listed for {vendor_dir}")
+            url = f'{GITHUB_API}/repos/{ORCA_REPO}/contents/resources/profiles/{vendor_dir}/filament'
+            resp = _gh_get(url)
+            if not resp:
                 continue
 
-            log.info(f"    {len(filament_list)} filament entries")
-
-            for entry in filament_list:
-                sub_path = entry.get('sub_path', '')
-                if not sub_path or not sub_path.endswith('.json'):
+            entries = resp.json()
+            if not isinstance(entries, list):
+                url2 = f'{GITHUB_API}/repos/{ORCA_REPO}/contents/resources/profiles/{vendor_dir}'
+                resp2 = _gh_get(url2)
+                if resp2:
+                    dirs = [e for e in resp2.json() if e.get('type') == 'dir']
+                    filament_dirs = [d for d in dirs if d['name'] == 'filament']
+                    if not filament_dirs:
+                        continue
+                    entries = _gh_get(filament_dirs[0]['url']).json()
+                else:
                     continue
-                fname = sub_path.split('/')[-1]
-                if fname.startswith('fdm_filament_'):
+
+            json_files = []
+            for entry in entries:
+                if entry.get('type') == 'file' and entry['name'].endswith('.json'):
+                    json_files.append(entry)
+                elif entry.get('type') == 'dir':
+                    sub_resp = _gh_get(entry['url'])
+                    if sub_resp:
+                        for sub_entry in sub_resp.json():
+                            if sub_entry.get('type') == 'file' and sub_entry['name'].endswith('.json'):
+                                json_files.append(sub_entry)
+                    time.sleep(RATE_DELAY)
+
+            for file_entry in json_files:
+                fname = file_entry['name']
+                if fname.startswith('fdm_filament_') or fname == 'fdm_filament_common.json':
+                    continue
+                if '@base' in fname:
                     continue
 
                 try:
-                    raw_url = f'{ORCA_RAW}/resources/profiles/{vendor_dir}/{sub_path}'
-                    prof_resp = requests.get(raw_url, timeout=15)
-                    if prof_resp.status_code != 200:
+                    raw_url = file_entry.get('download_url')
+                    if not raw_url:
                         continue
+                    prof_resp = requests.get(raw_url, timeout=15)
+                    prof_resp.raise_for_status()
                     profile = prof_resp.json()
 
                     filament_name = profile.get('name', fname.replace('.json', ''))
-                    if profile.get('instantiation') == 'false' and '@base' not in filament_name.lower():
-                        pass
 
-                    printer_match = re.search(r'@(.+?)(?:\s+\d+\.\d+ nozzle)?$', filament_name)
+                    nozzle_match = re.search(r'\s+(\d+\.?\d*)\s+nozzle$', filament_name)
+                    nozzle_size = nozzle_match.group(1) if nozzle_match else None
+
+                    printer_match = re.search(r'@(.+?)(?:\s+\d+\.?\d*\s+nozzle)?$', filament_name)
                     printer = printer_match.group(1).strip() if printer_match else None
                     if printer in ('base', 'System'):
+                        printer = None
+                    if printer and re.match(r'^\d+\.?\d*\s+nozzle$', printer):
                         printer = None
 
                     base_name = re.sub(r'\s*@.*$', '', filament_name).strip()
                     material_type = _extract_material_type(base_name, profile)
 
-                    nozzle_min = _int_val(profile, 'nozzle_temperature') or _int_val(profile, 'nozzle_temperature_range_low')
-                    nozzle_max = _int_val(profile, 'nozzle_temperature') or _int_val(profile, 'nozzle_temperature_range_high')
-                    bed_min = _int_val(profile, 'hot_plate_temp')
-                    bed_max = _int_val(profile, 'hot_plate_temp')
+                    nozzle_min, nozzle_max = _parse_temp_range(
+                        profile, 'nozzle_temperature', 'nozzle_temperature')
+                    if nozzle_min and not nozzle_max:
+                        nozzle_max = nozzle_min
+                    nozzle_range_min, _ = _parse_temp_range(
+                        profile, 'nozzle_temperature_range_low', 'nozzle_temperature_range_low')
+                    nozzle_range_max, _ = _parse_temp_range(
+                        profile, 'nozzle_temperature_range_high', 'nozzle_temperature_range_high')
+                    if nozzle_range_min:
+                        nozzle_min = nozzle_range_min
+                    if nozzle_range_max:
+                        nozzle_max = nozzle_range_max
+
+                    bed_min, _ = _parse_temp_range(
+                        profile, 'hot_plate_temp', 'hot_plate_temp')
+                    bed_max, _ = _parse_temp_range(
+                        profile, 'hot_plate_temp', 'hot_plate_temp')
+
+                    density = _float_val(profile, 'filament_density')
+                    cost = _float_val(profile, 'filament_cost')
+                    flow_ratio = _float_val(profile, 'filament_flow_ratio')
+                    mvs = _float_val(profile, 'filament_max_volumetric_speed')
 
                     db.execute("""
                         INSERT INTO slicer_profiles
@@ -125,25 +203,21 @@ def sync_orca_profiles():
                                 ?, ?, ?, ?)
                     """, (vendor_display, printer, base_name, material_type,
                           nozzle_min, nozzle_max, bed_min, bed_max,
-                          _float_val(profile, 'filament_density'),
-                          _float_val(profile, 'filament_cost'),
-                          _float_val(profile, 'filament_flow_ratio'),
-                          _float_val(profile, 'filament_max_volumetric_speed'),
+                          density, cost, flow_ratio, mvs,
                           json.dumps(profile), raw_url,
-                          f'resources/profiles/{vendor_dir}/{sub_path}',
+                          file_entry.get('path', ''),
                           datetime.utcnow().isoformat()))
                     count += 1
 
                 except Exception as e:
-                    pass
+                    log.warning(f"    Error parsing {fname}: {e}")
 
-                time.sleep(0.05)
+                time.sleep(RATE_DELAY)
 
             db.commit()
-            log.info(f"    {vendor_display} done ({count} total profiles)")
 
         except Exception as e:
-            log.warning(f"    Error syncing {vendor_dir}: {e}")
+            log.warning(f"  Error syncing {vendor_dir}: {e}")
 
     db.commit()
     db.close()
@@ -168,12 +242,14 @@ def sync_filament_database():
 
             brand_slug = brand['slug']
             brand_name = brand['name']
+            log.info(f"  Syncing brand: {brand_name}")
 
             try:
                 mat_resp = requests.get(
                     f'{FILAMENT_DB_API}/brands/{brand_slug}/index.json', timeout=15)
                 mat_resp.raise_for_status()
-                materials = mat_resp.json().get('materials', [])
+                brand_data = mat_resp.json()
+                materials = brand_data.get('materials', [])
 
                 for material in materials:
                     mat_slug = material['slug']
@@ -187,7 +263,7 @@ def sync_filament_database():
                         mat_data = fil_resp.json()
                         filaments = mat_data.get('filaments', [])
                         base_density = mat_data.get('density')
-                        ss = mat_data.get('default_slicer_settings', {})
+                        slicer_settings = mat_data.get('default_slicer_settings', {})
 
                         for filament in filaments:
                             fil_slug = filament['slug']
@@ -202,26 +278,32 @@ def sync_filament_database():
                                 variants = fil_data.get('variants', [])
                                 density = fil_data.get('density') or base_density
 
+                                nozzle_min = slicer_settings.get('nozzle_temperature_min')
+                                nozzle_max = slicer_settings.get('nozzle_temperature_max')
+                                bed_min = slicer_settings.get('bed_temperature_min')
+                                bed_max = slicer_settings.get('bed_temperature_max')
+
                                 if variants:
                                     for variant in variants:
+                                        color_name = variant.get('color_name', '')
                                         color_hex = variant.get('color_hex', '')
                                         if color_hex and not color_hex.startswith('#'):
                                             color_hex = '#' + color_hex
+
                                         db.execute("""
                                             INSERT INTO filaments
                                             (brand, material, name, color_name, color_hex,
                                              density, nozzle_temp_min, nozzle_temp_max,
                                              bed_temp_min, bed_temp_max, diameter,
                                              source, source_id, extra_json, updated_at)
-                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1.75,
+                                            VALUES (?, ?, ?, ?, ?,
+                                                    ?, ?, ?, ?, ?, 1.75,
                                                     'openfilamentdb', ?, ?, ?)
                                         """, (brand_name, mat_name, fil_name,
-                                              variant.get('color_name', ''), color_hex,
-                                              density, ss.get('nozzle_temperature_min'),
-                                              ss.get('nozzle_temperature_max'),
-                                              ss.get('bed_temperature_min'),
-                                              ss.get('bed_temperature_max'),
-                                              f'{brand_slug}/{mat_slug}/{fil_slug}/{variant.get("slug","")}',
+                                              color_name, color_hex,
+                                              density, nozzle_min, nozzle_max,
+                                              bed_min, bed_max,
+                                              f'{brand_slug}/{mat_slug}/{fil_slug}/{variant.get("slug", "")}',
                                               json.dumps(variant),
                                               datetime.utcnow().isoformat()))
                                         count += 1
@@ -232,32 +314,29 @@ def sync_filament_database():
                                          density, nozzle_temp_min, nozzle_temp_max,
                                          bed_temp_min, bed_temp_max, diameter,
                                          source, source_id, extra_json, updated_at)
-                                        VALUES (?, ?, ?, '', '', ?, ?, ?, ?, ?, 1.75,
+                                        VALUES (?, ?, ?, '', '',
+                                                ?, ?, ?, ?, ?, 1.75,
                                                 'openfilamentdb', ?, ?, ?)
                                     """, (brand_name, mat_name, fil_name,
-                                          density, ss.get('nozzle_temperature_min'),
-                                          ss.get('nozzle_temperature_max'),
-                                          ss.get('bed_temperature_min'),
-                                          ss.get('bed_temperature_max'),
+                                          density, nozzle_min, nozzle_max,
+                                          bed_min, bed_max,
                                           f'{brand_slug}/{mat_slug}/{fil_slug}',
                                           json.dumps(fil_data),
                                           datetime.utcnow().isoformat()))
                                     count += 1
 
                             except Exception as e:
-                                pass
-                            time.sleep(0.1)
+                                log.warning(f"    Error fetching filament {fil_slug}: {e}")
+                            time.sleep(RATE_DELAY)
 
                     except Exception as e:
-                        pass
-                    time.sleep(0.1)
-
-                db.commit()
-                log.info(f"  {brand_name}: {count} total filaments so far")
+                        log.warning(f"    Error fetching material {mat_slug}: {e}")
+                    time.sleep(RATE_DELAY)
 
             except Exception as e:
                 log.warning(f"  Error fetching brand {brand_slug}: {e}")
-            time.sleep(0.1)
+            db.commit()
+            time.sleep(RATE_DELAY)
 
     except Exception as e:
         log.error(f"Filament DB sync failed: {e}")
@@ -269,9 +348,10 @@ def sync_filament_database():
 
 
 def run_full_sync():
-    log.info("=== Starting full sync ===")
+    """Run complete sync of all sources."""
     db = get_db()
     now = datetime.utcnow().isoformat()
+
     db.execute("DELETE FROM slicer_profiles")
     db.execute("DELETE FROM filaments")
     db.commit()
@@ -309,5 +389,6 @@ def run_full_sync():
 
     db.commit()
     db.close()
-    log.info(f"=== Full sync complete: {profile_count} profiles, {filament_count} filaments ===")
+
+    log.info(f"Full sync complete: {profile_count} profiles, {filament_count} filaments")
     return profile_count, filament_count

@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root {
+    :root, [data-theme="dark"] {
       --bg-primary: #0b1120;
       --bg-secondary: #111827;
       --bg-tertiary: #1a2540;
@@ -29,6 +29,34 @@
       --error: #f87171;
       --warning: #fbbf24;
       --focus-ring: rgba(0, 212, 170, 0.15);
+      --bg-body-grad-a: #0b1120;
+      --bg-body-grad-b: #0f1b33;
+      --glow-a: rgba(0, 212, 170, 0.03);
+      --glow-b: rgba(56, 189, 248, 0.03);
+      --btn-sec-hover: #243352;
+      --toast-bg: rgba(17,24,39,0.95);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f0f4f8;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e8ecf1;
+      --text-primary: #1a202c;
+      --text-secondary: #5a6a82;
+      --accent: #00a88a;
+      --accent-hover: #00c49e;
+      --accent-secondary: #2196f3;
+      --border: rgba(0, 0, 0, 0.08);
+      --success: #00a88a;
+      --error: #d32f2f;
+      --warning: #f57f17;
+      --focus-ring: rgba(0, 168, 138, 0.15);
+      --bg-body-grad-a: #f0f4f8;
+      --bg-body-grad-b: #e0e6ed;
+      --glow-a: rgba(0, 168, 138, 0.05);
+      --glow-b: rgba(33, 150, 243, 0.04);
+      --btn-sec-hover: #d5dce6;
+      --toast-bg: rgba(255,255,255,0.95);
     }
 
     .floating-tip {
@@ -100,7 +128,7 @@
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #0b1120 0%, #0f1b33 50%, #0b1120 100%);
+      background: linear-gradient(135deg, var(--bg-body-grad-a) 0%, var(--bg-body-grad-b) 50%, var(--bg-body-grad-a) 100%);
       background-attachment: fixed;
       color: var(--text-primary);
       line-height: 1.6;
@@ -119,7 +147,7 @@
     body::before {
       width: 500px;
       height: 500px;
-      background: rgba(0, 212, 170, 0.03);
+      background: var(--glow-a);
       top: -150px;
       right: -150px;
     }
@@ -127,28 +155,32 @@
     body::after {
       width: 400px;
       height: 400px;
-      background: rgba(56, 189, 248, 0.03);
+      background: var(--glow-b);
       bottom: -100px;
       left: -100px;
     }
 
     header {
       background: var(--bg-secondary);
-      padding: 1.5rem;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 1.75rem 1.5rem;
       border-bottom: 1px solid var(--border);
       text-align: center;
-      position: relative;
-      z-index: 1;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
     header h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
+      font-size: 1.6rem;
+      font-weight: 800;
       margin-bottom: 0.35rem;
-      background: linear-gradient(135deg, #00d4aa, #38bdf8);
+      background: linear-gradient(135deg, #00d4aa 0%, #38bdf8 50%, #a78bfa 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      letter-spacing: -0.02em;
     }
 
     header p {
@@ -159,9 +191,11 @@
     header a {
       color: var(--accent);
       text-decoration: none;
+      transition: color 0.2s;
     }
 
     header a:hover {
+      color: var(--accent-hover);
       text-decoration: underline;
     }
 
@@ -175,17 +209,25 @@
 
     .section {
       background: var(--bg-secondary);
-      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 20px;
       padding: 2rem;
       border: 1px solid var(--border);
       margin-bottom: 1rem;
-      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+      animation: fadeSlideUp 0.35s ease-out;
+    }
+
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .section-title {
       font-size: 1.3rem;
       font-weight: 700;
-      background: linear-gradient(135deg, #00d4aa, #38bdf8);
+      background: linear-gradient(135deg, #00d4aa 0%, #38bdf8 60%, #a78bfa 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -210,20 +252,24 @@
 
     input, select {
       width: 100%;
-      padding: 10px 12px;
+      padding: 11px 14px;
       background: var(--bg-tertiary);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 10px;
       color: var(--text-primary);
       font-size: 0.875rem;
       font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     }
 
     input:focus, select:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--focus-ring);
+      box-shadow: 0 0 0 3px var(--focus-ring), 0 2px 8px rgba(0, 212, 170, 0.08);
+    }
+
+    input:hover:not(:focus), select:hover:not(:focus) {
+      border-color: rgba(255,255,255,0.12);
     }
 
     .form-row {
@@ -236,18 +282,24 @@
       width: 100%;
       padding: 10px 20px;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 0.875rem;
-      font-weight: 500;
+      font-weight: 600;
       font-family: inherit;
       cursor: pointer;
-      transition: opacity 0.2s, transform 0.15s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       margin-top: 0.5rem;
+      position: relative;
+      overflow: hidden;
     }
 
     button:hover:not(:disabled) {
-      opacity: 0.9;
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
     }
 
     button:disabled {
@@ -258,8 +310,12 @@
     }
 
     .btn-primary {
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
       color: var(--bg-primary);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 4px 20px rgba(0, 212, 170, 0.3);
     }
 
     .btn-secondary {
@@ -269,12 +325,17 @@
     }
 
     .btn-secondary:hover:not(:disabled) {
-      background: #243352;
+      background: var(--btn-sec-hover);
+      border-color: rgba(255,255,255,0.12);
     }
 
     .btn-success {
-      background: var(--accent);
+      background: linear-gradient(135deg, #00d4aa, #00b896);
       color: var(--bg-primary);
+    }
+
+    .btn-success:hover:not(:disabled) {
+      box-shadow: 0 4px 20px rgba(0, 212, 170, 0.35);
     }
 
     .button-group {
@@ -284,34 +345,168 @@
       margin-top: 1rem;
     }
 
+    /* === Mode Selection Card Grid === */
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-top: 0.25rem;
+    }
+
+    .mode-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1.25rem 0.75rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: center;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mode-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,212,170,0.06), rgba(56,189,248,0.04));
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+
+    .mode-card:hover {
+      border-color: rgba(0, 212, 170, 0.3);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 212, 170, 0.1);
+    }
+
+    .mode-card:hover::before {
+      opacity: 1;
+    }
+
+    .mode-card:active {
+      transform: translateY(-1px);
+    }
+
+    .mode-card-icon {
+      font-size: 1.8rem;
+      line-height: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    .mode-card-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+      position: relative;
+      z-index: 1;
+    }
+
+    .mode-card-desc {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      line-height: 1.3;
+      position: relative;
+      z-index: 1;
+    }
+
+    .mode-card.accent-card {
+      background: linear-gradient(135deg, rgba(0,212,170,0.1), rgba(56,189,248,0.08));
+      border-color: rgba(0,212,170,0.2);
+    }
+
+    .mode-divider {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 0.25rem 0;
+    }
+
+    .mode-divider::before,
+    .mode-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .mode-divider span {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .mode-bottom-row {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .mode-bottom-row .btn-secondary {
+      flex: 1;
+      margin-top: 0;
+      font-size: 0.8rem;
+      padding: 0.7rem;
+    }
+
+    @media (max-width: 360px) {
+      .mode-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .nfc-status {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.75rem;
+      padding: 0.75rem 1rem;
       background: var(--bg-tertiary);
-      border-radius: 4px;
+      border-radius: 12px;
       font-size: 0.9rem;
       margin-bottom: 1rem;
+      border: 1px solid var(--border);
     }
 
     .nfc-indicator {
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       background: var(--error);
+      box-shadow: 0 0 6px rgba(248, 113, 113, 0.5);
+      flex-shrink: 0;
     }
 
     .nfc-indicator.ready {
       background: var(--accent);
+      box-shadow: 0 0 6px rgba(0, 212, 170, 0.5);
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 6px rgba(0, 212, 170, 0.5); }
+      50% { box-shadow: 0 0 12px rgba(0, 212, 170, 0.8); }
     }
 
     .status-message {
-      padding: 0.75rem;
-      border-radius: 4px;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
       margin-top: 0.5rem;
       font-size: 0.85rem;
       display: none;
+      animation: fadeSlideUp 0.25s ease-out;
     }
 
     .status-message.show {
@@ -320,27 +515,27 @@
 
     .status-message.success {
       background: rgba(0, 212, 170, 0.1);
-      border: 1px solid var(--success);
+      border: 1px solid rgba(0, 212, 170, 0.3);
       color: var(--accent);
     }
 
     .status-message.error {
       background: rgba(248, 113, 113, 0.1);
-      border: 1px solid var(--error);
+      border: 1px solid rgba(248, 113, 113, 0.3);
       color: var(--error);
     }
 
     .status-message.warning {
       background: rgba(251, 191, 36, 0.1);
-      border: 1px solid var(--warning);
+      border: 1px solid rgba(251, 191, 36, 0.3);
       color: var(--warning);
     }
 
     .info-box {
-      padding: 0.75rem;
-      background: rgba(56, 189, 248, 0.08);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      background: rgba(56, 189, 248, 0.06);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 12px;
       font-size: 0.85rem;
       color: var(--text-secondary);
     }
@@ -377,21 +572,26 @@
       background: var(--bg-tertiary);
       color: var(--text-primary);
       border: 2px solid var(--border);
-      border-radius: 4px;
+      border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
       font-size: 0.85rem;
       line-height: 1.2;
-      transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       user-select: none;
     }
 
-    .material-swatch:hover { background: #243352; }
+    .material-swatch:hover {
+      background: #243352;
+      transform: translateY(-1px);
+    }
+
     .material-swatch.selected {
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent), #00b896);
       color: var(--bg-primary);
       border-color: var(--accent);
-      box-shadow: 0 0 12px rgba(0, 212, 170, 0.4);
+      box-shadow: 0 2px 12px rgba(0, 212, 170, 0.35);
+      transform: translateY(-1px);
     }
 
     @media (max-width: 640px) {
@@ -445,14 +645,17 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.75rem;
+      padding: 0.75rem 1rem;
       background: var(--bg-tertiary);
-      border-radius: 4px;
+      border-radius: 12px;
       margin: 1.5rem 0 0.5rem;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
     }
 
     .collapsible:hover {
       background: #243352;
+      border-color: rgba(255,255,255,0.1);
     }
 
     .collapsible-icon {
@@ -488,19 +691,24 @@
     .spool-card {
       background: var(--bg-tertiary);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 14px;
       padding: 1rem;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.6rem;
       display: flex;
       align-items: center;
       gap: 1rem;
       cursor: pointer;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .spool-card:hover {
-      border-color: var(--accent);
-      box-shadow: 0 0 8px rgba(0, 212, 170, 0.3);
+      border-color: rgba(0, 212, 170, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 212, 170, 0.1);
+    }
+
+    .spool-card:active {
+      transform: translateY(0);
     }
 
     .spool-color-dot {
@@ -555,9 +763,10 @@
     .tag-summary {
       background: var(--bg-tertiary);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.25rem;
+      border-radius: 20px;
+      padding: 1.5rem;
       overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     }
 
     .tag-summary-header {
@@ -620,46 +829,98 @@
     .profile-card {
       background: var(--bg-tertiary);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 0.75rem 1rem;
-      margin-bottom: 0.5rem;
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.6rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .profile-card-header {
+    .profile-card:hover {
+      border-color: rgba(0, 212, 170, 0.25);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .pcard-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 0.5rem;
     }
 
+    .pcard-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .pcard-name {
+      font-size: 0.95rem;
+      line-height: 1.2;
+    }
+
+    .pcard-vendor {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      white-space: nowrap;
+      padding-top: 0.15rem;
+    }
+
     .profile-badge {
       display: inline-block;
       background: rgba(0, 212, 170, 0.15);
       color: var(--accent);
-      padding: 0.1rem 0.4rem;
-      border-radius: 4px;
+      padding: 0.15rem 0.45rem;
+      border-radius: 5px;
       font-size: 0.7rem;
-      font-weight: 600;
-      margin-left: 0.3rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
 
-    .profile-download-row {
+    .pcard-mat {
+      flex-shrink: 0;
+    }
+
+    .pcard-chips {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.4rem;
-      margin-top: 0.5rem;
+      gap: 0.35rem;
+      margin-top: 0.45rem;
     }
 
-    .profile-dl-btn {
+    .pcard-chip {
       display: inline-block;
       background: var(--bg-secondary);
       border: 1px solid var(--border);
-      color: var(--text-primary);
-      padding: 0.25rem 0.6rem;
+      padding: 0.2rem 0.5rem;
       border-radius: 6px;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .pcard-downloads {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .profile-dl-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.73rem;
       text-decoration: none;
-      transition: background 0.15s, border-color 0.15s;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
 
     .profile-dl-btn:hover {
@@ -713,12 +974,14 @@
       align-items: center;
       justify-content: center;
       gap: 0.75rem;
-      padding: 0.75rem 1rem;
-      background: var(--bg-secondary);
+      padding: 0.85rem 1rem;
+      background: rgba(17,24,39,0.92);
       border-top: 1px solid var(--border);
       z-index: 1000;
       font-size: 0.9rem;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      animation: fadeSlideUp 0.3s ease-out;
     }
 
     .install-banner.hidden {
@@ -809,29 +1072,192 @@
       text-overflow: ellipsis;
     }
 
+    .theme-toggle {
+      position: absolute;
+      top: 50%;
+      right: 1rem;
+      transform: translateY(-50%);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 0;
+      margin: 0;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .qr-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .qr-overlay.hidden { display: none !important; }
+    .qr-modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2rem;
+      max-width: 360px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+      animation: fadeSlideUp 0.3s ease-out;
+    }
+    .qr-modal h3 { margin-bottom: 1rem; }
+    .qr-modal .qr-canvas { margin: 0 auto 1rem; }
+    .qr-modal .qr-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+    .qr-modal .qr-actions button { flex: 1; }
+
+    .qr-scanner-box {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+    }
+    .qr-scanner-box video {
+      width: 100%;
+      display: block;
+      border-radius: 12px;
+    }
+    .qr-scanner-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .qr-scanner-frame {
+      width: 60%;
+      aspect-ratio: 1;
+      border: 3px solid var(--accent);
+      border-radius: 16px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);
+    }
+
+    .drying-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 0.6rem;
+    }
+    .drying-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      transition: all 0.2s;
+    }
+    .drying-card:hover {
+      border-color: rgba(255,255,255,0.1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .drying-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      padding-top: 0.1rem;
+    }
+    .drying-info { flex: 1; min-width: 0; }
+    .drying-info strong { font-size: 0.95rem; }
+    .drying-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-top: 0.3rem;
+    }
+    .drying-chip {
+      display: inline-block;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      padding: 0.15rem 0.45rem;
+      border-radius: 5px;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+    .drying-note {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+      font-style: italic;
+    }
+
+    .about-feature {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .about-feature:last-child { border-bottom: none; }
+    .about-feature-icon { font-size: 1.3rem; flex-shrink: 0; padding-top: 0.1rem; }
+    .about-feature-text strong { display: block; font-size: 0.9rem; margin-bottom: 0.15rem; }
+    .about-feature-text span { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; }
+    .release-entry { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+    .release-entry:last-child { border-bottom: none; }
+    .release-version {
+      display: inline-block;
+      background: rgba(0,212,170,0.15);
+      color: var(--accent);
+      padding: 0.15rem 0.5rem;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-right: 0.5rem;
+    }
+    .release-date { font-size: 0.75rem; color: var(--text-secondary); }
+    .release-changes { margin-top: 0.35rem; padding-left: 1rem; }
+    .release-changes li {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.2rem;
+      line-height: 1.4;
+    }
+
     .hidden {
       display: none !important;
     }
 
     footer {
       text-align: center;
-      padding: 2rem;
+      padding: 2.5rem 1rem;
       color: var(--text-secondary);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    footer p:first-child {
+      margin-bottom: 0.25rem;
     }
 
     footer a {
       color: var(--accent);
       text-decoration: none;
+      transition: color 0.2s;
     }
 
     footer a:hover {
+      color: var(--accent-hover);
       text-decoration: underline;
-    }
-
-    footer {
-      position: relative;
-      z-index: 1;
     }
 
     @media (max-width: 640px) {
@@ -864,6 +1290,7 @@
       <a href="https://specs.openprinttag.org/" target="_blank">OpenPrintTag</a> |
       <a href="#" id="spoolmanLink" onclick="app.openSpoolman(); return false;">Spoolman</a>
     </p>
+    <button id="themeToggle" class="theme-toggle" onclick="app.toggleTheme()" title="Hell-/Dunkelmodus">🌙</button>
   </header>
 
   <div class="container">
@@ -873,10 +1300,10 @@
       <div class="form-group">
         <label>Spoolman Server URL</label>
         <div style="display: flex; gap: 0.5rem;">
-          <input type="text" id="spoolmanUrl" placeholder="http://192.168.1.4:7912" style="flex: 1;">
+          <input type="text" id="spoolmanUrl" placeholder="http://your-server:7912" style="flex: 1;">
           <button class="btn-primary" onclick="app.testSpoolman()" style="width: auto; padding: 0.5rem 1rem;">Testen</button>
         </div>
-        <small style="color: var(--text-secondary)">z.B. http://192.168.1.4:7912</small>
+        <small style="color: var(--text-secondary)">z.B. http://your-server:7912</small>
       </div>
       <div id="spoolmanTestStatus" class="status-message"></div>
       <button class="btn-success" onclick="app.saveSpoolmanUrl()" style="margin-top: 0.5rem;">💾 Speichern</button>
@@ -893,13 +1320,59 @@
         <span id="nfcStatusMain">NFC wird geprüft...</span>
       </div>
 
-      <button class="btn-primary" onclick="app.setMode('read')">📖 Tag Lesen / Aktualisieren</button>
-      <button class="btn-primary" onclick="app.setMode('create')" style="margin-top: 0.5rem">✏️ Neuen Tag Erstellen</button>
-      <button class="btn-primary" onclick="app.setMode('filamentdb')" style="margin-top: 0.5rem">🔍 Filament aus Datenbank wählen</button>
-      <button class="btn-primary" onclick="app.setMode('profiles')" style="margin-top: 0.5rem">⬇️ Slicer Profile (Orca / Bambu)</button>
-      <button class="btn-primary" onclick="app.setMode('filamentlist')" style="margin-top: 0.5rem">🗄️ Filament Datenbank</button>
-      <button class="btn-primary" onclick="app.setMode('spoolman-import')" style="margin-top: 0.5rem" id="btnSpoolmanImport">📦 Von Spoolman Importieren</button>
-      <button class="btn-secondary" onclick="app.showSpoolmanSetup()" style="margin-top: 1rem">⚙️ Spoolman Einstellungen</button>
+      <div class="mode-grid">
+        <div class="mode-card accent-card" onclick="app.setMode('read')">
+          <span class="mode-card-icon">📖</span>
+          <span class="mode-card-label">Tag Lesen</span>
+          <span class="mode-card-desc">NFC lesen & aktualisieren</span>
+        </div>
+        <div class="mode-card accent-card" onclick="app.setMode('create')">
+          <span class="mode-card-icon">✏️</span>
+          <span class="mode-card-label">Neuer Tag</span>
+          <span class="mode-card-desc">Tag manuell erstellen</span>
+        </div>
+
+        <div class="mode-divider"><span>Datenbanken</span></div>
+
+        <div class="mode-card" onclick="app.setMode('filamentdb')">
+          <span class="mode-card-icon">🔍</span>
+          <span class="mode-card-label">Filament DB</span>
+          <span class="mode-card-desc">13.000+ Farbvarianten</span>
+        </div>
+        <div class="mode-card" onclick="app.setMode('profiles')">
+          <span class="mode-card-icon">⬇️</span>
+          <span class="mode-card-label">Slicer Profile</span>
+          <span class="mode-card-desc">Orca & Bambu Studio</span>
+        </div>
+        <div class="mode-card" onclick="app.setMode('filamentlist')">
+          <span class="mode-card-icon">🗄️</span>
+          <span class="mode-card-label">Alle Filamente</span>
+          <span class="mode-card-desc">Komplette Datenbank</span>
+        </div>
+        <div class="mode-card" onclick="app.setMode('spoolman-import')" id="btnSpoolmanImport">
+          <span class="mode-card-icon">📦</span>
+          <span class="mode-card-label">Spoolman</span>
+          <span class="mode-card-desc">Spulen importieren</span>
+        </div>
+
+        <div class="mode-divider"><span>Werkzeuge</span></div>
+
+        <div class="mode-card" onclick="app.setMode('drying')">
+          <span class="mode-card-icon">🌡️</span>
+          <span class="mode-card-label">Trocknung</span>
+          <span class="mode-card-desc">Trocknungsprofile</span>
+        </div>
+        <div class="mode-card" onclick="app.setMode('qrscan')">
+          <span class="mode-card-icon">📷</span>
+          <span class="mode-card-label">QR-Scanner</span>
+          <span class="mode-card-desc">QR-Code scannen</span>
+        </div>
+
+        <div class="mode-bottom-row">
+          <button class="btn-secondary" onclick="app.showSpoolmanSetup()">⚙️ Spoolman</button>
+          <button class="btn-secondary" onclick="app.setMode('about')">ℹ️ Über</button>
+        </div>
+      </div>
     </div>
 
     <!-- Filament Database Browser -->
@@ -953,6 +1426,7 @@
     <!-- Spoolman Import Section -->
     <div id="spoolmanSection" class="section hidden">
       <h2 class="section-title">📦 Spoolman Spulen</h2>
+      <input type="text" id="spoolmanSearch" placeholder="Suche nach Name, Material, Marke..." oninput="app.filterSpoolmanSpools()" style="margin-bottom: 0.5rem;">
       <div id="spoolmanStatus" class="status-message"></div>
       <div id="spoolmanSpoolList" style="margin-top: 1rem;"></div>
       <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
@@ -1246,6 +1720,7 @@
         <button id="writeBtn" class="btn-success" onclick="app.toggleWrite()" disabled style="flex: 1; min-width: 140px;">📝 NFC Beschreiben</button>
         <button id="downloadBtn" class="btn-primary" onclick="app.downloadFile()" style="flex: 1; min-width: 140px;">💾 Datei Speichern</button>
         <button id="shareBtn" class="btn-primary hidden" onclick="app.shareFile()" style="flex: 1; min-width: 140px;">📤 Teilen</button>
+        <button class="btn-secondary" onclick="app.showQRCode()" style="flex: 1; min-width: 140px;">📱 QR-Code</button>
       </div>
 
       <!-- Alternative NFC Method (shown when Web NFC not available) -->
@@ -1328,6 +1803,210 @@
       <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
     </div>
 
+    <!-- Drying Profiles Section -->
+    <div id="dryingSection" class="section hidden">
+      <h2 class="section-title">🌡️ Trocknungsprofile</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">Empfohlene Trocknungstemperaturen und -zeiten für alle gängigen Filamente.</p>
+      <div style="margin-bottom: 1rem;">
+        <input type="text" id="dryingSearch" placeholder="Material suchen..." oninput="app.filterDryingProfiles()">
+      </div>
+      <div id="dryingGrid" class="drying-grid"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+    </div>
+
+    <!-- QR Scanner Section -->
+    <div id="qrScanSection" class="section hidden">
+      <h2 class="section-title">📷 QR-Code Scannen</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">Scanne einen Spool-Propus QR-Code um die Filament-Daten zu laden.</p>
+      <div id="qrScannerContainer" class="qr-scanner-box hidden">
+        <video id="qrVideo" playsinline muted></video>
+        <div class="qr-scanner-overlay"><div class="qr-scanner-frame"></div></div>
+      </div>
+      <div id="qrScanStatus" class="status-message"></div>
+      <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+        <button id="qrScanBtn" class="btn-success" onclick="app.toggleQRScan()" style="flex:1;">📷 Kamera starten</button>
+        <button class="btn-secondary" onclick="app.setMode('menu')" style="flex:1;">← Zurück</button>
+      </div>
+    </div>
+
+    <!-- QR Code Overlay/Modal -->
+    <div id="qrOverlay" class="qr-overlay hidden" onclick="if(event.target===this)app.closeQRModal()">
+      <div class="qr-modal">
+        <h3>📱 QR-Code</h3>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">Diesen Code mit dem Handy scannen, um die Filament-Daten zu übertragen.</p>
+        <div id="qrCodeContainer" class="qr-canvas"></div>
+        <div class="qr-actions">
+          <button class="btn-primary" onclick="app.downloadQR()">💾 Speichern</button>
+          <button class="btn-secondary" onclick="app.closeQRModal()">Schliessen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- About / Release Notes -->
+    <div id="aboutSection" class="section hidden">
+      <h2 class="section-title">ℹ️ Über Spool Propus</h2>
+      <div style="display:inline-block;background:rgba(251,191,36,0.15);border:1px solid var(--warning);color:var(--warning);padding:0.3rem 0.7rem;border-radius:6px;font-size:0.8rem;font-weight:700;margin-bottom:1rem;">⚠️ BETA — Dieses Projekt befindet sich in aktiver Entwicklung</div>
+      <p style="color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.6;">
+        <strong style="color: var(--text-primary);">Spool Propus</strong> ist ein Open-Source Filament Tag Manager für 3D-Drucker.
+        Erstelle, lese und verwalte NFC-Tags und QR-Codes für deine Filament-Spulen — kompatibel mit
+        <a href="https://openspool.io/rfid.html" target="_blank" style="color:var(--accent);">OpenSpool</a> und
+        <a href="https://specs.openprinttag.org/" target="_blank" style="color:var(--accent);">OpenPrintTag</a>.
+      </p>
+
+      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);">Features</h3>
+      <div style="margin-bottom: 1.5rem;">
+        <div class="about-feature">
+          <span class="about-feature-icon">📝</span>
+          <div class="about-feature-text">
+            <strong>NFC Tags Lesen &amp; Schreiben</strong>
+            <span>Beschreibe NFC-Tags direkt vom Handy (Android Chrome) mit Filament-Daten in OpenSpool (JSON) oder OpenPrintTag (CBOR) Format. Kompatibel mit Bambu Lab, OrcaSlicer und allen OpenSpool-fähigen Druckern.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">📱</span>
+          <div class="about-feature-text">
+            <strong>QR-Code Generator &amp; Scanner</strong>
+            <span>Generiere QR-Codes mit deinen Filament-Daten zum Ausdrucken und Aufkleben auf die Spule. Scanne QR-Codes mit der Kamera, um Daten sofort zu laden — funktioniert auf allen Geräten.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">🔍</span>
+          <div class="about-feature-text">
+            <strong>Filament Datenbank</strong>
+            <span>Durchsuche über 13.000 Farbvarianten von 126+ Marken aus der Open Filament Database. Wähle ein Filament und erstelle direkt einen Tag.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">⬇️</span>
+          <div class="about-feature-text">
+            <strong>Slicer Profile</strong>
+            <span>4.000+ Filament-Profile für OrcaSlicer und Bambu Studio — automatisch von GitHub synchronisiert. Lade Profile direkt herunter, gefiltert nach Hersteller, Material und Drucker.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">📦</span>
+          <div class="about-feature-text">
+            <strong>Spoolman Integration</strong>
+            <span>Verbinde dich mit deiner Spoolman-Instanz, durchsuche dein Spulen-Inventar und importiere Filament-Daten direkt in einen Tag.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">🌡️</span>
+          <div class="about-feature-text">
+            <strong>Trocknungsprofile</strong>
+            <span>Empfohlene Trocknungstemperaturen und -zeiten für 20+ Materialien — von PLA bis PEEK. Mit Feuchtigkeitsempfindlichkeit und Hinweisen.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">🎨</span>
+          <div class="about-feature-text">
+            <strong>Farbpalette &amp; Marken-Filter</strong>
+            <span>45 vordefinierte Filament-Farben. Materialien und Varianten werden automatisch auf die gewählte Marke gefiltert (z.B. Bambu Lab zeigt nur deren Materialien).</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">📲</span>
+          <div class="about-feature-text">
+            <strong>Progressive Web App (PWA)</strong>
+            <span>Installierbar auf dem Handy-Homescreen. Funktioniert offline für Tag-Erstellung und Trocknungsprofile.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">☀️</span>
+          <div class="about-feature-text">
+            <strong>Hell- &amp; Dunkelmodus</strong>
+            <span>Umschaltbar über den Button oben rechts. Deine Einstellung wird gespeichert.</span>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);">Plattform-Unterstützung</h3>
+      <div style="margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+        <p><strong style="color:var(--text-primary);">NFC Schreiben:</strong> Android Chrome (HTTPS erforderlich)</p>
+        <p><strong style="color:var(--text-primary);">QR-Code Scanner:</strong> Chrome 83+, Safari 17.2+, Edge 83+</p>
+        <p><strong style="color:var(--text-primary);">Datei-Download:</strong> Alle Browser — Datei mit NFC Tools App auf Tag schreiben (iOS &amp; Android)</p>
+        <p><strong style="color:var(--text-primary);">Web Share:</strong> Mobile Browser mit Web Share API</p>
+      </div>
+
+      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);">Release Notes</h3>
+      <div>
+        <div class="release-entry">
+          <span class="release-version">v1.6.2-beta</span>
+          <span class="release-date">20. Februar 2026</span>
+          <ul class="release-changes">
+            <li>Trocknungsprofil-Datenbank mit 20+ Materialien</li>
+            <li>QR-Code Generator — Filament-Daten als QR auf Spule kleben</li>
+            <li>QR-Code Scanner — Kamera-basiert mit BarcodeDetector API</li>
+            <li>Hell-/Dunkelmodus mit Toggle im Header</li>
+            <li>Suchfilter für Spoolman-Spulen</li>
+            <li>Scan-Ergebnis zeigt nur gelesene Daten (QR + URL)</li>
+            <li>About-Seite mit Feature-Übersicht und Release Notes</li>
+          </ul>
+        </div>
+        <div class="release-entry">
+          <span class="release-version">v1.5.0-beta</span>
+          <span class="release-date">20. Februar 2026</span>
+          <ul class="release-changes">
+            <li>Profil-Buttons: @base Profile gefiltert, Nozzle-Varianten korrekt</li>
+            <li>Download-Buttons zeigen Druckername (A1, X1C, H2D…) statt «Allgemein»</li>
+            <li>Bessere Temperatur-Anzeige bei Slicer-Profilen</li>
+          </ul>
+        </div>
+        <div class="release-entry">
+          <span class="release-version">v1.3.0</span>
+          <span class="release-date">Februar 2026</span>
+          <ul class="release-changes">
+            <li>Slicer-Profile von OrcaSlicer GitHub (4.000+ Profile)</li>
+            <li>Filament-Datenbank mit Open Filament Database</li>
+            <li>Profil-Karten mit Temperatur-Chips und Drucker-Buttons</li>
+            <li>Service Worker Caching Fix für API-Calls</li>
+            <li>Cloudflare Tunnel Kompatibilität</li>
+          </ul>
+        </div>
+        <div class="release-entry">
+          <span class="release-version">v1.2.0</span>
+          <span class="release-date">Februar 2026</span>
+          <ul class="release-changes">
+            <li>Tag-Summary: Nur gelesene Daten anzeigen (statt volles Formular)</li>
+            <li>NFC auf dem Handy: HTTPS-Support, Plattform-Erkennung</li>
+            <li>PWA: Installierbar als App, Offline-Modus</li>
+            <li>Web Share API für Datei-Teilen</li>
+          </ul>
+        </div>
+        <div class="release-entry">
+          <span class="release-version">v1.1.0</span>
+          <span class="release-date">Februar 2026</span>
+          <ul class="release-changes">
+            <li>Farbpalette mit 45 vordefinierten Filament-Farben</li>
+            <li>Marken-spezifische Material-/Varianten-Filterung</li>
+            <li>Spoolman Integration</li>
+            <li>Filament Datenbank Browser (Open Filament DB)</li>
+          </ul>
+        </div>
+        <div class="release-entry">
+          <span class="release-version">v1.0.0</span>
+          <span class="release-date">Februar 2026</span>
+          <ul class="release-changes">
+            <li>Erster Release: NFC Tag Lesen/Schreiben</li>
+            <li>OpenSpool (JSON) &amp; OpenPrintTag (CBOR) Format</li>
+            <li>Datei Download als Fallback</li>
+            <li>Deployment auf UGREEN NAS via Docker</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="margin-top:1.5rem;padding:1rem;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;text-align:center;">
+        <p style="font-size:0.9rem;margin-bottom:0.75rem;">Gefällt dir Spool Propus? Unterstütze die Entwicklung!</p>
+        <a href="https://buymeacoffee.com/propuscode" target="_blank" rel="noopener"
+           style="display:inline-flex;align-items:center;gap:0.5rem;background:#FFDD00;color:#000;padding:0.6rem 1.2rem;border-radius:8px;font-weight:700;font-size:0.9rem;text-decoration:none;transition:opacity 0.2s;">
+          ☕ Buy me a Coffee
+        </a>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.6rem;">Jede Unterstützung hilft, Spool Propus weiterzuentwickeln.</p>
+      </div>
+
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+    </div>
+
     <!-- Write NFC Modal (placeholder) -->
     <div id="writeSection" class="section hidden">
       <h2 class="section-title">📝 Write NFC</h2>
@@ -1339,7 +2018,7 @@
     <p>Spool Propus - Filament Tag Manager |
       <a href="#" onclick="app.openSpoolman(); return false;">Spoolman</a>
     </p>
-    <p>© 2025 Spool Propus · v1.3.0-beta</p>
+    <p>© 2025 Spool Propus · v1.6.4-beta · <a href="https://buymeacoffee.com/propuscode" target="_blank" rel="noopener">☕ Unterstützen</a></p>
   </footer>
 
   <!-- Install Banner -->
@@ -1349,6 +2028,7 @@
     <button onclick="document.getElementById('installBanner').classList.add('hidden')" class="btn-secondary" style="width: auto; padding: 0.4rem 0.6rem; font-size: 0.85rem;">✕</button>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script src="cbor.js"></script>
   <script src="ndef.js"></script>
   <script src="openspool.js"></script>
@@ -1357,6 +2037,8 @@
   <script src="color.js"></script>
   <script src="filamentdb.js"></script>
   <script src="profiledb.js"></script>
+  <script src="drying.js"></script>
+  <script src="qr.js"></script>
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

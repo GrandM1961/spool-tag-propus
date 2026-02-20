@@ -20,7 +20,7 @@ _sync_lock = threading.Lock()
 
 @app.route('/api/health')
 def health():
-    return jsonify({'status': 'ok', 'version': '1.1.0'})
+    return jsonify({'status': 'ok', 'version': '1.6.4-beta'})
 
 
 # --- Slicer Profiles ---
@@ -35,7 +35,7 @@ def list_profiles():
     page = max(1, int(request.args.get('page', 1)))
     per_page = min(100, int(request.args.get('per_page', 50)))
 
-    conditions = []
+    conditions = ["source_path NOT LIKE '%@base%'"]
     params = []
 
     if vendor:
@@ -51,13 +51,13 @@ def list_profiles():
         conditions.append("(filament_name LIKE ? OR vendor LIKE ?)")
         params.extend([f'%{search}%', f'%{search}%'])
 
-    where = f"WHERE {' AND '.join(conditions)}" if conditions else ''
+    where = f"WHERE {' AND '.join(conditions)}"
 
     total = db.execute(f"SELECT COUNT(*) FROM slicer_profiles {where}", params).fetchone()[0]
     rows = db.execute(f"""
         SELECT id, vendor, printer, filament_name, material_type, slicer,
                nozzle_temp_min, nozzle_temp_max, bed_temp_min, bed_temp_max,
-               filament_density, filament_cost, max_volumetric_speed
+               filament_density, filament_cost, max_volumetric_speed, source_path
         FROM slicer_profiles {where}
         ORDER BY vendor, material_type, filament_name
         LIMIT ? OFFSET ?

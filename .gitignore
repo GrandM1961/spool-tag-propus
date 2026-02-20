@@ -1,32 +1,37 @@
-# Temporary deployment/debug scripts
-_tmp_nas.py
-check_logs.py
+node_modules/
+.env
+*.log
+.DS_Store
+Thumbs.db
+
+# Deploy scripts (contain credentials)
 deploy_*.py
-login-page.html
+fix_*.py
+
+# Database files
+*.db
+*.sqlite3
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+ssl/
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
-*.egg-info/
-dist/
-build/
+.venv/
 venv/
-.env
-
-# Node
-node_modules/
-
-# OS
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
 
 # IDE
 .vscode/
 .idea/
 
-# Database files (generated on server)
-*.db
-*.sqlite3
+# Unrelated files
+login-page.html
+
+# OS
+Desktop.ini
+ehthumbs.db

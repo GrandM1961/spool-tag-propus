@@ -1,4 +1,4 @@
-const CACHE_NAME = 'spool-propus-v1.3.0-beta';
+const CACHE_NAME = 'spool-propus-v1.6.4-beta';
 const ASSETS = [
   '/',
   '/index.html',
@@ -11,6 +11,8 @@ const ASSETS = [
   '/openprinttag.js',
   '/filamentdb.js',
   '/profiledb.js',
+  '/drying.js',
+  '/qr.js',
   '/manifest.json'
 ];
 
@@ -35,6 +37,7 @@ self.addEventListener('fetch', e => {
 
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
+  if (url.pathname.startsWith('/api/')) return;
 
   e.respondWith(
     fetch(e.request)

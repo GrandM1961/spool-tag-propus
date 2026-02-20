@@ -1,0 +1,34 @@
+services:
+  frontend:
+    image: nginx:alpine
+    container_name: spool-propus
+    ports:
+      - "8090:80"
+      - "8443:443"
+    volumes:
+      - ./public:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - spool-net
+
+  api:
+    build: ./backend
+    container_name: spool-propus-api
+    volumes:
+      - spool-data:/data
+    environment:
+      - DB_PATH=/data/spool_propus.db
+      - SYNC_INTERVAL=24
+    restart: unless-stopped
+    networks:
+      - spool-net
+
+volumes:
+  spool-data:
+
+networks:
+  spool-net:
+    driver: bridge
