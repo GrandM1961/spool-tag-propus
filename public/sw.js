@@ -1,4 +1,4 @@
-const CACHE_NAME = 'spool-propus-v1.6.4-beta';
+const CACHE_NAME = 'spool-propus-v1.6.9-beta';
 const ASSETS = [
   '/',
   '/index.html',

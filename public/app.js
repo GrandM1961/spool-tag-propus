@@ -1196,7 +1196,7 @@ const app = {
     try {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: 'Spool Propus – Filament Tag',
+          title: 'Spool Tag Propus – Filament Tag',
           text: `${displayName} Tag-Daten für NFC`,
           files: [file]
         });

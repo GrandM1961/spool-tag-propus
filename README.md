@@ -1,4 +1,4 @@
-# 🧵 Spool Propus
+# 🧵 Spool Tag Propus
 
 **Filament Tag Manager for 3D Printing** — Read, write, and manage NFC tags on filament spools using the [OpenSpool](https://github.com/spuder/OpenSpool) (JSON) and [OpenPrintTag](https://github.com/OpenPrintTag) (CBOR) standards.
 
