@@ -3,21 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1a1a1a">
+  <meta name="theme-color" content="#0b1120">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Spool Propus">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>">
   <title>Spool Propus - Filament Tag Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-primary: #1a1a1a;
-      --bg-secondary: #2d2d2d;
-      --bg-tertiary: #3d3d3d;
-      --text-primary: #ffffff;
-      --text-secondary: #b0b0b0;
-      --accent: #ff6b35;
-      --accent-hover: #ff8555;
-      --border: #444;
-      --success: #4caf50;
-      --error: #f44336;
-      --warning: #ff9800;
+      --bg-primary: #0b1120;
+      --bg-secondary: #111827;
+      --bg-tertiary: #1a2540;
+      --text-primary: #f0f4f8;
+      --text-secondary: #8b9dc3;
+      --accent: #00d4aa;
+      --accent-hover: #00e8bb;
+      --accent-secondary: #38bdf8;
+      --border: rgba(255, 255, 255, 0.06);
+      --success: #00d4aa;
+      --error: #f87171;
+      --warning: #fbbf24;
+      --focus-ring: rgba(0, 212, 170, 0.15);
     }
 
     .floating-tip {
@@ -32,12 +43,12 @@
       border-radius: 999px;
       background: var(--accent);
       border: 1px solid var(--accent-hover);
-      color: #fff;
+      color: var(--bg-primary);
       font-size: 0.95rem;
       font-weight: 700;
       line-height: 1;
       cursor: pointer;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(255,107,53,0.35);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(0,212,170,0.35);
       width: auto !important;
       margin: 0;
       animation: tip-pulse 2s ease-out infinite;
@@ -47,9 +58,9 @@
     .floating-tip:active { transform: translateY(1px); }
 
     @keyframes tip-pulse {
-      0% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(255,107,53,0.35); }
-      70% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 14px rgba(255,107,53,0); }
-      100% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(255,107,53,0); }
+      0% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(0,212,170,0.35); }
+      70% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 14px rgba(0,212,170,0); }
+      100% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(0,212,170,0); }
     }
 
     @media (min-width: 641px) {
@@ -64,8 +75,8 @@
       z-index: 1000;
       padding: 10px 14px;
       border-radius: 8px;
-      background: rgba(45,45,45,0.95);
-      color: #fff;
+      background: rgba(17,24,39,0.95);
+      color: var(--text-primary);
       font-size: 0.9rem;
       border: 1px solid var(--border);
       box-shadow: 0 6px 20px rgba(0,0,0,0.35);
@@ -74,8 +85,8 @@
       text-align: center;
     }
     .mobile-toast.show { display: block; }
-    .mobile-toast.success { background: rgba(76,175,80,0.95); border-color: rgba(76,175,80,0.8); }
-    .mobile-toast.error { background: rgba(244,67,54,0.95); border-color: rgba(244,67,54,0.8); }
+    .mobile-toast.success { background: rgba(0,212,170,0.95); color: var(--bg-primary); border-color: rgba(0,212,170,0.8); }
+    .mobile-toast.error { background: rgba(248,113,113,0.95); color: var(--bg-primary); border-color: rgba(248,113,113,0.8); }
 
     @media (min-width: 641px) {
       .mobile-toast { display: none !important; }
@@ -88,28 +99,61 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0b1120 0%, #0f1b33 50%, #0b1120 100%);
+      background-attachment: fixed;
       color: var(--text-primary);
       line-height: 1.6;
       min-height: 100vh;
+      position: relative;
+    }
+
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      width: 500px;
+      height: 500px;
+      background: rgba(0, 212, 170, 0.03);
+      top: -150px;
+      right: -150px;
+    }
+
+    body::after {
+      width: 400px;
+      height: 400px;
+      background: rgba(56, 189, 248, 0.03);
+      bottom: -100px;
+      left: -100px;
     }
 
     header {
       background: var(--bg-secondary);
       padding: 1.5rem;
-      border-bottom: 2px solid var(--accent);
+      border-bottom: 1px solid var(--border);
       text-align: center;
+      position: relative;
+      z-index: 1;
     }
 
     header h1 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+      background: linear-gradient(135deg, #00d4aa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     header p {
       color: var(--text-secondary);
-      font-size: 0.9rem;
+      font-size: 0.8rem;
     }
 
     header a {
@@ -125,22 +169,29 @@
       max-width: 800px;
       margin: 2rem auto;
       padding: 0 1rem;
+      position: relative;
+      z-index: 1;
     }
 
     .section {
       background: var(--bg-secondary);
-      border-radius: 8px;
+      border-radius: 16px;
       padding: 2rem;
       border: 1px solid var(--border);
       margin-bottom: 1rem;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
     }
 
     .section-title {
-      font-size: 1.5rem;
-      color: var(--accent);
+      font-size: 1.3rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00d4aa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
       margin-bottom: 1.5rem;
-      border-bottom: 2px solid var(--accent);
-      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
     }
 
     .form-group {
@@ -151,23 +202,28 @@
       display: block;
       margin-bottom: 0.5rem;
       color: var(--text-secondary);
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     input, select {
       width: 100%;
-      padding: 0.75rem;
+      padding: 10px 12px;
       background: var(--bg-tertiary);
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 8px;
       color: var(--text-primary);
-      font-size: 1rem;
+      font-size: 0.875rem;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     input:focus, select:focus {
       outline: none;
       border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus-ring);
     }
 
     .form-row {
@@ -178,47 +234,47 @@
 
     button {
       width: 100%;
-      padding: 0.75rem 1.5rem;
+      padding: 10px 20px;
       border: none;
-      border-radius: 4px;
-      font-size: 1rem;
-      font-weight: 600;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: inherit;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: opacity 0.2s, transform 0.15s;
       margin-top: 0.5rem;
+    }
+
+    button:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
     }
 
     button:disabled {
       background: var(--bg-tertiary);
       color: var(--text-secondary);
       cursor: not-allowed;
+      opacity: 0.6;
     }
 
     .btn-primary {
       background: var(--accent);
-      color: white;
-    }
-
-    .btn-primary:hover:not(:disabled) {
-      background: var(--accent-hover);
+      color: var(--bg-primary);
     }
 
     .btn-secondary {
       background: var(--bg-tertiary);
       color: var(--text-primary);
+      border: 1px solid var(--border);
     }
 
-    .btn-secondary:hover {
-      background: #4d4d4d;
+    .btn-secondary:hover:not(:disabled) {
+      background: #243352;
     }
 
     .btn-success {
-      background: var(--success);
-      color: white;
-    }
-
-    .btn-success:hover:not(:disabled) {
-      background: #45a049;
+      background: var(--accent);
+      color: var(--bg-primary);
     }
 
     .button-group {
@@ -247,7 +303,7 @@
     }
 
     .nfc-indicator.ready {
-      background: var(--success);
+      background: var(--accent);
     }
 
     .status-message {
@@ -263,28 +319,28 @@
     }
 
     .status-message.success {
-      background: rgba(76, 175, 80, 0.1);
+      background: rgba(0, 212, 170, 0.1);
       border: 1px solid var(--success);
-      color: var(--success);
+      color: var(--accent);
     }
 
     .status-message.error {
-      background: rgba(244, 67, 54, 0.1);
+      background: rgba(248, 113, 113, 0.1);
       border: 1px solid var(--error);
       color: var(--error);
     }
 
     .status-message.warning {
-      background: rgba(255, 152, 0, 0.1);
+      background: rgba(251, 191, 36, 0.1);
       border: 1px solid var(--warning);
       color: var(--warning);
     }
 
     .info-box {
       padding: 0.75rem;
-      background: rgba(255, 152, 0, 0.1);
-      border: 1px solid var(--warning);
-      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 8px;
       font-size: 0.85rem;
       color: var(--text-secondary);
     }
@@ -330,12 +386,12 @@
       user-select: none;
     }
 
-    .material-swatch:hover { background: #4d4d4d; }
+    .material-swatch:hover { background: #243352; }
     .material-swatch.selected {
       background: var(--accent);
-      color: #fff;
+      color: var(--bg-primary);
       border-color: var(--accent);
-      box-shadow: 0 0 12px rgba(255, 107, 53, 0.6);
+      box-shadow: 0 0 12px rgba(0, 212, 170, 0.4);
     }
 
     @media (max-width: 640px) {
@@ -380,7 +436,7 @@
     .color-swatch.selected {
       border-color: var(--accent);
       border-width: 3px;
-      box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+      box-shadow: 0 0 10px rgba(0, 212, 170, 0.5);
     }
 
     .collapsible {
@@ -396,7 +452,7 @@
     }
 
     .collapsible:hover {
-      background: #4d4d4d;
+      background: #243352;
     }
 
     .collapsible-icon {
@@ -420,7 +476,7 @@
     .decoded-data {
       background: var(--bg-tertiary);
       padding: 1rem;
-      border-radius: 4px;
+      border-radius: 8px;
       font-family: monospace;
       font-size: 0.85rem;
       white-space: pre-wrap;
@@ -444,7 +500,7 @@
 
     .spool-card:hover {
       border-color: var(--accent);
-      box-shadow: 0 0 8px rgba(255, 107, 53, 0.3);
+      box-shadow: 0 0 8px rgba(0, 212, 170, 0.3);
     }
 
     .spool-color-dot {
@@ -496,6 +552,225 @@
       color: var(--error);
     }
 
+    .tag-summary {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.25rem;
+      overflow: hidden;
+    }
+
+    .tag-summary-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tag-summary-color {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tag-summary-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .tag-summary-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-top: 0.15rem;
+    }
+
+    .tag-summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+    }
+
+    .tag-summary-item {
+      padding: 0.5rem 0.6rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+    }
+
+    .tag-summary-item.full {
+      grid-column: 1 / -1;
+    }
+
+    .tag-summary-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 0.15rem;
+    }
+
+    .tag-summary-value {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .profile-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .profile-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .profile-badge {
+      display: inline-block;
+      background: rgba(0, 212, 170, 0.15);
+      color: var(--accent);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 0.3rem;
+    }
+
+    .profile-download-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+
+    .profile-dl-btn {
+      display: inline-block;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .profile-dl-btn:hover {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+
+    .filament-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .filament-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.6rem 0.75rem;
+    }
+
+    .filament-color {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+    }
+
+    .filament-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .filament-info strong {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .install-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      z-index: 1000;
+      font-size: 0.9rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .install-banner.hidden {
+      display: none;
+    }
+
+    .color-swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+      gap: 6px;
+      margin-bottom: 0.5rem;
+    }
+
+    .color-swatch-grid .cs {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+      position: relative;
+    }
+
+    .color-swatch-grid .cs:hover {
+      transform: scale(1.15);
+      z-index: 1;
+    }
+
+    .color-swatch-grid .cs.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(0, 212, 170, 0.5);
+      transform: scale(1.1);
+    }
+
+    .color-swatch-grid .cs[title]::after {
+      content: attr(title);
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      white-space: nowrap;
+      color: var(--text-secondary);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .color-swatch-grid .cs:hover[title]::after {
+      opacity: 1;
+    }
+
     .color-variant-swatch {
       display: flex;
       align-items: center;
@@ -516,7 +791,7 @@
 
     .color-variant-swatch.selected {
       border-color: var(--accent);
-      box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+      box-shadow: 0 0 10px rgba(0, 212, 170, 0.4);
     }
 
     .color-variant-swatch .cv-dot {
@@ -554,12 +829,18 @@
       text-decoration: underline;
     }
 
+    footer {
+      position: relative;
+      z-index: 1;
+    }
+
     @media (max-width: 640px) {
       .container {
         margin: 1rem auto;
       }
       .section {
         padding: 1rem;
+        border-radius: 12px;
       }
       .form-row, .button-group {
         grid-template-columns: 1fr;
@@ -605,9 +886,18 @@
     <!-- Mode Selection -->
     <div id="modeSelection" class="section">
       <h2 class="section-title">Was möchtest du tun?</h2>
+
+      <!-- Platform NFC Status -->
+      <div id="platformStatus" class="info-box" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; line-height: 1.4;">
+        <div id="nfcIndicatorMain" class="nfc-indicator"></div>
+        <span id="nfcStatusMain">NFC wird geprüft...</span>
+      </div>
+
       <button class="btn-primary" onclick="app.setMode('read')">📖 Tag Lesen / Aktualisieren</button>
       <button class="btn-primary" onclick="app.setMode('create')" style="margin-top: 0.5rem">✏️ Neuen Tag Erstellen</button>
       <button class="btn-primary" onclick="app.setMode('filamentdb')" style="margin-top: 0.5rem">🔍 Filament aus Datenbank wählen</button>
+      <button class="btn-primary" onclick="app.setMode('profiles')" style="margin-top: 0.5rem">⬇️ Slicer Profile (Orca / Bambu)</button>
+      <button class="btn-primary" onclick="app.setMode('filamentlist')" style="margin-top: 0.5rem">🗄️ Filament Datenbank</button>
       <button class="btn-primary" onclick="app.setMode('spoolman-import')" style="margin-top: 0.5rem" id="btnSpoolmanImport">📦 Von Spoolman Importieren</button>
       <button class="btn-secondary" onclick="app.showSpoolmanSetup()" style="margin-top: 1rem">⚙️ Spoolman Einstellungen</button>
     </div>
@@ -670,29 +960,41 @@
 
     <!-- Read Section -->
     <div id="readSection" class="section hidden">
-      <h2 class="section-title">📖 Read NFC Tag or Upload File</h2>
+      <h2 class="section-title">📖 Tag Lesen / Datei Hochladen</h2>
 
       <div class="nfc-status">
         <div id="nfcIndicator" class="nfc-indicator"></div>
-        <span id="nfcStatusText">Checking NFC...</span>
+        <span id="nfcStatusText">NFC wird geprüft...</span>
       </div>
 
-      <button id="scanBtn" class="btn-success" onclick="app.toggleScan()" disabled>Start Scanning</button>
+      <button id="scanBtn" class="btn-success" onclick="app.toggleScan()" disabled>🔍 NFC Scannen</button>
 
       <div id="readStatus" class="status-message"></div>
 
       <div class="form-group" style="margin-top: 1rem">
-        <label>Or Upload File</label>
+        <label>Oder Datei hochladen</label>
         <input type="file" id="fileInput" accept=".json,.bin">
-        <small style="color: var(--text-secondary)">Supports .json (OpenSpool) and .bin (OpenPrintTag)</small>
+        <small style="color: var(--text-secondary)">Unterstützt .json (OpenSpool) und .bin (OpenPrintTag)</small>
       </div>
 
       <div id="decodedDataContainer" class="hidden">
-        <h3>Decoded Data</h3>
+        <h3>Gelesene Daten</h3>
         <div id="decodedData" class="decoded-data"></div>
       </div>
 
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Back to Menu</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Tag Summary (Read-Only View) -->
+    <div id="tagSummarySection" class="section hidden">
+      <h2 class="section-title">📋 Tag Inhalt</h2>
+      <div id="tagSummaryContent" class="tag-summary"></div>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
+        <button class="btn-success" onclick="app.rewriteTag()" id="rewriteBtn" style="flex:1; min-width: 140px;">📝 Auf neuen Tag kopieren</button>
+        <button class="btn-primary" onclick="app.editTagData()" style="flex:1; min-width: 140px;">✏️ Bearbeiten</button>
+      </div>
+      <div id="rewriteStatus" class="status-message"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
     </div>
 
     <!-- Form Section (Create / Update) -->
@@ -731,16 +1033,15 @@
 
       <!-- Color 1 (Primary) -->
       <div class="form-group">
-        <label>Color 1 (Primary)</label>
+        <label>Farbe (Hauptfarbe)</label>
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-          <div id="colorPreview1" style="width: 40px; height: 40px; border-radius: 4px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+          <div id="colorPreview1" style="width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--border); background: #FFFFFF;"></div>
           <input type="text" id="colorHex1" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
         </div>
-        <small style="color: var(--text-secondary)">Hold and drag on the picker to choose, or enter hex without # (e.g., FF5733)</small>
-        <div class="picker-row" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-          <canvas id="colorSV1" style="width: 100%; height: 150px; border-radius: 4px; cursor: crosshair;"></canvas>
-        </div>
-        <canvas id="colorHue1" style="width: 100%; height: 20px; border-radius: 4px; cursor: crosshair; margin-top: 0.25rem;"></canvas>
+        <div id="colorSwatchGrid1" class="color-swatch-grid"></div>
+        <small style="color: var(--text-secondary)">Farbe wählen oder Hex-Code eingeben (ohne #)</small>
+        <canvas id="colorSV1" style="display:none;"></canvas>
+        <canvas id="colorHue1" style="display:none;"></canvas>
       </div>
 
       <!-- Temperature Settings -->
@@ -838,48 +1139,42 @@
           <!-- Color 2 -->
           <div class="additional-colors" style="display: none;">
             <div class="form-group">
-              <label>Color 2 (Optional)</label>
+              <label>Farbe 2 (Optional)</label>
               <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <div id="colorPreview2" style="width: 40px; height: 40px; border-radius: 4px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+                <div id="colorPreview2" style="width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--border); background: #FFFFFF;"></div>
                 <input type="text" id="colorHex2" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
               </div>
-              <small style="color: var(--text-secondary)">Hold and drag on the picker to choose, or enter hex without #</small>
-              <div class="picker-row" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                <canvas id="colorSV2" style="width: 100%; height: 150px; border-radius: 4px; cursor: crosshair;"></canvas>
-              </div>
-              <canvas id="colorHue2" style="width: 100%; height: 20px; border-radius: 4px; cursor: crosshair; margin-top: 0.25rem;"></canvas>
+              <div id="colorSwatchGrid2" class="color-swatch-grid"></div>
+              <canvas id="colorSV2" style="display:none;"></canvas>
+              <canvas id="colorHue2" style="display:none;"></canvas>
             </div>
           </div>
 
           <!-- Color 3 -->
           <div class="additional-colors" style="display: none;">
             <div class="form-group">
-              <label>Color 3 (Optional)</label>
+              <label>Farbe 3 (Optional)</label>
               <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <div id="colorPreview3" style="width: 40px; height: 40px; border-radius: 4px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+                <div id="colorPreview3" style="width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--border); background: #FFFFFF;"></div>
                 <input type="text" id="colorHex3" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
               </div>
-              <small style="color: var(--text-secondary)">Hold and drag on the picker to choose, or enter hex without #</small>
-              <div class="picker-row" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                <canvas id="colorSV3" style="width: 100%; height: 150px; border-radius: 4px; cursor: crosshair;"></canvas>
-              </div>
-              <canvas id="colorHue3" style="width: 100%; height: 20px; border-radius: 4px; cursor: crosshair; margin-top: 0.25rem;"></canvas>
+              <div id="colorSwatchGrid3" class="color-swatch-grid"></div>
+              <canvas id="colorSV3" style="display:none;"></canvas>
+              <canvas id="colorHue3" style="display:none;"></canvas>
             </div>
           </div>
 
           <!-- Color 4 -->
           <div class="additional-colors" style="display: none;">
             <div class="form-group">
-              <label>Color 4 (Optional)</label>
+              <label>Farbe 4 (Optional)</label>
               <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <div id="colorPreview4" style="width: 40px; height: 40px; border-radius: 4px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+                <div id="colorPreview4" style="width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--border); background: #FFFFFF;"></div>
                 <input type="text" id="colorHex4" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
               </div>
-              <small style="color: var(--text-secondary)">Hold and drag on the picker to choose, or enter hex without #</small>
-              <div class="picker-row" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                <canvas id="colorSV4" style="width: 100%; height: 150px; border-radius: 4px; cursor: crosshair;"></canvas>
-              </div>
-              <canvas id="colorHue4" style="width: 100%; height: 20px; border-radius: 4px; cursor: crosshair; margin-top: 0.25rem;"></canvas>
+              <div id="colorSwatchGrid4" class="color-swatch-grid"></div>
+              <canvas id="colorSV4" style="display:none;"></canvas>
+              <canvas id="colorHue4" style="display:none;"></canvas>
             </div>
           </div>
 
@@ -947,14 +1242,29 @@
       </div>
 
       <!-- Action Buttons -->
-      <div class="button-group">
-        <button class="btn-primary" onclick="app.downloadFile()">💾 Download File</button>
-        <button id="writeBtn" class="btn-success" onclick="app.toggleWrite()" disabled>📝 Write to NFC</button>
+      <div class="button-group" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        <button id="writeBtn" class="btn-success" onclick="app.toggleWrite()" disabled style="flex: 1; min-width: 140px;">📝 NFC Beschreiben</button>
+        <button id="downloadBtn" class="btn-primary" onclick="app.downloadFile()" style="flex: 1; min-width: 140px;">💾 Datei Speichern</button>
+        <button id="shareBtn" class="btn-primary hidden" onclick="app.shareFile()" style="flex: 1; min-width: 140px;">📤 Teilen</button>
+      </div>
+
+      <!-- Alternative NFC Method (shown when Web NFC not available) -->
+      <div id="altNfcMethod" class="info-box hidden" style="margin-top: 1rem; line-height: 1.6;">
+        <strong>📲 NFC Tag ohne Chrome schreiben:</strong>
+        <ol style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+          <li>Lade dir <strong>«NFC Tools»</strong> herunter
+            (<a href="https://apps.apple.com/app/nfc-tools/id1252962749" target="_blank" rel="noopener" style="color: var(--accent);">iOS</a> /
+            <a href="https://play.google.com/store/apps/details?id=com.wakdev.wdnfc" target="_blank" rel="noopener" style="color: var(--accent);">Android</a>)
+          </li>
+          <li>Klicke oben auf <strong>«💾 Datei Speichern»</strong> oder <strong>«📤 Teilen»</strong></li>
+          <li>Öffne die Datei in NFC Tools → <em>Schreiben → Datensatz hinzufügen → Datei</em></li>
+          <li>Halte den NFC-Tag an dein Handy</li>
+        </ol>
       </div>
 
       <!-- Record Size Info -->
       <div id="recordSizeInfo" class="info-box" style="margin-top: 1rem;">
-        📊 <strong>NDEF Record Size:</strong> <span id="recordSize">?</span>
+        📊 <strong>NDEF Record:</strong> <span id="recordSize">?</span>
       </div>
 
       <!-- Orca Profile Info -->
@@ -965,7 +1275,57 @@
 
       <div id="writeStatus" class="status-message"></div>
 
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Back to Menu</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Slicer Profiles Section -->
+    <div id="profilesSection" class="section hidden">
+      <h2 class="section-title">⬇️ Slicer Profile</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">Filament-Profile für Orca Slicer und Bambu Studio – automatisch von GitHub synchronisiert.</p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+        <select id="profileVendorFilter" onchange="app.onProfileVendorChange()" style="flex: 1; min-width: 140px;">
+          <option value="">Alle Hersteller</option>
+        </select>
+        <select id="profileMaterialFilter" onchange="app.loadProfiles()" style="flex: 1; min-width: 120px;">
+          <option value="">Alle Materialien</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <input type="text" id="profileSearch" placeholder="Suche nach Name..." style="flex: 1;" onkeyup="if(event.key==='Enter')app.loadProfiles()">
+        <button class="btn-primary" onclick="app.loadProfiles()" style="width: auto; padding: 0.5rem 1rem;">🔍</button>
+      </div>
+
+      <div id="profileSyncInfo" class="info-box" style="margin-bottom: 1rem; font-size: 0.85rem;"></div>
+      <div id="profileResults"></div>
+      <div id="profilePagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;"></div>
+      <div id="profileStatus" class="status-message"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Filament Database Section -->
+    <div id="filamentListSection" class="section hidden">
+      <h2 class="section-title">🗄️ Filament Datenbank</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">Alle Filamente aus der Open Filament Database – wird täglich automatisch aktualisiert.</p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+        <select id="filListBrandFilter" onchange="app.onFilListBrandChange()" style="flex: 1; min-width: 140px;">
+          <option value="">Alle Marken</option>
+        </select>
+        <select id="filListMaterialFilter" onchange="app.loadFilamentList()" style="flex: 1; min-width: 120px;">
+          <option value="">Alle Materialien</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <input type="text" id="filListSearch" placeholder="Suche nach Name, Farbe..." style="flex: 1;" onkeyup="if(event.key==='Enter')app.loadFilamentList()">
+        <button class="btn-primary" onclick="app.loadFilamentList()" style="width: auto; padding: 0.5rem 1rem;">🔍</button>
+      </div>
+
+      <div id="filListSyncInfo" class="info-box" style="margin-bottom: 1rem; font-size: 0.85rem;"></div>
+      <div id="filListResults"></div>
+      <div id="filListPagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;"></div>
+      <div id="filListStatus" class="status-message"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
     </div>
 
     <!-- Write NFC Modal (placeholder) -->
@@ -979,8 +1339,15 @@
     <p>Spool Propus - Filament Tag Manager |
       <a href="#" onclick="app.openSpoolman(); return false;">Spoolman</a>
     </p>
-    <p>© 2025 Spool Propus · v1.0.0</p>
+    <p>© 2025 Spool Propus · v1.1.0</p>
   </footer>
+
+  <!-- Install Banner -->
+  <div id="installBanner" class="install-banner hidden">
+    <span>📲 Spool Propus als App installieren</span>
+    <button id="installBtn" class="btn-success" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem;">Installieren</button>
+    <button onclick="document.getElementById('installBanner').classList.add('hidden')" class="btn-secondary" style="width: auto; padding: 0.4rem 0.6rem; font-size: 0.85rem;">✕</button>
+  </div>
 
   <script src="cbor.js"></script>
   <script src="ndef.js"></script>
@@ -989,6 +1356,27 @@
   <script src="formats.js"></script>
   <script src="color.js"></script>
   <script src="filamentdb.js"></script>
+  <script src="profiledb.js"></script>
   <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.classList.remove('hidden');
+    });
+    document.getElementById('installBtn').addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      document.getElementById('installBanner').classList.add('hidden');
+    });
+  </script>
 </body>
 </html>

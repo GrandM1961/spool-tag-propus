@@ -215,70 +215,144 @@ const ColorPicker = {
     this.redraw(i);
   },
 
-  init(app, count = 4) {
+  FILAMENT_COLORS: [
+    { name: 'Weiss', hex: 'FFFFFF' },
+    { name: 'Elfenbein', hex: 'FFFFF0' },
+    { name: 'Beige', hex: 'F5F5DC' },
+    { name: 'Creme', hex: 'FFFDD0' },
+    { name: 'Hellgrau', hex: 'D3D3D3' },
+    { name: 'Grau', hex: '808080' },
+    { name: 'Dunkelgrau', hex: '404040' },
+    { name: 'Schwarz', hex: '000000' },
+    { name: 'Rot', hex: 'FF0000' },
+    { name: 'Dunkelrot', hex: '8B0000' },
+    { name: 'Weinrot', hex: '722F37' },
+    { name: 'Karmin', hex: 'DC143C' },
+    { name: 'Orange', hex: 'FF8C00' },
+    { name: 'Neon Orange', hex: 'FF6600' },
+    { name: 'Gelb', hex: 'FFFF00' },
+    { name: 'Gold', hex: 'FFD700' },
+    { name: 'Zitrone', hex: 'FFF44F' },
+    { name: 'Hellgrün', hex: '90EE90' },
+    { name: 'Grün', hex: '008000' },
+    { name: 'Dunkelgrün', hex: '006400' },
+    { name: 'Lime', hex: '32CD32' },
+    { name: 'Neon Grün', hex: '39FF14' },
+    { name: 'Oliv', hex: '808000' },
+    { name: 'Wald', hex: '228B22' },
+    { name: 'Teal', hex: '008080' },
+    { name: 'Türkis', hex: '40E0D0' },
+    { name: 'Cyan', hex: '00FFFF' },
+    { name: 'Himmelblau', hex: '87CEEB' },
+    { name: 'Blau', hex: '0000FF' },
+    { name: 'Königsblau', hex: '4169E1' },
+    { name: 'Marineblau', hex: '000080' },
+    { name: 'Violett', hex: '8A2BE2' },
+    { name: 'Lila', hex: '800080' },
+    { name: 'Lavendel', hex: 'E6E6FA' },
+    { name: 'Magenta', hex: 'FF00FF' },
+    { name: 'Pink', hex: 'FF69B4' },
+    { name: 'Rosa', hex: 'FFB6C1' },
+    { name: 'Braun', hex: '8B4513' },
+    { name: 'Schokolade', hex: 'D2691E' },
+    { name: 'Sand', hex: 'D2B48C' },
+    { name: 'Silber', hex: 'C0C0C0' },
+    { name: 'Bronze', hex: 'CD7F32' },
+    { name: 'Kupfer', hex: 'B87333' },
+    { name: 'Hautfarbe', hex: 'FFCBA4' },
+    { name: 'Transparent', hex: 'FDFDFD' },
+  ],
+
+  buildSwatchGrid(index, appRef) {
+    const grid = document.getElementById(`colorSwatchGrid${index}`);
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    this.FILAMENT_COLORS.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'cs';
+      el.title = c.name;
+      el.style.background = '#' + c.hex;
+
+      if (c.hex === '000000' || c.hex === '000080' || c.hex === '0000FF'
+        || c.hex === '8B0000' || c.hex === '006400' || c.hex === '722F37'
+        || c.hex === '800080' || c.hex === '404040' || c.hex === '008000'
+        || c.hex === '008080' || c.hex === '228B22') {
+        el.style.border = '2px solid rgba(255,255,255,0.15)';
+      }
+
+      el.addEventListener('click', () => {
+        grid.querySelectorAll('.cs').forEach(s => s.classList.remove('selected'));
+        el.classList.add('selected');
+        this.selectColor(index, c.hex, appRef);
+      });
+      grid.appendChild(el);
+    });
+  },
+
+  selectColor(index, hex, appRef) {
+    const inputEl = document.getElementById(`colorHex${index}`);
+    if (inputEl) inputEl.value = hex;
+    const preview = document.getElementById(`colorPreview${index}`);
+    if (preview) preview.style.background = '#' + hex;
+
+    const hsv = this.hexToHsv(hex);
+    if (hsv) {
+      this.state[index] = this.state[index] || {};
+      [this.state[index].hue, this.state[index].s, this.state[index].v] = hsv;
+    }
+
+    if (appRef && typeof appRef.updateColor === 'function') appRef.updateColor('#' + hex, index);
+    if (appRef && typeof appRef.updateRecordSize === 'function') appRef.updateRecordSize();
+  },
+
+  highlightSwatch(index) {
+    const grid = document.getElementById(`colorSwatchGrid${index}`);
+    if (!grid) return;
+    const inputEl = document.getElementById(`colorHex${index}`);
+    const currentHex = (inputEl && inputEl.value || 'FFFFFF').toUpperCase();
+    grid.querySelectorAll('.cs').forEach(s => {
+      const swatchHex = s.style.background
+        ? this._bgToHex(s.style.background)
+        : '';
+      s.classList.toggle('selected', swatchHex === currentHex);
+    });
+  },
+
+  _bgToHex(bg) {
+    const m = bg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (m) {
+      return [m[1], m[2], m[3]]
+        .map(x => parseInt(x).toString(16).padStart(2, '0'))
+        .join('').toUpperCase();
+    }
+    return bg.replace('#', '').toUpperCase();
+  },
+
+  init(appRef, count = 4) {
     for (let i = 1; i <= count; i++) {
       const inputEl = document.getElementById(`colorHex${i}`);
       const initialHex = (inputEl && inputEl.value) || 'FFFFFF';
       const hsv = this.hexToHsv(initialHex) || [0, 0, 1];
       this.state[i] = { hue: hsv[0], s: hsv[1], v: hsv[2] };
 
-      const sv = document.getElementById(`colorSV${i}`);
-      const hueBar = document.getElementById(`colorHue${i}`);
-      if (!sv || !hueBar) continue;
-
-      this.setupCanvas(sv, (ctx, w, h) => {
-        this.drawSVSquare(ctx, w, h, this.state[i].hue);
-        this.drawSVMarker(ctx, w, h, this.state[i].s, this.state[i].v);
-      });
-      this.setupCanvas(hueBar, (ctx, w, h) => {
-        this.drawHueArea(ctx, w, h);
-        this.drawHueMarker(ctx, w, h, this.state[i].hue);
-      });
-
-      const applyColor = () => {
-        const hex = this.hsvToHex(this.state[i].hue, this.state[i].s, this.state[i].v);
-        if (inputEl) inputEl.value = hex;
-        if (app && typeof app.updateColor === 'function') app.updateColor('#' + hex, i);
-        if (app && typeof app.updateRecordSize === 'function') app.updateRecordSize();
-      };
-
-      const pickSV = (evt) => {
-        const rect = sv.getBoundingClientRect();
-        this.state[i].s = Math.max(0, Math.min(1, (evt.clientX - rect.left) / rect.width));
-        this.state[i].v = 1 - Math.max(0, Math.min(1, (evt.clientY - rect.top) / rect.height));
-        applyColor();
-        this.redraw(i);
-      };
-
-      let dragSV = false;
-      sv.addEventListener('mousedown', (e) => { dragSV = true; pickSV(e); });
-      sv.addEventListener('mousemove', (e) => { if (dragSV) { pickSV(e); e.preventDefault(); } }, { passive: false });
-      window.addEventListener('mouseup', () => { dragSV = false; });
-      this.addTouchDrag(sv, pickSV);
-
-      const pickHue = (evt) => {
-        const rect = hueBar.getBoundingClientRect();
-        this.state[i].hue = Math.max(0, Math.min(1, (evt.clientX - rect.left) / rect.width));
-        applyColor();
-        this.redraw(i);
-      };
-
-      let dragHue = false;
-      hueBar.addEventListener('mousedown', (e) => { dragHue = true; pickHue(e); });
-      hueBar.addEventListener('mousemove', (e) => { if (dragHue) { pickHue(e); e.preventDefault(); } }, { passive: false });
-      window.addEventListener('mouseup', () => { dragHue = false; });
-      this.addTouchDrag(hueBar, pickHue);
+      this.buildSwatchGrid(i, appRef);
 
       if (inputEl) {
         inputEl.addEventListener('input', () => {
-          const hsv = this.hexToHsv(inputEl.value);
+          const hex = inputEl.value.trim();
+          if (!/^[0-9a-fA-F]{6}$/.test(hex)) return;
+          const hsv = this.hexToHsv(hex);
           if (!hsv) return;
           [this.state[i].hue, this.state[i].s, this.state[i].v] = hsv;
-          this.redraw(i);
+          const preview = document.getElementById(`colorPreview${i}`);
+          if (preview) preview.style.background = '#' + hex;
+          if (appRef && typeof appRef.updateColor === 'function') appRef.updateColor('#' + hex, i);
+          this.highlightSwatch(i);
         });
       }
 
-      this.redraw(i);
+      this.highlightSwatch(i);
     }
   }
 };

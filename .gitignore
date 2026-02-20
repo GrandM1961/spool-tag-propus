@@ -1,7 +1,32 @@
-node_modules/
+# Temporary deployment/debug scripts
+_tmp_nas.py
+check_logs.py
+deploy_*.py
+login-page.html
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+venv/
 .env
-*.log
+
+# Node
+node_modules/
+
+# OS
 .DS_Store
 Thumbs.db
-deploy_*.py
-fix_*.py
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
+
+# Database files (generated on server)
+*.db
+*.sqlite3

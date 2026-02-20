@@ -1,0 +1,17 @@
+{
+  "name": "Spool Propus - Filament Tag Manager",
+  "short_name": "Spool Propus",
+  "description": "NFC Filament Tags erstellen und beschreiben für 3D-Drucker",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

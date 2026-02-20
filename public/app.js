@@ -17,7 +17,7 @@ const nfcReader = {
       });
 
       this.reader.addEventListener('readingerror', () => {
-        onError('Error reading NFC tag');
+        onError('Fehler beim Lesen des NFC-Tags');
       });
 
     } catch (error) {
@@ -80,6 +80,53 @@ const nfcWriter = {
   }
 };
 
+// Platform Detection
+const platform = {
+  _ua: navigator.userAgent || '',
+
+  get isIOS() {
+    return /iPad|iPhone|iPod/.test(this._ua) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  },
+
+  get isAndroid() {
+    return /Android/i.test(this._ua);
+  },
+
+  get isChromeAndroid() {
+    return this.isAndroid && /Chrome\/\d+/i.test(this._ua) && !/EdgA|OPR|SamsungBrowser/i.test(this._ua);
+  },
+
+  get isMobile() {
+    return this.isIOS || this.isAndroid || /Mobi/i.test(this._ua);
+  },
+
+  get hasWebNFC() {
+    return 'NDEFReader' in window;
+  },
+
+  get hasWebShare() {
+    return 'share' in navigator && 'canShare' in navigator;
+  },
+
+  get nfcStatusMessage() {
+    if (this.hasWebNFC) return '✅ NFC bereit – Tags können direkt beschrieben werden';
+    if (this.isAndroid && !this.isChromeAndroid)
+      return '📱 Öffne die Seite in Chrome für direktes NFC-Schreiben';
+    if (this.isChromeAndroid && window.location.protocol !== 'https:')
+      return '🔒 NFC braucht HTTPS – öffne: https://' + window.location.hostname + ':8443';
+    if (this.isIOS) return '📱 iOS: Lade die Datei herunter und schreibe mit «NFC Tools» App';
+    if (this.isAndroid) return '📱 Öffne in Chrome für direktes NFC-Schreiben';
+    return '💻 Desktop: Lade die Datei herunter und schreibe mit einem NFC-Schreiber';
+  },
+
+  get platformName() {
+    if (this.isIOS) return 'iOS';
+    if (this.isAndroid) return 'Android';
+    return 'Desktop';
+  }
+};
+
 // Main Application
 const app = {
   nfcSupported: false,
@@ -103,6 +150,45 @@ const app = {
     'PA-CF': { minTemp: 250, maxTemp: 280, bedTempMin: 70, bedTempMax: 90 }
   },
 
+  brandCatalog: {
+    'Bambu Lab': {
+      materials: ['PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'PA', 'PC', 'PVA', 'PLA-CF', 'PETG-CF', 'PA-CF'],
+      variants: ['Basic', 'Matte', 'Silk', 'HF', 'Support', '95A', '95A HF'],
+    },
+    'Hatchbox': {
+      materials: ['PLA', 'PETG', 'ABS', 'TPU', 'PLA-CF'],
+      variants: ['Basic', 'Silk', 'Matte'],
+    },
+    'eSun': {
+      materials: ['PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'PA', 'PVA', 'HIPS', 'PCTG', 'PLA-CF', 'PETG-CF', 'PA-CF'],
+      variants: ['Basic', 'Silk', 'Matte', 'HF'],
+    },
+    'Overture': {
+      materials: ['PLA', 'PETG', 'ABS', 'TPU', 'PLA-CF'],
+      variants: ['Basic', 'Matte', 'Silk'],
+    },
+    'SUNLU': {
+      materials: ['PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'PLA-CF'],
+      variants: ['Basic', 'Silk', 'Matte'],
+    },
+    'Polymaker': {
+      materials: ['PLA', 'PETG', 'ABS', 'ASA', 'TPU', 'PA', 'PC', 'PVA', 'HIPS', 'PLA-CF', 'PETG-CF', 'PA-CF', 'PCTG'],
+      variants: ['Basic', 'Matte', 'Silk'],
+    },
+    'Prusament': {
+      materials: ['PLA', 'PETG', 'ABS', 'ASA', 'PA', 'PC', 'PVA', 'PCTG'],
+      variants: ['Basic'],
+    },
+    'Snapmaker': {
+      materials: ['PLA', 'PETG', 'ABS', 'TPU'],
+      variants: ['Basic'],
+    },
+    'Jayo': {
+      materials: ['PLA', 'PETG', 'ABS', 'TPU', 'PLA-CF'],
+      variants: ['Basic', 'Silk', 'Matte'],
+    },
+  },
+
   palettes: {
     material: {
       paletteId: 'materialPalette',
@@ -117,6 +203,7 @@ const app = {
       items: ['Generic', 'Bambu Lab', 'Hatchbox', 'eSun', 'Overture', 'SUNLU', 'Polymaker', 'Prusament', 'Snapmaker', 'Jayo'],
       defaultValue: 'Generic',
       customInputId: 'brandInput',
+      onSelect(value) { app.filterPalettesForBrand(value); },
     },
     variant: {
       paletteId: 'variantPalette',
@@ -528,38 +615,68 @@ const app = {
   },
 
   async checkNFC() {
-    if ('NDEFReader' in window) {
+    if (platform.hasWebNFC) {
       try {
         await navigator.permissions.query({ name: "nfc" });
         this.nfcSupported = true;
-        this.updateNFCStatus(true, 'NFC is ready');
       } catch {
         this.nfcSupported = true;
-        this.updateNFCStatus(true, 'NFC available');
       }
       document.getElementById('scanBtn').disabled = false;
       document.getElementById('writeBtn').disabled = false;
-    } else {
-      this.updateNFCStatus(false, 'NFC not supported on this device');
     }
+
+    this.updateNFCStatus(this.nfcSupported, platform.nfcStatusMessage);
+    this.updatePlatformUI();
   },
 
   updateNFCStatus(ready, message) {
-    const indicator = document.getElementById('nfcIndicator');
-    const text = document.getElementById('nfcStatusText');
-    indicator.classList.toggle('ready', ready);
-    text.textContent = message;
+    const pairs = [
+      ['nfcIndicator', 'nfcStatusText'],
+      ['nfcIndicatorMain', 'nfcStatusMain'],
+    ];
+    pairs.forEach(([indId, txtId]) => {
+      const ind = document.getElementById(indId);
+      const txt = document.getElementById(txtId);
+      if (ind) ind.classList.toggle('ready', ready);
+      if (txt) txt.textContent = message;
+    });
+  },
+
+  updatePlatformUI() {
+    const writeBtn = document.getElementById('writeBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const altMethodBox = document.getElementById('altNfcMethod');
+
+    if (this.nfcSupported) {
+      if (writeBtn) writeBtn.classList.remove('hidden');
+    } else {
+      if (writeBtn) writeBtn.classList.add('hidden');
+    }
+
+    if (downloadBtn) downloadBtn.classList.remove('hidden');
+    if (shareBtn) {
+      shareBtn.classList.toggle('hidden', !platform.hasWebShare);
+    }
+
+    if (altMethodBox) {
+      altMethodBox.classList.toggle('hidden', this.nfcSupported);
+    }
   },
 
   setMode(mode) {
     this.stopScanning();
 
-    document.getElementById('modeSelection').classList.add('hidden');
-    document.getElementById('readSection').classList.add('hidden');
-    document.getElementById('formSection').classList.add('hidden');
-    document.getElementById('spoolmanSection').classList.add('hidden');
-    document.getElementById('spoolmanSetup').classList.add('hidden');
-    document.getElementById('filamentDbSection').classList.add('hidden');
+    const sections = [
+      'modeSelection', 'readSection', 'tagSummarySection', 'formSection',
+      'spoolmanSection', 'spoolmanSetup', 'filamentDbSection',
+      'profilesSection', 'filamentListSection'
+    ];
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
 
     const formatSelect = document.getElementById('formatSelect');
 
@@ -580,9 +697,17 @@ const app = {
       this.populateFormats(false);
       this.updateFormat();
       this.randomizeLotNr();
+    } else if (mode === 'tagsummary') {
+      document.getElementById('tagSummarySection').classList.remove('hidden');
     } else if (mode === 'filamentdb') {
       document.getElementById('filamentDbSection').classList.remove('hidden');
       this.loadFilamentDbBrands();
+    } else if (mode === 'profiles') {
+      document.getElementById('profilesSection').classList.remove('hidden');
+      this.initProfilesPage();
+    } else if (mode === 'filamentlist') {
+      document.getElementById('filamentListSection').classList.remove('hidden');
+      this.initFilamentListPage();
     } else if (mode === 'spoolman-import') {
       if (!this.spoolmanUrl) {
         this.showSpoolmanSetup();
@@ -616,25 +741,25 @@ const app = {
 
   startScanning() {
     if (!this.nfcSupported) {
-      this.showStatus('readStatus', 'error', 'NFC not supported');
+      this.showStatus('readStatus', 'error', 'NFC wird auf diesem Gerät nicht unterstützt. Lade eine Datei hoch.');
       return;
     }
 
-    this.showStatus('readStatus', 'warning', 'Hold device near NFC tag...');
+    this.showStatus('readStatus', 'warning', 'Halte das Gerät an den NFC-Tag...');
 
     nfcReader.start(
       (message, serialNumber) => this.handleTagRead(message, serialNumber),
       (errorMsg) => this.handleScanError(errorMsg)
     );
 
-    document.getElementById('scanBtn').textContent = 'Stop Scanning';
+    document.getElementById('scanBtn').textContent = '⏹ Scannen Stoppen';
     document.getElementById('scanBtn').classList.remove('btn-success');
     document.getElementById('scanBtn').classList.add('btn-secondary');
   },
 
   stopScanning() {
     nfcReader.stop();
-    document.getElementById('scanBtn').textContent = 'Start Scanning';
+    document.getElementById('scanBtn').textContent = '🔍 NFC Scannen';
     document.getElementById('scanBtn').classList.remove('btn-secondary');
     document.getElementById('scanBtn').classList.add('btn-success');
     this.showStatus('readStatus', '', '');
@@ -645,30 +770,147 @@ const app = {
     this.showStatus('readStatus', 'error', errorMsg);
   },
 
+  _lastTagData: null,
+  _lastTagFormat: null,
+
   handleTagRead(message, serialNumber) {
-    let output = `Serial: ${serialNumber}\n\n`;
     let result = null;
 
     for (const record of message.records) {
       result = formats.parseNDEFRecord(record);
-      if (result) {
-        output += `Format: ${formats.getDisplayName(result.format)}\n`;
-        output += `Material: ${result.data.materialType}\n`;
-        output += `Brand: ${result.data.brand}\n`;
-        output += `Color: #${result.data.colorHex}\n`;
-        break;
-      }
+      if (result) break;
     }
 
     if (result) {
-      this.showDecodedData(output);
-      this.populateForm(result.data, result.format);
-      this.showStatus('readStatus', 'success', 'Tag read successfully! Ready for next tag...');
-      this.showStatus('writeStatus', 'success', `Data loaded (${result.format})`);
-      this.setMode('update');
+      this._lastTagData = result.data;
+      this._lastTagFormat = result.format;
+      this.stopScanning();
+      this.showTagSummary(result.data, result.format, serialNumber);
     } else {
-      this.showDecodedData(output + '\nNo valid data found');
-      this.showStatus('readStatus', 'warning', 'No recognized format found. Keep scanning...');
+      this.showStatus('readStatus', 'warning', 'Kein erkanntes Format. Weiter scannen...');
+    }
+  },
+
+  showTagSummary(data, format, serial) {
+    this.setMode('tagsummary');
+
+    const container = document.getElementById('tagSummaryContent');
+    const color = '#' + (data.colorHex || 'FFFFFF');
+    const formatName = formats.getDisplayName(format);
+
+    const items = [];
+
+    items.push({ label: 'Format', value: formatName, full: true });
+    items.push({ label: 'Material', value: data.materialType || '—' });
+    items.push({ label: 'Marke', value: data.brand || '—' });
+
+    if (data.extendedSubType && data.extendedSubType !== 'Basic')
+      items.push({ label: 'Variante', value: data.extendedSubType });
+
+    if (data.materialName)
+      items.push({ label: 'Filament Name', value: data.materialName, full: true });
+
+    if (data.minTemp || data.maxTemp)
+      items.push({ label: 'Düsen-Temp.', value: `${data.minTemp || '?'} – ${data.maxTemp || '?'} °C` });
+
+    if (data.bedTempMin || data.bedTempMax)
+      items.push({ label: 'Bett-Temp.', value: `${data.bedTempMin || '?'} – ${data.bedTempMax || '?'} °C` });
+
+    if (data.density)
+      items.push({ label: 'Dichte', value: `${data.density} g/cm³` });
+
+    if (data.filamentDiameter)
+      items.push({ label: 'Durchmesser', value: `${data.filamentDiameter} mm` });
+
+    if (data.lotNr)
+      items.push({ label: 'Lot Nr.', value: data.lotNr });
+
+    if (data.spoolmanId && data.spoolmanId !== '0')
+      items.push({ label: 'Spoolman ID', value: data.spoolmanId });
+
+    if (data.nominalWeight)
+      items.push({ label: 'Gewicht', value: `${data.nominalWeight} g` });
+
+    if (data.gtin)
+      items.push({ label: 'GTIN', value: data.gtin });
+
+    if (serial)
+      items.push({ label: 'Tag Serial', value: serial, full: true });
+
+    const colors = [color];
+    if (data.colorHex2 && data.colorHex2 !== 'FFFFFF') colors.push('#' + data.colorHex2);
+    if (data.colorHex3 && data.colorHex3 !== 'FFFFFF') colors.push('#' + data.colorHex3);
+    if (data.colorHex4 && data.colorHex4 !== 'FFFFFF') colors.push('#' + data.colorHex4);
+    const multiColor = colors.length > 1;
+    const colorDisplay = multiColor
+      ? colors.map(c => `<div style="width:20px;height:20px;border-radius:4px;background:${c};border:1px solid var(--border);"></div>`).join('')
+      : '';
+
+    container.innerHTML = `
+      <div class="tag-summary-header">
+        <div class="tag-summary-color" style="background:${color};"></div>
+        <div>
+          <div class="tag-summary-title">${data.brand || 'Unbekannt'} ${data.materialType || ''}</div>
+          <div class="tag-summary-subtitle">${data.materialName || formatName}${data.extendedSubType && data.extendedSubType !== 'Basic' ? ' · ' + data.extendedSubType : ''}</div>
+          ${multiColor ? `<div style="display:flex;gap:4px;margin-top:4px;">${colorDisplay}</div>` : ''}
+        </div>
+      </div>
+      <div class="tag-summary-grid">
+        ${items.map(i => `
+          <div class="tag-summary-item${i.full ? ' full' : ''}">
+            <div class="tag-summary-label">${i.label}</div>
+            <div class="tag-summary-value">${i.value}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    const rewriteBtn = document.getElementById('rewriteBtn');
+    if (rewriteBtn) {
+      rewriteBtn.classList.toggle('hidden', !this.nfcSupported);
+    }
+  },
+
+  async rewriteTag() {
+    if (!this._lastTagData || !this._lastTagFormat) return;
+
+    const data = formats.generateData(this._lastTagFormat, this._lastTagData);
+    const records = formats.createNDEFRecord(this._lastTagFormat, data);
+    const btn = document.getElementById('rewriteBtn');
+    const original = btn.textContent;
+
+    try {
+      btn.textContent = '📱 Tag an Handy halten...';
+      btn.classList.remove('btn-success');
+      btn.classList.add('btn-secondary');
+      this.showStatus('rewriteStatus', 'warning', 'Halte den neuen NFC-Tag an dein Handy...');
+
+      await nfcWriter.write(records, (status, error) => {
+        if (status === 'success') {
+          btn.textContent = original;
+          btn.classList.remove('btn-secondary');
+          btn.classList.add('btn-success');
+          this.showStatus('rewriteStatus', 'success', 'Tag erfolgreich kopiert!');
+          this.showMobileToast('Tag kopiert!', 'success');
+        } else if (status === 'error') {
+          btn.textContent = original;
+          btn.classList.remove('btn-secondary');
+          btn.classList.add('btn-success');
+          this.showStatus('rewriteStatus', 'error', error?.message || 'Schreiben fehlgeschlagen');
+        }
+      });
+    } catch (e) {
+      btn.textContent = original;
+      btn.classList.remove('btn-secondary');
+      btn.classList.add('btn-success');
+      this.showStatus('rewriteStatus', 'error', e.message);
+    }
+  },
+
+  editTagData() {
+    if (this._lastTagData && this._lastTagFormat) {
+      this.populateForm(this._lastTagData, this._lastTagFormat);
+      this.setMode('update');
     }
   },
 
@@ -738,13 +980,11 @@ const app = {
     reader.onload = (e) => {
       try {
         const data = formats.parseData(format, e.target.result);
-        this.populateForm(data, format);
-        output += `Format: ${formats.getDisplayName(format)}\n`;
-        output += `Material: ${data.materialType}\n`;
-        this.showDecodedData(output);
-        this.transitionToForm(format);
+        this._lastTagData = data;
+        this._lastTagFormat = format;
+        this.showTagSummary(data, format, null);
       } catch (err) {
-        this.showStatus('readStatus', 'error', `Invalid ${format} file`);
+        this.showStatus('readStatus', 'error', `Ungültige ${format} Datei`);
       }
     };
 
@@ -885,29 +1125,66 @@ const app = {
     const data = formats.generateData(format, formData);
     formats.download(format, data);
 
-    this.showStatus('writeStatus', 'success', `${formats.getDisplayName(format)} file downloaded`);
+    this.showStatus('writeStatus', 'success', `${formats.getDisplayName(format)} Datei heruntergeladen`);
+  },
+
+  async shareFile() {
+    const format = document.getElementById('formatSelect').value;
+    const formData = this.getFormData();
+    const data = formats.generateData(format, formData);
+
+    const ext = formats.getFileExtension(format);
+    const displayName = formats.getDisplayName(format);
+    const filename = `filament-tag${ext}`;
+
+    let blob;
+    if (ext === '.json') {
+      blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    } else {
+      const ndefBytes = NDEF.serialize(data, 'application/vnd.openprinttag');
+      blob = new Blob([ndefBytes], { type: 'application/octet-stream' });
+    }
+
+    const file = new File([blob], filename, { type: blob.type });
+
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: 'Spool Propus – Filament Tag',
+          text: `${displayName} Tag-Daten für NFC`,
+          files: [file]
+        });
+        this.showStatus('writeStatus', 'success', 'Datei geteilt');
+      } else {
+        this.downloadFile();
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        this.downloadFile();
+      }
+    }
   },
 
   handleWriteProgress(writeBtn, originalText, format) {
     const floatBtn = document.getElementById('floatingWriteBtn');
-    const floatingOriginal = floatBtn ? floatBtn.textContent : '📝 Write NFC';
+    const floatingOriginal = floatBtn ? floatBtn.textContent : '📝 NFC Beschreiben';
     return (status, error) => {
       writeBtn.disabled = false;
       if (floatBtn) floatBtn.disabled = false;
       if (status === 'reading') {
-        writeBtn.textContent = '❌ Cancel';
+        writeBtn.textContent = '❌ Abbrechen';
         writeBtn.classList.remove('btn-success');
         writeBtn.classList.add('btn-secondary');
-        if (floatBtn) floatBtn.textContent = '❌ Cancel';
-        this.showStatus('writeStatus', 'warning', 'Hold device near NFC tag...');
+        if (floatBtn) floatBtn.textContent = '❌ Abbrechen';
+        this.showStatus('writeStatus', 'warning', 'Halte das Gerät an den NFC-Tag...');
       } else if (status === 'writing') {
         writeBtn.disabled = true;
-        writeBtn.textContent = '⏳ Writing...';
+        writeBtn.textContent = '⏳ Schreibe...';
         if (floatBtn) {
           floatBtn.disabled = true;
-          floatBtn.textContent = '⏳ Writing...';
+          floatBtn.textContent = '⏳ Schreibe...';
         }
-        this.showStatus('writeStatus', 'warning', 'Writing to tag...');
+        this.showStatus('writeStatus', 'warning', 'Tag wird beschrieben...');
       } else if (status === 'success') {
         writeBtn.textContent = originalText;
         writeBtn.classList.remove('btn-secondary');
@@ -916,8 +1193,8 @@ const app = {
           floatBtn.disabled = false;
           floatBtn.textContent = floatingOriginal;
         }
-        this.showStatus('writeStatus', 'success', `Tag written successfully (${format})`);
-        if (typeof this.showMobileToast === 'function') this.showMobileToast('Tag written successfully', 'success');
+        this.showStatus('writeStatus', 'success', `Tag erfolgreich beschrieben (${format})`);
+        if (typeof this.showMobileToast === 'function') this.showMobileToast('Tag erfolgreich beschrieben!', 'success');
       } else if (status === 'error') {
         writeBtn.textContent = originalText;
         writeBtn.classList.remove('btn-secondary');
@@ -927,9 +1204,9 @@ const app = {
           floatBtn.textContent = floatingOriginal;
         }
 
-        const errorMsg = error && error.name === 'NotAllowedError' ? 'NFC permission denied' :
-          error && error.name === 'AbortError' ? 'Write cancelled' :
-          (error && error.message) || 'Write failed';
+        const errorMsg = error && error.name === 'NotAllowedError' ? 'NFC-Berechtigung verweigert' :
+          error && error.name === 'AbortError' ? 'Schreibvorgang abgebrochen' :
+          (error && error.message) || 'Schreiben fehlgeschlagen';
         this.showStatus('writeStatus', 'error', errorMsg);
         if (typeof this.showMobileToast === 'function') this.showMobileToast(errorMsg, 'error');
       }
@@ -947,20 +1224,20 @@ const app = {
   cancelWrite() {
     nfcWriter.cancel();
     const writeBtn = document.getElementById('writeBtn');
-    writeBtn.textContent = '📝 Write to NFC';
+    writeBtn.textContent = '📝 NFC Beschreiben';
     writeBtn.classList.remove('btn-secondary');
     writeBtn.classList.add('btn-success');
     this.showStatus('writeStatus', '', '');
     const floatBtn = document.getElementById('floatingWriteBtn');
     if (floatBtn) {
       floatBtn.disabled = false;
-      floatBtn.textContent = '📝 Write NFC';
+      floatBtn.textContent = '📝 NFC Beschreiben';
     }
   },
 
   async writeNFC() {
     if (!this.nfcSupported) {
-      this.showStatus('writeStatus', 'error', 'NFC not supported');
+      this.showStatus('writeStatus', 'error', 'NFC wird auf diesem Gerät/Browser nicht unterstützt. Nutze die Datei-Download-Option.');
       return;
     }
 
@@ -1093,11 +1370,16 @@ const app = {
   },
 
   initPalette(name) {
+    this.rebuildPalette(name);
+  },
+
+  rebuildPalette(name, filterItems) {
     const config = this.palettes[name];
     const palette = document.getElementById(config.paletteId);
     if (!palette) return;
     palette.innerHTML = '';
-    const items = typeof config.items === 'function' ? config.items() : config.items;
+    const allItems = typeof config.items === 'function' ? config.items() : config.items;
+    const items = filterItems ? allItems.filter(i => filterItems.includes(i)) : allItems;
     const select = (val) => this.setPaletteValue(name, val);
     items.forEach(item => {
       palette.appendChild(this._createSwatch(item, item, select));
@@ -1105,7 +1387,20 @@ const app = {
     if (config.customInputId) {
       palette.appendChild(this._createSwatch('Custom', 'custom', select));
     }
-    select(document.getElementById(config.inputId).value || config.defaultValue);
+    const currentVal = document.getElementById(config.inputId).value;
+    const validDefault = items.includes(currentVal) ? currentVal : (items[0] || config.defaultValue);
+    select(validDefault);
+  },
+
+  filterPalettesForBrand(brand) {
+    const catalog = this.brandCatalog[brand];
+    if (!catalog || brand === 'Generic' || brand === 'custom') {
+      this.rebuildPalette('material');
+      this.rebuildPalette('variant');
+    } else {
+      this.rebuildPalette('material', catalog.materials);
+      this.rebuildPalette('variant', catalog.variants);
+    }
   },
 
   _createSwatch(label, value, onSelect) {
@@ -1157,8 +1452,13 @@ const app = {
     if (preview) {
       preview.style.background = color;
     }
-    if (typeof ColorPicker !== 'undefined' && ColorPicker && typeof ColorPicker.setFromHex === 'function') {
-      ColorPicker.setFromHex(paletteId, color);
+    if (typeof ColorPicker !== 'undefined' && ColorPicker) {
+      if (typeof ColorPicker.setFromHex === 'function') {
+        ColorPicker.setFromHex(paletteId, color);
+      }
+      if (typeof ColorPicker.highlightSwatch === 'function') {
+        ColorPicker.highlightSwatch(paletteId);
+      }
     }
   },
 
@@ -1202,6 +1502,326 @@ const app = {
     ).join('');
     document.getElementById('lotNr').value = lotNr;
     this.updateRecordSize();
+  },
+
+  // === Slicer Profiles Page ===
+
+  _profilePage: 1,
+  _profilesInitialized: false,
+
+  async initProfilesPage() {
+    if (!this._profilesInitialized) {
+      try {
+        const vendors = await ProfileDB.getProfileVendors();
+        const sel = document.getElementById('profileVendorFilter');
+        vendors.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.name;
+          opt.textContent = `${v.name} (${v.count})`;
+          sel.appendChild(opt);
+        });
+        this._profilesInitialized = true;
+      } catch (e) {
+        document.getElementById('profileSyncInfo').innerHTML =
+          '⚠️ Backend nicht erreichbar. Datenbank wird gerade aufgebaut – bitte in einigen Minuten erneut versuchen.';
+        return;
+      }
+    }
+
+    this.loadProfileSyncInfo();
+    this.loadProfiles();
+  },
+
+  async onProfileVendorChange() {
+    const vendor = document.getElementById('profileVendorFilter').value;
+    const matSel = document.getElementById('profileMaterialFilter');
+    matSel.innerHTML = '<option value="">Alle Materialien</option>';
+
+    if (vendor) {
+      try {
+        const materials = await ProfileDB.getProfileMaterials(vendor);
+        materials.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.name;
+          opt.textContent = `${m.name} (${m.count})`;
+          matSel.appendChild(opt);
+        });
+      } catch (e) {}
+    }
+    this._profilePage = 1;
+    this.loadProfiles();
+  },
+
+  async loadProfiles() {
+    const container = document.getElementById('profileResults');
+    container.innerHTML = '<p style="text-align:center; color: var(--text-secondary);">Lade Profile...</p>';
+
+    try {
+      const data = await ProfileDB.searchProfiles({
+        vendor: document.getElementById('profileVendorFilter').value,
+        material: document.getElementById('profileMaterialFilter').value,
+        q: document.getElementById('profileSearch').value,
+        page: this._profilePage,
+        per_page: 30
+      });
+
+      if (data.total === 0) {
+        container.innerHTML = '<p style="text-align:center; color: var(--text-secondary);">Keine Profile gefunden.</p>';
+        document.getElementById('profilePagination').innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = '';
+
+      const grouped = {};
+      data.profiles.forEach(p => {
+        const key = `${p.vendor}|${p.filament_name}|${p.material_type}`;
+        if (!grouped[key]) grouped[key] = { ...p, printers: [] };
+        grouped[key].printers.push({ id: p.id, printer: p.printer });
+      });
+
+      Object.values(grouped).forEach(g => {
+        const card = document.createElement('div');
+        card.className = 'profile-card';
+
+        const temps = [];
+        if (g.nozzle_temp_min || g.nozzle_temp_max)
+          temps.push(`🌡️ ${g.nozzle_temp_min || '?'}–${g.nozzle_temp_max || '?'}°C`);
+        if (g.bed_temp_min || g.bed_temp_max)
+          temps.push(`🛏️ ${g.bed_temp_min || '?'}–${g.bed_temp_max || '?'}°C`);
+        if (g.max_volumetric_speed)
+          temps.push(`⚡ ${g.max_volumetric_speed} mm³/s`);
+
+        card.innerHTML = `
+          <div class="profile-card-header">
+            <div>
+              <strong>${g.filament_name}</strong>
+              <span class="profile-badge">${g.material_type}</span>
+            </div>
+            <span style="color: var(--text-secondary); font-size: 0.8rem;">${g.vendor}</span>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.3rem;">
+            ${temps.join(' · ')}
+          </div>
+          <div class="profile-download-row">
+            ${g.printers.map(p =>
+              `<a href="${ProfileDB.getDownloadUrl(p.id)}" class="profile-dl-btn" download>
+                📥 ${p.printer || 'Allgemein'}
+              </a>`
+            ).join('')}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      const totalPages = Math.ceil(data.total / data.per_page);
+      const pag = document.getElementById('profilePagination');
+      pag.innerHTML = '';
+      if (totalPages > 1) {
+        if (this._profilePage > 1) {
+          const prev = document.createElement('button');
+          prev.className = 'btn-secondary';
+          prev.style.cssText = 'width:auto;padding:0.4rem 0.8rem;';
+          prev.textContent = '← Zurück';
+          prev.onclick = () => { this._profilePage--; this.loadProfiles(); };
+          pag.appendChild(prev);
+        }
+        const info = document.createElement('span');
+        info.style.cssText = 'color:var(--text-secondary);align-self:center;';
+        info.textContent = `Seite ${this._profilePage} / ${totalPages} (${data.total} Profile)`;
+        pag.appendChild(info);
+        if (this._profilePage < totalPages) {
+          const next = document.createElement('button');
+          next.className = 'btn-secondary';
+          next.style.cssText = 'width:auto;padding:0.4rem 0.8rem;';
+          next.textContent = 'Weiter →';
+          next.onclick = () => { this._profilePage++; this.loadProfiles(); };
+          pag.appendChild(next);
+        }
+      }
+    } catch (e) {
+      container.innerHTML = `<p style="color: var(--error);">Fehler beim Laden: ${e.message}</p>`;
+    }
+  },
+
+  async loadProfileSyncInfo() {
+    try {
+      const status = await ProfileDB.getSyncStatus();
+      const el = document.getElementById('profileSyncInfo');
+      const src = status.sources || [];
+      const orca = src.find(s => s.source === 'orca_profiles');
+      const last = orca ? new Date(orca.last_sync).toLocaleString('de-CH') : 'Nie';
+      el.innerHTML = `📊 <strong>${status.totals.profiles}</strong> Slicer-Profile · <strong>${status.totals.filaments}</strong> Filamente · Letzte Sync: ${last}`;
+    } catch (e) {}
+  },
+
+  // === Filament List Page ===
+
+  _filListPage: 1,
+  _filListInitialized: false,
+
+  async initFilamentListPage() {
+    if (!this._filListInitialized) {
+      try {
+        const brands = await ProfileDB.getFilamentBrands();
+        const sel = document.getElementById('filListBrandFilter');
+        brands.forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = b.name;
+          opt.textContent = `${b.name} (${b.count})`;
+          sel.appendChild(opt);
+        });
+        this._filListInitialized = true;
+      } catch (e) {
+        document.getElementById('filListSyncInfo').innerHTML =
+          '⚠️ Backend nicht erreichbar. Datenbank wird gerade aufgebaut – bitte in einigen Minuten erneut versuchen.';
+        return;
+      }
+    }
+
+    this.loadFilListSyncInfo();
+    this.loadFilamentList();
+  },
+
+  async onFilListBrandChange() {
+    const brand = document.getElementById('filListBrandFilter').value;
+    const matSel = document.getElementById('filListMaterialFilter');
+    matSel.innerHTML = '<option value="">Alle Materialien</option>';
+
+    if (brand) {
+      try {
+        const materials = await ProfileDB.getFilamentMaterials(brand);
+        materials.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.name;
+          opt.textContent = `${m.name} (${m.count})`;
+          matSel.appendChild(opt);
+        });
+      } catch (e) {}
+    }
+    this._filListPage = 1;
+    this.loadFilamentList();
+  },
+
+  async loadFilamentList() {
+    const container = document.getElementById('filListResults');
+    container.innerHTML = '<p style="text-align:center; color: var(--text-secondary);">Lade Filamente...</p>';
+
+    try {
+      const data = await ProfileDB.searchFilaments({
+        brand: document.getElementById('filListBrandFilter').value,
+        material: document.getElementById('filListMaterialFilter').value,
+        q: document.getElementById('filListSearch').value,
+        page: this._filListPage,
+        per_page: 40
+      });
+
+      if (data.total === 0) {
+        container.innerHTML = '<p style="text-align:center; color: var(--text-secondary);">Keine Filamente gefunden.</p>';
+        document.getElementById('filListPagination').innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = '';
+      const grid = document.createElement('div');
+      grid.className = 'filament-grid';
+
+      data.filaments.forEach(f => {
+        const card = document.createElement('div');
+        card.className = 'filament-card';
+
+        const colorBox = f.color_hex
+          ? `<div class="filament-color" style="background:${f.color_hex};"></div>`
+          : `<div class="filament-color" style="background:#333;"></div>`;
+
+        const temps = [];
+        if (f.nozzle_temp_min && f.nozzle_temp_max)
+          temps.push(`🌡️ ${f.nozzle_temp_min}–${f.nozzle_temp_max}°C`);
+        if (f.bed_temp_min && f.bed_temp_max)
+          temps.push(`🛏️ ${f.bed_temp_min}–${f.bed_temp_max}°C`);
+        if (f.density)
+          temps.push(`⚖️ ${f.density} g/cm³`);
+
+        card.innerHTML = `
+          ${colorBox}
+          <div class="filament-info">
+            <strong>${f.name}</strong>
+            <span class="profile-badge" style="font-size:0.7rem;">${f.material}</span>
+            <div style="font-size:0.75rem; color:var(--text-secondary);">${f.brand}</div>
+            ${f.color_name ? `<div style="font-size:0.75rem;">${f.color_name}</div>` : ''}
+            <div style="font-size:0.7rem; color:var(--text-secondary); margin-top:0.2rem;">${temps.join(' · ')}</div>
+          </div>
+          <button class="btn-primary" style="width:auto; padding:0.3rem 0.6rem; font-size:0.75rem; margin-top:0.3rem;"
+            onclick="app.useFilamentForTag(${f.id})">
+            → Tag erstellen
+          </button>
+        `;
+        grid.appendChild(card);
+      });
+
+      container.appendChild(grid);
+
+      const totalPages = Math.ceil(data.total / data.per_page);
+      const pag = document.getElementById('filListPagination');
+      pag.innerHTML = '';
+      if (totalPages > 1) {
+        if (this._filListPage > 1) {
+          const prev = document.createElement('button');
+          prev.className = 'btn-secondary';
+          prev.style.cssText = 'width:auto;padding:0.4rem 0.8rem;';
+          prev.textContent = '← Zurück';
+          prev.onclick = () => { this._filListPage--; this.loadFilamentList(); };
+          pag.appendChild(prev);
+        }
+        const info = document.createElement('span');
+        info.style.cssText = 'color:var(--text-secondary);align-self:center;';
+        info.textContent = `Seite ${this._filListPage} / ${totalPages} (${data.total} Filamente)`;
+        pag.appendChild(info);
+        if (this._filListPage < totalPages) {
+          const next = document.createElement('button');
+          next.className = 'btn-secondary';
+          next.style.cssText = 'width:auto;padding:0.4rem 0.8rem;';
+          next.textContent = 'Weiter →';
+          next.onclick = () => { this._filListPage++; this.loadFilamentList(); };
+          pag.appendChild(next);
+        }
+      }
+    } catch (e) {
+      container.innerHTML = `<p style="color: var(--error);">Fehler beim Laden: ${e.message}</p>`;
+    }
+  },
+
+  async loadFilListSyncInfo() {
+    try {
+      const status = await ProfileDB.getSyncStatus();
+      const el = document.getElementById('filListSyncInfo');
+      const src = status.sources || [];
+      const fdb = src.find(s => s.source === 'filament_database');
+      const last = fdb ? new Date(fdb.last_sync).toLocaleString('de-CH') : 'Nie';
+      el.innerHTML = `📊 <strong>${status.totals.filaments}</strong> Filamente in der Datenbank · Letzte Aktualisierung: ${last}`;
+    } catch (e) {}
+  },
+
+  async useFilamentForTag(filamentId) {
+    try {
+      const f = await ProfileDB.getFilament(filamentId);
+      const data = {
+        materialType: (f.material || 'PLA').toUpperCase(),
+        brand: f.brand || 'Generic',
+        colorHex: (f.color_hex || '#FFFFFF').replace('#', ''),
+        minTemp: f.nozzle_temp_min || '',
+        maxTemp: f.nozzle_temp_max || '',
+        bedTempMin: f.bed_temp_min || '',
+        bedTempMax: f.bed_temp_max || '',
+        materialName: f.name || '',
+        density: f.density || '',
+        filamentDiameter: f.diameter || '1.75',
+      };
+      this.setMode('create');
+      this.populateForm(data, 'openspool_compat');
+    } catch (e) {
+      this.showMobileToast('Fehler beim Laden: ' + e.message, 'error');
+    }
   }
 };
 
