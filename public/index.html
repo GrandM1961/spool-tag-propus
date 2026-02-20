@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a1a1a">
+  <title>Spool Propus - Filament Tag Manager</title>
+  <style>
+    :root {
+      --bg-primary: #1a1a1a;
+      --bg-secondary: #2d2d2d;
+      --bg-tertiary: #3d3d3d;
+      --text-primary: #ffffff;
+      --text-secondary: #b0b0b0;
+      --accent: #ff6b35;
+      --accent-hover: #ff8555;
+      --border: #444;
+      --success: #4caf50;
+      --error: #f44336;
+      --warning: #ff9800;
+    }
+
+    .floating-tip {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: 1px solid var(--accent-hover);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(255,107,53,0.35);
+      width: auto !important;
+      margin: 0;
+      animation: tip-pulse 2s ease-out infinite;
+    }
+
+    .floating-tip:hover { background: var(--accent-hover); }
+    .floating-tip:active { transform: translateY(1px); }
+
+    @keyframes tip-pulse {
+      0% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(255,107,53,0.35); }
+      70% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 14px rgba(255,107,53,0); }
+      100% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(255,107,53,0); }
+    }
+
+    @media (min-width: 641px) {
+      .floating-tip { display: none !important; }
+    }
+
+    .mobile-toast {
+      position: fixed;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      z-index: 1000;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: rgba(45,45,45,0.95);
+      color: #fff;
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      display: none;
+      max-width: 90%;
+      text-align: center;
+    }
+    .mobile-toast.show { display: block; }
+    .mobile-toast.success { background: rgba(76,175,80,0.95); border-color: rgba(76,175,80,0.8); }
+    .mobile-toast.error { background: rgba(244,67,54,0.95); border-color: rgba(244,67,54,0.8); }
+
+    @media (min-width: 641px) {
+      .mobile-toast { display: none !important; }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--bg-secondary);
+      padding: 1.5rem;
+      border-bottom: 2px solid var(--accent);
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    header a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    header a:hover {
+      text-decoration: underline;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .section {
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      padding: 2rem;
+      border: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 0.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 0.5rem;
+    }
+
+    button:disabled {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: #4d4d4d;
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #45a049;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .nfc-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .nfc-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--error);
+    }
+
+    .nfc-indicator.ready {
+      background: var(--success);
+    }
+
+    .status-message {
+      padding: 0.75rem;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      display: none;
+    }
+
+    .status-message.show {
+      display: block;
+    }
+
+    .status-message.success {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+
+    .status-message.error {
+      background: rgba(244, 67, 54, 0.1);
+      border: 1px solid var(--error);
+      color: var(--error);
+    }
+
+    .status-message.warning {
+      background: rgba(255, 152, 0, 0.1);
+      border: 1px solid var(--warning);
+      color: var(--warning);
+    }
+
+    .info-box {
+      padding: 0.75rem;
+      background: rgba(255, 152, 0, 0.1);
+      border: 1px solid var(--warning);
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .color-palette {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .picker-row canvas { min-width: 0; }
+
+    .palette-group-title {
+      margin: 0.25rem 0 0.35rem 0;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .material-palette {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .material-swatch {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.45rem 0.5rem;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      line-height: 1.2;
+      transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+      user-select: none;
+    }
+
+    .material-swatch:hover { background: #4d4d4d; }
+    .material-swatch.selected {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(255, 107, 53, 0.6);
+    }
+
+    @media (max-width: 640px) {
+      .material-palette {
+        grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+        gap: 0.25rem;
+      }
+      .material-swatch {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.78rem;
+        border-radius: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .material-palette {
+        grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+        gap: 0.2rem;
+      }
+      .material-swatch {
+        padding: 0.25rem 0.35rem;
+        font-size: 0.72rem;
+      }
+    }
+
+    .color-swatch {
+      width: 100%;
+      height: 35px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 2px solid var(--border);
+      transition: all 0.2s;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.1);
+    }
+
+    .color-swatch.selected {
+      border-color: var(--accent);
+      border-width: 3px;
+      box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+    }
+
+    .collapsible {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      margin: 1.5rem 0 0.5rem;
+    }
+
+    .collapsible:hover {
+      background: #4d4d4d;
+    }
+
+    .collapsible-icon {
+      transition: transform 0.2s;
+    }
+
+    .collapsible.collapsed .collapsible-icon {
+      transform: rotate(-90deg);
+    }
+
+    .collapsible-content {
+      max-height: 2000px;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .collapsible-content.collapsed {
+      max-height: 0;
+    }
+
+    .decoded-data {
+      background: var(--bg-tertiary);
+      padding: 1rem;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .spool-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .spool-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 8px rgba(255, 107, 53, 0.3);
+    }
+
+    .spool-color-dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .spool-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .spool-info strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .spool-info small {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    .spool-weight {
+      text-align: right;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .spoolman-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.5rem;
+      background: rgba(76, 175, 80, 0.15);
+      border: 1px solid var(--success);
+      border-radius: 12px;
+      font-size: 0.75rem;
+      color: var(--success);
+    }
+
+    .spoolman-badge.disconnected {
+      background: rgba(244, 67, 54, 0.15);
+      border-color: var(--error);
+      color: var(--error);
+    }
+
+    .color-variant-swatch {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.6rem;
+      background: var(--bg-tertiary);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      user-select: none;
+      min-width: 0;
+    }
+
+    .color-variant-swatch:hover {
+      border-color: var(--accent);
+    }
+
+    .color-variant-swatch.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+    }
+
+    .color-variant-swatch .cv-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+
+    .color-variant-swatch .cv-name {
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        margin: 1rem auto;
+      }
+      .section {
+        padding: 1rem;
+      }
+      .form-row, .button-group {
+        grid-template-columns: 1fr;
+      }
+      .color-palette {
+        grid-template-columns: repeat(6, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating write button (mobile only) -->
+  <button id="floatingWriteBtn" class="floating-tip hidden" onclick="app.toggleWrite()">📝 Write NFC</button>
+  <!-- Mobile toast -->
+  <div id="mobileToast" class="mobile-toast"></div>
+
+  <header>
+    <h1>🧵 Spool Propus</h1>
+    <p>Filament Tag Manager mit
+      <a href="https://openspool.io/rfid.html" target="_blank">OpenSpool</a> &amp;
+      <a href="https://specs.openprinttag.org/" target="_blank">OpenPrintTag</a> |
+      <a href="#" id="spoolmanLink" onclick="app.openSpoolman(); return false;">Spoolman</a>
+    </p>
+  </header>
+
+  <div class="container">
+    <!-- Spoolman Settings (shown at top when not configured) -->
+    <div id="spoolmanSetup" class="section hidden">
+      <h2 class="section-title">⚙️ Spoolman Verbindung</h2>
+      <div class="form-group">
+        <label>Spoolman Server URL</label>
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="text" id="spoolmanUrl" placeholder="http://192.168.1.4:7912" style="flex: 1;">
+          <button class="btn-primary" onclick="app.testSpoolman()" style="width: auto; padding: 0.5rem 1rem;">Testen</button>
+        </div>
+        <small style="color: var(--text-secondary)">z.B. http://192.168.1.4:7912</small>
+      </div>
+      <div id="spoolmanTestStatus" class="status-message"></div>
+      <button class="btn-success" onclick="app.saveSpoolmanUrl()" style="margin-top: 0.5rem;">💾 Speichern</button>
+      <button class="btn-secondary" onclick="app.closeSpoolmanSetup()" style="margin-top: 0.5rem;">← Zurück</button>
+    </div>
+
+    <!-- Mode Selection -->
+    <div id="modeSelection" class="section">
+      <h2 class="section-title">Was möchtest du tun?</h2>
+      <button class="btn-primary" onclick="app.setMode('read')">📖 Tag Lesen / Aktualisieren</button>
+      <button class="btn-primary" onclick="app.setMode('create')" style="margin-top: 0.5rem">✏️ Neuen Tag Erstellen</button>
+      <button class="btn-primary" onclick="app.setMode('filamentdb')" style="margin-top: 0.5rem">🔍 Filament aus Datenbank wählen</button>
+      <button class="btn-primary" onclick="app.setMode('spoolman-import')" style="margin-top: 0.5rem" id="btnSpoolmanImport">📦 Von Spoolman Importieren</button>
+      <button class="btn-secondary" onclick="app.showSpoolmanSetup()" style="margin-top: 1rem">⚙️ Spoolman Einstellungen</button>
+    </div>
+
+    <!-- Filament Database Browser -->
+    <div id="filamentDbSection" class="section hidden">
+      <h2 class="section-title">🔍 Filament Datenbank</h2>
+      <small style="color: var(--text-secondary); display: block; margin-bottom: 1rem;">
+        126 Marken &amp; 13.000+ Farbvarianten aus der <a href="https://api.openfilamentdatabase.org/" target="_blank">Open Filament Database</a>
+      </small>
+
+      <div class="form-group">
+        <label>Marke</label>
+        <select id="dbBrandSelect" onchange="app.onDbBrandChange()">
+          <option value="">-- Marke wählen --</option>
+        </select>
+      </div>
+
+      <div class="form-group hidden" id="dbMaterialGroup">
+        <label>Material</label>
+        <select id="dbMaterialSelect" onchange="app.onDbMaterialChange()">
+          <option value="">-- Material wählen --</option>
+        </select>
+      </div>
+
+      <div class="form-group hidden" id="dbFilamentGroup">
+        <label>Filament</label>
+        <select id="dbFilamentSelect" onchange="app.onDbFilamentChange()">
+          <option value="">-- Filament wählen --</option>
+        </select>
+      </div>
+
+      <div class="form-group hidden" id="dbVariantGroup">
+        <label>Farbvariante</label>
+        <div id="dbVariantList" class="material-palette" style="margin-top: 0.5rem;"></div>
+      </div>
+
+      <div id="dbPreview" class="hidden" style="margin-top: 1rem; padding: 1rem; background: var(--bg-tertiary); border-radius: 8px;">
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
+          <div id="dbPreviewColor" style="width: 50px; height: 50px; border-radius: 8px; border: 2px solid var(--border);"></div>
+          <div>
+            <strong id="dbPreviewName" style="font-size: 1.1rem;"></strong>
+            <div id="dbPreviewDetails" style="color: var(--text-secondary); font-size: 0.85rem;"></div>
+          </div>
+        </div>
+        <button class="btn-success" onclick="app.applyDbSelection()">✅ Übernehmen &amp; Tag erstellen</button>
+      </div>
+
+      <div id="dbStatus" class="status-message"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Spoolman Import Section -->
+    <div id="spoolmanSection" class="section hidden">
+      <h2 class="section-title">📦 Spoolman Spulen</h2>
+      <div id="spoolmanStatus" class="status-message"></div>
+      <div id="spoolmanSpoolList" style="margin-top: 1rem;"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Read Section -->
+    <div id="readSection" class="section hidden">
+      <h2 class="section-title">📖 Read NFC Tag or Upload File</h2>
+
+      <div class="nfc-status">
+        <div id="nfcIndicator" class="nfc-indicator"></div>
+        <span id="nfcStatusText">Checking NFC...</span>
+      </div>
+
+      <button id="scanBtn" class="btn-success" onclick="app.toggleScan()" disabled>Start Scanning</button>
+
+      <div id="readStatus" class="status-message"></div>
+
+      <div class="form-group" style="margin-top: 1rem">
+        <label>Or Upload File</label>
+        <input type="file" id="fileInput" accept=".json,.bin">
+        <small style="color: var(--text-secondary)">Supports .json (OpenSpool) and .bin (OpenPrintTag)</small>
+      </div>
+
+      <div id="decodedDataContainer" class="hidden">
+        <h3>Decoded Data</h3>
+        <div id="decodedData" class="decoded-data"></div>
+      </div>
+
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Back to Menu</button>
+    </div>
+
+    <!-- Form Section (Create / Update) -->
+    <div id="formSection" class="section hidden">
+      <h2 id="formTitle" class="section-title">✏️ Create New Tag</h2>
+
+      <!-- Format Selection -->
+      <div class="form-group">
+        <label>Tag Format</label>
+        <select id="formatSelect" onchange="app.updateFormat()"></select>
+        <small style="color: var(--text-secondary)">OpenSpool: Simple JSON | OpenPrintTag: Advanced CBOR</small>
+      </div>
+
+      <!-- Brand -->
+      <div class="form-group">
+        <label>Brand Name</label>
+        <input type="hidden" id="brandValue" value="Generic">
+        <div id="brandPalette" class="material-palette"></div>
+        <input type="text" id="brandInput" class="hidden" placeholder="Enter brand name">
+      </div>
+
+      <!-- Material Type -->
+      <div class="form-group">
+        <label>Material Type</label>
+        <input type="hidden" id="materialType" value="PLA">
+        <div id="materialPalette" class="material-palette"></div>
+        <small style="color: var(--text-secondary)">Tap to select material</small>
+      </div>
+
+      <!-- Material Variant -->
+      <div class="form-group" data-field="extendedSubType">
+        <label>Material Variant</label>
+        <input type="hidden" id="extendedSubType" value="Basic">
+        <div id="variantPalette" class="material-palette"></div>
+      </div>
+
+      <!-- Color 1 (Primary) -->
+      <div class="form-group">
+        <label>Color 1 (Primary)</label>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <div id="colorPreview1" style="width: 40px; height: 40px; border-radius: 4px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+          <input type="text" id="colorHex1" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
+        </div>
+        <small style="color: var(--text-secondary)">Hold and drag on the picker to choose, or enter hex without # (e.g., FF5733)</small>
+        <div class="picker-row" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+          <canvas id="colorSV1" style="width: 100%; height: 150px; border-radius: 4px; cursor: crosshair;"></canvas>
+        </div>
+        <canvas id="colorHue1" style="width: 100%; height: 20px; border-radius: 4px; cursor: crosshair; margin-top: 0.25rem;"></canvas>
+      </div>
+
+      <!-- Temperature Settings -->
+      <div class="form-row" data-field="minTemp">
+        <div class="form-group">
+          <label>Min Nozzle Temp (°C)</label>
+          <input type="number" id="minTemp" placeholder="190">
+        </div>
+        <div class="form-group">
+          <label>Max Nozzle Temp (°C)</label>
+          <input type="number" id="maxTemp" placeholder="220">
+        </div>
+      </div>
+
+      <div class="form-row" data-field="bedTempMin">
+        <div class="form-group">
+          <label>Min Bed Temp (°C)</label>
+          <input type="number" id="bedTempMin" placeholder="50">
+        </div>
+        <div class="form-group">
+          <label>Max Bed Temp (°C)</label>
+          <input type="number" id="bedTempMax" placeholder="60">
+        </div>
+      </div>
+
+      <!-- Spoolman & Lot -->
+      <div class="form-row" data-field="spoolmanId">
+        <div class="form-group">
+          <label>Spoolman ID</label>
+          <input type="number" id="spoolmanId" placeholder="0">
+          <small style="color: var(--text-secondary)">Optional: Only saved if non-zero</small>
+        </div>
+        <div class="form-group">
+          <label>Lot Number</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="lotNr" maxlength="8" placeholder="00000000" style="flex: 1;">
+            <button class="btn-secondary" onclick="app.randomizeLotNr()" style="width: auto; padding: 0.5rem 0.75rem;">🎲</button>
+          </div>
+          <small style="color: var(--text-secondary)">8 hex characters (auto-generated for new tags)</small>
+        </div>
+      </div>
+
+      <!-- Advanced Section -->
+      <div id="advancedSection">
+        <div class="collapsible collapsed" onclick="app.toggleAdvanced()">
+          <span class="collapsible-icon">▼</span>
+          <strong>Advanced</strong>
+        </div>
+        <div class="collapsible-content collapsed">
+          <!-- Visual Properties -->
+          <div class="form-group" data-field="matteFinish" style="margin-top: 1rem;">
+            <label>Visual Properties</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="matteFinish"> Matte Finish
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="silkFinish"> Silk Finish
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="translucent"> Translucent
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="transparent"> Transparent
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="glitter"> Glitter
+              </label>
+            </div>
+            <small style="color: var(--text-secondary)">Surface finish and material properties</small>
+          </div>
+
+          <!-- Color Behavior -->
+          <div class="form-group" data-field="gradualColorChange">
+            <label>Color Behavior</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="gradualColorChange"> Gradual Color Change
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="coextruded"> Coextruded
+              </label>
+            </div>
+            <small style="color: var(--text-secondary)">Color transition and mixing properties</small>
+          </div>
+
+          <!-- Additional Colors -->
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+              <input type="checkbox" id="showAdditionalColors"> Additional Colors (Multi-color filament)
+            </label>
+            <small style="color: var(--text-secondary)">Enable fields for colors 2, 3, and 4</small>
+          </div>
+
+          <!-- Color 2 -->
+          <div class="additional-colors" style="display: none;">
+            <div class="form-group">
+              <label>Color 2 (Optional)</label>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div id="colorPreview2" style="width: 40px; height: 40px; border-radius: 4px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+                <input type="text" id="colorHex2" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
+              </div>
+              <small style="color: var(--text-secondary)">Hold and drag on the picker to choose, or enter hex without #</small>
+              <div class="picker-row" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <canvas id="colorSV2" style="width: 100%; height: 150px; border-radius: 4px; cursor: crosshair;"></canvas>
+              </div>
+              <canvas id="colorHue2" style="width: 100%; height: 20px; border-radius: 4px; cursor: crosshair; margin-top: 0.25rem;"></canvas>
+            </div>
+          </div>
+
+          <!-- Color 3 -->
+          <div class="additional-colors" style="display: none;">
+            <div class="form-group">
+              <label>Color 3 (Optional)</label>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div id="colorPreview3" style="width: 40px; height: 40px; border-radius: 4px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+                <input type="text" id="colorHex3" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
+              </div>
+              <small style="color: var(--text-secondary)">Hold and drag on the picker to choose, or enter hex without #</small>
+              <div class="picker-row" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <canvas id="colorSV3" style="width: 100%; height: 150px; border-radius: 4px; cursor: crosshair;"></canvas>
+              </div>
+              <canvas id="colorHue3" style="width: 100%; height: 20px; border-radius: 4px; cursor: crosshair; margin-top: 0.25rem;"></canvas>
+            </div>
+          </div>
+
+          <!-- Color 4 -->
+          <div class="additional-colors" style="display: none;">
+            <div class="form-group">
+              <label>Color 4 (Optional)</label>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div id="colorPreview4" style="width: 40px; height: 40px; border-radius: 4px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+                <input type="text" id="colorHex4" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
+              </div>
+              <small style="color: var(--text-secondary)">Hold and drag on the picker to choose, or enter hex without #</small>
+              <div class="picker-row" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <canvas id="colorSV4" style="width: 100%; height: 150px; border-radius: 4px; cursor: crosshair;"></canvas>
+              </div>
+              <canvas id="colorHue4" style="width: 100%; height: 20px; border-radius: 4px; cursor: crosshair; margin-top: 0.25rem;"></canvas>
+            </div>
+          </div>
+
+          <!-- Advanced OpenPrintTag fields -->
+          <div class="form-group" data-field="materialName">
+            <label>Material Name</label>
+            <input type="text" id="materialName" placeholder="e.g. PLA Basic">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" data-field="gtin">
+              <label>GTIN</label>
+              <input type="text" id="gtin" placeholder="e.g. 1234567890123">
+            </div>
+            <div class="form-group" data-field="materialAbbreviation">
+              <label>Material Abbreviation</label>
+              <input type="text" id="materialAbbr" maxlength="7" placeholder="e.g. PLA">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" data-field="density">
+              <label>Density (g/cm³)</label>
+              <input type="number" id="density" step="0.01" placeholder="1.24">
+            </div>
+            <div class="form-group" data-field="filamentDiameter">
+              <label>Filament Diameter (mm)</label>
+              <input type="number" id="diameter" step="0.01" value="1.75" placeholder="1.75">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" data-field="preheatTemp">
+              <label>Preheat Temp (°C)</label>
+              <input type="number" id="preheatTemp" placeholder="170">
+            </div>
+            <div class="form-group" data-field="manufacturedDate">
+              <label>Manufactured Date</label>
+              <input type="date" id="mfgDate">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" data-field="nominalWeight">
+              <label>Nominal Weight (g)</label>
+              <input type="number" id="nominalWeight" placeholder="1000">
+            </div>
+            <div class="form-group" data-field="actualWeight">
+              <label>Actual Weight (g)</label>
+              <input type="number" id="actualWeight" placeholder="1000">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" data-field="emptySpoolWeight">
+              <label>Empty Spool Weight (g)</label>
+              <input type="number" id="spoolWeight" placeholder="200">
+            </div>
+            <div class="form-group" data-field="countryOfOrigin">
+              <label>Country of Origin</label>
+              <input type="text" id="countryCode" maxlength="2" placeholder="DE">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="button-group">
+        <button class="btn-primary" onclick="app.downloadFile()">💾 Download File</button>
+        <button id="writeBtn" class="btn-success" onclick="app.toggleWrite()" disabled>📝 Write to NFC</button>
+      </div>
+
+      <!-- Record Size Info -->
+      <div id="recordSizeInfo" class="info-box" style="margin-top: 1rem;">
+        📊 <strong>NDEF Record Size:</strong> <span id="recordSize">?</span>
+      </div>
+
+      <!-- Orca Profile Info -->
+      <div id="orcaProfileInfo" class="info-box hidden" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🔧 <strong>Snapmaker Orca Profile:</strong> <span id="orcaProfileName">-</span></span>
+        <button class="btn-secondary" onclick="app.copyOrcaProfile()" style="width: auto; padding: 0.25rem 0.5rem; margin: 0;">📋</button>
+      </div>
+
+      <div id="writeStatus" class="status-message"></div>
+
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Back to Menu</button>
+    </div>
+
+    <!-- Write NFC Modal (placeholder) -->
+    <div id="writeSection" class="section hidden">
+      <h2 class="section-title">📝 Write NFC</h2>
+      <div id="writeNfcStatus" class="status-message"></div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Spool Propus - Filament Tag Manager |
+      <a href="#" onclick="app.openSpoolman(); return false;">Spoolman</a>
+    </p>
+    <p>© 2025 Spool Propus · v1.0.0</p>
+  </footer>
+
+  <script src="cbor.js"></script>
+  <script src="ndef.js"></script>
+  <script src="openspool.js"></script>
+  <script src="openprinttag.js"></script>
+  <script src="formats.js"></script>
+  <script src="color.js"></script>
+  <script src="filamentdb.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
