@@ -1,4 +1,4 @@
-const CACHE_NAME = 'spool-propus-v1.6.65';
+const CACHE_NAME = 'spool-propus-v1.6.109';
 const ASSETS = [
   '/',
   '/index.html',
@@ -42,13 +42,38 @@ self.addEventListener('fetch', e => {
   if (url.origin !== location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
 
+  // For JS/CSS/HTML files: always try network first, ignore query params for cache key
+  const isAsset = /\.(js|css|html)(\?.*)?$/.test(url.pathname) || url.pathname === '/';
+  if (isAsset) {
+    // Network-first: always fetch fresh, update cache
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' })
+        .then(resp => {
+          if (resp.ok) {
+            const clone = resp.clone();
+            // Cache using pathname only (without query string) as key
+            const cacheKey = new Request(url.origin + url.pathname);
+            caches.open(CACHE_NAME).then(cache => cache.put(cacheKey, clone));
+          }
+          return resp;
+        })
+        .catch(() => {
+          const cacheKey = new Request(url.origin + url.pathname);
+          return caches.match(cacheKey);
+        })
+    );
+    return;
+  }
+
+  // Other assets: stale-while-revalidate
   e.respondWith(
-    fetch(e.request)
-      .then(resp => {
+    caches.match(e.request).then(cached => {
+      const fetchPromise = fetch(e.request).then(resp => {
         const clone = resp.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
         return resp;
-      })
-      .catch(() => caches.match(e.request))
+      });
+      return cached || fetchPromise;
+    })
   );
 });

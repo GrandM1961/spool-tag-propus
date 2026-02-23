@@ -43,7 +43,7 @@
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Janez76/spool-propus.git
+git clone https://github.com/Janez76/spool-tag-propus.git
 cd spool-propus
 ```
 
@@ -103,7 +103,7 @@ For NFC support on mobile, HTTPS is required. See the [HTTPS Setup](#https-setup
 | `DB_PATH` | `/data/spool_propus.db` | Path to the SQLite database |
 | `SYNC_INTERVAL` | `24` | Hours between automatic data syncs |
 | `GITHUB_TOKEN` | — | Optional: GitHub Personal Access Token for creating issues from error reports |
-| `GITHUB_REPO` | — | Optional: Repository in `owner/repo` format (e.g. `Janez76/spool-propus`) |
+| `GITHUB_REPO` | — | Optional: Repository in `owner/repo` format (e.g. `Janez76/spool-tag-propus`) |
 
 If both `GITHUB_TOKEN` and `GITHUB_REPO` are set, error reports submitted via "Fehler melden" will automatically create a GitHub issue. Create a token at [GitHub Settings → Developer settings → Personal access tokens](https://github.com/settings/tokens) with `repo` scope (or fine-grained: Issues write access).
 

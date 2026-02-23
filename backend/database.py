@@ -81,13 +81,19 @@ def init_db():
             url TEXT,
             page_url TEXT,
             screenshot TEXT,
+            status TEXT NOT NULL DEFAULT 'neu',
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT NOT NULL UNIQUE,
+            username TEXT,
             password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user',
+            last_login_at TEXT DEFAULT '',
+            last_login_ip TEXT DEFAULT '',
+            last_login_ua TEXT DEFAULT '',
             first_name TEXT DEFAULT '',
             last_name TEXT DEFAULT '',
             address TEXT DEFAULT '',
@@ -113,6 +119,29 @@ def init_db():
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
+        CREATE TABLE IF NOT EXISTS chat_conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL DEFAULT 'Neues Gespräch',
+            created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id INTEGER NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+            role TEXT NOT NULL CHECK(role IN ('user','assistant','system')),
+            content TEXT NOT NULL,
+            meta_json TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS app_config (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
         CREATE INDEX IF NOT EXISTS idx_profiles_vendor ON slicer_profiles(vendor);
         CREATE INDEX IF NOT EXISTS idx_profiles_material ON slicer_profiles(material_type);
         CREATE INDEX IF NOT EXISTS idx_profiles_slicer ON slicer_profiles(slicer);
@@ -121,6 +150,7 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_error_reports_created ON error_reports(created_at);
         CREATE INDEX IF NOT EXISTS idx_user_backups_user ON user_backups(user_id);
         CREATE INDEX IF NOT EXISTS idx_users_group ON users(group_id);
+        CREATE INDEX IF NOT EXISTS idx_chat_messages_conv ON chat_messages(conversation_id);
     """)
     conn.commit()
 
@@ -132,6 +162,12 @@ def _run_migrations(conn):
     """Add missing columns to existing databases."""
     migrations = [
         ("error_reports", "screenshot", "TEXT"),
+        ("error_reports", "status", "TEXT NOT NULL DEFAULT 'neu'"),
+        ("users", "username", "TEXT"),
+        ("users", "role", "TEXT NOT NULL DEFAULT 'user'"),
+        ("users", "last_login_at", "TEXT DEFAULT ''"),
+        ("users", "last_login_ip", "TEXT DEFAULT ''"),
+        ("users", "last_login_ua", "TEXT DEFAULT ''"),
         ("users", "is_admin", "INTEGER NOT NULL DEFAULT 0"),
         ("users", "is_locked", "INTEGER NOT NULL DEFAULT 0"),
         ("users", "first_name", "TEXT DEFAULT ''"),
@@ -158,4 +194,61 @@ def _run_migrations(conn):
             conn.commit()
     except Exception:
         # Ignore if `groups` table doesn't exist yet; init_db will create it.
+        pass
+
+    # Ensure username is backfilled and unique; create a UNIQUE index for future inserts.
+    try:
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
+        if "username" in cols:
+            # Create unique index (works even for existing DBs if no duplicates).
+            try:
+                conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+                conn.commit()
+            except Exception:
+                # If duplicates exist, we'll try to fix via backfill first.
+                pass
+
+            def _slug(s):
+                s = (s or "").strip().lower()
+                out = []
+                for ch in s:
+                    if ("a" <= ch <= "z") or ("0" <= ch <= "9") or ch in "._-":
+                        out.append(ch)
+                    elif ch in " ":
+                        out.append("_")
+                slug = "".join(out).strip("._-")
+                return slug
+
+            rows = conn.execute(
+                "SELECT id, email, username FROM users WHERE username IS NULL OR username = ''"
+            ).fetchall()
+            for r in rows:
+                base = _slug((r["email"] or "").split("@")[0])
+                if not base:
+                    base = f"user{r['id']}"
+                candidate = base
+                n = 2
+                while True:
+                    exists = conn.execute(
+                        "SELECT 1 FROM users WHERE lower(username) = lower(?) AND id != ? LIMIT 1",
+                        (candidate, r["id"]),
+                    ).fetchone()
+                    if not exists:
+                        break
+                    candidate = f"{base}-{n}"
+                    n += 1
+                    if n > 999:
+                        candidate = f"user{r['id']}"
+                        break
+                conn.execute("UPDATE users SET username = ? WHERE id = ?", (candidate, r["id"]))
+            conn.commit()
+
+            # Re-attempt unique index creation after backfill.
+            try:
+                conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+                conn.commit()
+            except Exception:
+                # Leave as-is; app layer will still enforce uniqueness on register.
+                pass
+    except Exception:
         pass

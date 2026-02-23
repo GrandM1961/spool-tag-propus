@@ -263,12 +263,21 @@ const ColorPicker = {
     { name: 'Transparent', hex: 'FDFDFD' },
   ],
 
-  buildSwatchGrid(index, appRef) {
+  buildSwatchGrid(index, appRef, allowedHexes) {
     const grid = document.getElementById(`colorSwatchGrid${index}`);
     if (!grid) return;
     grid.innerHTML = '';
 
-    this.FILAMENT_COLORS.forEach(c => {
+    const allowed = Array.isArray(allowedHexes) && allowedHexes.length
+      ? new Set(allowedHexes.map(h => String(h || '').replace('#', '').trim().toUpperCase()).filter(h => /^[0-9A-F]{6}$/.test(h)))
+      : null;
+
+    const byHex = new Map(this.FILAMENT_COLORS.map(c => [String(c.hex || '').toUpperCase(), c]));
+    const items = allowed
+      ? Array.from(allowed).slice(0, 300).map(h => byHex.get(h) || { name: h, hex: h })
+      : this.FILAMENT_COLORS;
+
+    items.forEach(c => {
       const el = document.createElement('div');
       el.className = 'cs';
       el.title = c.name;

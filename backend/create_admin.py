@@ -5,11 +5,13 @@ import sqlite3
 import bcrypt
 
 DB_PATH = os.environ.get('DB_PATH', '/data/spool_propus.db')
-ADMIN_EMAIL = 'janez@janez.ch'  # Login: Janez
-ADMIN_PASSWORD = 'Biel2503!'
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'janez@janez.ch')  # override via env if desired
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '')
 
 
 def main():
+    if not ADMIN_PASSWORD:
+        raise SystemExit("ADMIN_PASSWORD env var is required (refusing to use a hardcoded default).")
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
 

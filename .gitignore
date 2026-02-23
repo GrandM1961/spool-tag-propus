@@ -28,6 +28,7 @@ venv/
 # IDE
 .vscode/
 .idea/
+.cursor/
 
 # Unrelated files
 login-page.html
@@ -35,3 +36,7 @@ login-page.html
 # OS
 Desktop.ini
 ehthumbs.db
+
+# KI-Chat Exports (lokal gespeicherte Transkripte)
+# Entferne diese Zeile wenn du Chats im Repo versionieren willst
+.chat/

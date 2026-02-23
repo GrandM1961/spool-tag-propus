@@ -19,14 +19,18 @@ services:
     container_name: spool-propus-api
     volumes:
       - spool-data:/data
+      # Chat exports written here will appear in the repo workspace:
+      - ./.chat:/chat-exports
     environment:
       - DB_PATH=/data/spool_propus.db
       - SYNC_INTERVAL=24
+      # Admin KI-Assistent: write exports into bind mount
+      - CHAT_EXPORT_DIR=/chat-exports
       # Auth (required for login)
       - JWT_SECRET=change-me-in-production
       # Optional: Create GitHub issues from error reports (see README)
       # - GITHUB_TOKEN=ghp_xxxx
-      # - GITHUB_REPO=Janez76/spool-propus
+      # - GITHUB_REPO=Janez76/spool-tag-propus
     restart: unless-stopped
     networks:
       - spool-net

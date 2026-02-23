@@ -1,0 +1,96 @@
+[
+  {
+    "version": "v1.6.100",
+    "date": "23. Februar 2026",
+    "changes": [
+      "Theme-Selector im Profil: Hell/Dunkel dauerhaft einstellbar",
+      "Theme-Icon im Header wird nach Login korrekt aktualisiert",
+      "✏️ Spule bearbeiten – Modal erscheint jetzt immer oben (unabhängig vom Scroll)"
+    ]
+  },
+  {
+    "version": "v1.6.99",
+    "date": "23. Februar 2026",
+    "changes": [
+      "Spoolman Picker: Spulen und Filamente aus eigener Instanz auswählen",
+      "Farb-Filterung nach Marke/Material/Variante aus der Filament-Datenbank",
+      "Snapmaker Orca Profile Infobox entfernt",
+      "Enter-Taste funktioniert jetzt in Login- und Registrierungsformular",
+      "Benutzername im Profil hinterlegen und ändern"
+    ]
+  },
+  {
+    "version": "v1.6.98",
+    "date": "22. Februar 2026",
+    "changes": [
+      "Login per Benutzername oder E-Mail möglich",
+      "Benutzerrollen (Admin/User) direkt am User verwaltbar",
+      "Letzter Login-Zeitstempel im Admin-Panel sichtbar",
+      "Persistenter Login (30 Tage) via HttpOnly Cookie",
+      "KI-Assistent im Admin-Panel (OpenAI, mit Projekt-Kontext)"
+    ]
+  },
+  {
+    "version": "v1.6.9-beta",
+    "date": "20. Februar 2026",
+    "changes": [
+      "Trocknungsprofil-Datenbank mit 20+ Materialien",
+      "QR-Code Generator – Filament-Daten als QR auf Spule kleben",
+      "QR-Code Scanner – Kamera-basiert mit BarcodeDetector API",
+      "Hell-/Dunkelmodus mit Toggle im Header",
+      "Suchfilter für Spoolman-Spulen",
+      "Scan-Ergebnis zeigt nur gelesene Daten (QR + URL)",
+      "About-Seite mit Feature-Übersicht und Release Notes"
+    ]
+  },
+  {
+    "version": "v1.5.0-beta",
+    "date": "20. Februar 2026",
+    "changes": [
+      "Profil-Buttons: @base Profile gefiltert, Nozzle-Varianten korrekt",
+      "Download-Buttons zeigen Druckername (A1, X1C, H2D…) statt «Allgemein»",
+      "Bessere Temperatur-Anzeige bei Slicer-Profilen"
+    ]
+  },
+  {
+    "version": "v1.3.0",
+    "date": "Februar 2026",
+    "changes": [
+      "Slicer-Profile von OrcaSlicer GitHub (4.000+ Profile)",
+      "Filament-Datenbank mit Open Filament Database",
+      "Profil-Karten mit Temperatur-Chips und Drucker-Buttons",
+      "Service Worker Caching Fix für API-Calls",
+      "Cloudflare Tunnel Kompatibilität"
+    ]
+  },
+  {
+    "version": "v1.2.0",
+    "date": "Februar 2026",
+    "changes": [
+      "Tag-Summary: Nur gelesene Daten anzeigen (statt volles Formular)",
+      "NFC auf dem Handy: HTTPS-Support, Plattform-Erkennung",
+      "PWA: Installierbar als App, Offline-Modus",
+      "Web Share API für Datei-Teilen"
+    ]
+  },
+  {
+    "version": "v1.1.0",
+    "date": "Februar 2026",
+    "changes": [
+      "Farbpalette mit 45 vordefinierten Filament-Farben",
+      "Marken-spezifische Material-/Varianten-Filterung",
+      "Spoolman Integration",
+      "Filament Datenbank Browser (Open Filament DB)"
+    ]
+  },
+  {
+    "version": "v1.0.0",
+    "date": "Februar 2026",
+    "changes": [
+      "Erster Release: NFC Tag Lesen/Schreiben",
+      "OpenSpool (JSON) & OpenPrintTag (CBOR) Format",
+      "Datei Download als Fallback",
+      "Self-Hosting/Deployment auf UGREEN NAS via Docker"
+    ]
+  }
+]

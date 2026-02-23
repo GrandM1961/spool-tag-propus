@@ -210,16 +210,6 @@ document.addEventListener('click', function(e) {
     app.openSpoolman();
     return;
   }
-  if (e.target.closest('#loginBtn')) {
-    e.preventDefault();
-    app.doLogin();
-    return;
-  }
-  if (e.target.closest('#registerBtn')) {
-    e.preventDefault();
-    app.doRegister();
-    return;
-  }
   if (e.target.closest('#showRegisterLink')) {
     e.preventDefault();
     app.showRegister();
@@ -300,7 +290,7 @@ const app = {
       inputId: 'materialType',
       items: () => Object.keys(app.materialPresets),
       defaultValue: 'PLA',
-      onSelect() { app.applyTemperaturePreset(); app.updateVisibility(); },
+      onSelect() { app.applyTemperaturePreset(); app.updateVisibility(); app.refreshAllowedColors(); },
     },
     brand: {
       paletteId: 'brandPalette',
@@ -308,13 +298,14 @@ const app = {
       items: ['Generic', 'Bambu Lab', 'Hatchbox', 'eSun', 'Overture', 'SUNLU', 'Polymaker', 'Prusament', 'Snapmaker', 'Jayo'],
       defaultValue: 'Generic',
       customInputId: 'brandInput',
-      onSelect(value) { app.filterPalettesForBrand(value); },
+      onSelect(value) { app.filterPalettesForBrand(value); app.refreshAllowedColors(); },
     },
     variant: {
       paletteId: 'variantPalette',
       inputId: 'extendedSubType',
       items: ['Basic', 'Matte', 'SnapSpeed', 'Silk', 'Support', 'HF', '95A', '95A HF'],
       defaultValue: 'Basic',
+      onSelect() { app.refreshAllowedColors(); },
     },
   },
 
@@ -523,6 +514,10 @@ const app = {
         if (user.settings.theme) {
           document.documentElement.setAttribute('data-theme', user.settings.theme);
           localStorage.setItem('theme', user.settings.theme);
+          const tog = document.getElementById('themeToggle');
+          if (tog) tog.textContent = user.settings.theme === 'dark' ? '☀️' : '🌙';
+          const meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.content = user.settings.theme === 'dark' ? '#0b1120' : '#f0f4f8';
         }
         if (user.settings.language && typeof I18n !== 'undefined' && I18n.setLanguage) {
           I18n.setLanguage(user.settings.language);
@@ -692,14 +687,15 @@ const app = {
   },
 
   async doLogin() {
-    const email = document.getElementById('loginEmail').value.trim();
+    const identifier = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
+    const remember = document.getElementById('loginRemember')?.checked !== false;
     const errEl = document.getElementById('authError');
     const btn = document.getElementById('loginBtn');
     errEl.style.display = 'none';
 
-    if (!email || !password) {
-      errEl.textContent = 'Bitte E-Mail und Passwort eingeben.';
+    if (!identifier || !password) {
+      errEl.textContent = 'Bitte E-Mail/Benutzername und Passwort eingeben.';
       errEl.style.display = 'block';
       return;
     }
@@ -714,8 +710,9 @@ const app = {
     try {
       const resp = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
+        credentials: 'include',   // receive HttpOnly cookie from server
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ identifier, password })
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -724,7 +721,9 @@ const app = {
         if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText || 'Anmelden'; }
         return;
       }
-      Auth.setToken(data.token);
+      // Store token in localStorage (remember=true) or sessionStorage (remember=false)
+      Auth.setToken(data.token, remember);
+      Auth.setSessionFlag();   // mark that a cookie session exists
       if (btn) btn.textContent = 'Weiterleitung…';
       location.reload();
     } catch (e) {
@@ -742,6 +741,7 @@ const app = {
     const lastName = (document.getElementById('registerLastName')?.value || '').trim();
     const birthDate = (document.getElementById('registerBirthDate')?.value || '').trim();
     const address = (document.getElementById('registerAddress')?.value || '').trim();
+    const username = (document.getElementById('registerUsername')?.value || '').trim();
     const email = document.getElementById('registerEmail').value.trim();
     const password = document.getElementById('registerPassword').value;
     const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
@@ -758,8 +758,13 @@ const app = {
       errEl.style.display = 'block';
       return;
     }
+    if (!username) {
+      errEl.textContent = 'Bitte einen Benutzernamen eingeben.';
+      errEl.style.display = 'block';
+      return;
+    }
     if (!email || !password) {
-      errEl.textContent = 'Bitte E-Mail und Passwort eingeben.';
+      errEl.textContent = 'Bitte E-Mail, Benutzername und Passwort eingeben.';
       errEl.style.display = 'block';
       return;
     }
@@ -779,8 +784,9 @@ const app = {
     try {
       const resp = await fetch(`${apiBase}/auth/register`, {
         method: 'POST',
+        credentials: 'include',   // receive HttpOnly cookie from server
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, firstName, lastName, address, birthDate })
+        body: JSON.stringify({ email, username, password, firstName, lastName, address, birthDate })
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -788,7 +794,8 @@ const app = {
         errEl.style.display = 'block';
         return;
       }
-      Auth.setToken(data.token);
+      Auth.setToken(data.token, true);
+      Auth.setSessionFlag();
       location.reload();
     } catch (e) {
       errEl.textContent = 'Netzwerkfehler. Bitte später erneut versuchen.';
@@ -797,8 +804,7 @@ const app = {
   },
 
   logout() {
-    Auth.clearToken();
-    location.reload();
+    Auth.logout().finally(() => location.reload());
   },
 
   async setLanguage(lang) {
@@ -828,13 +834,13 @@ const app = {
     const authSection = document.getElementById('authSection');
     const appContainer = document.getElementById('appContainer');
 
-    // Auth-Buttons/Links immer verbinden (vor checkAuth, da init sonst vorher returniert)
-    const loginBtn = document.getElementById('loginBtn');
-    const registerBtn = document.getElementById('registerBtn');
+    // Auth-Forms/Links immer verbinden (vor checkAuth, da init sonst vorher returniert)
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
     const showRegisterLink = document.getElementById('showRegisterLink');
     const showLoginLink = document.getElementById('showLoginLink');
-    if (loginBtn) loginBtn.addEventListener('click', (e) => { e.preventDefault(); this.doLogin(); });
-    if (registerBtn) registerBtn.addEventListener('click', (e) => { e.preventDefault(); this.doRegister(); });
+    if (loginForm) loginForm.addEventListener('submit', (e) => { e.preventDefault(); this.doLogin(); });
+    if (registerForm) registerForm.addEventListener('submit', (e) => { e.preventDefault(); this.doRegister(); });
     if (showRegisterLink) showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); this.showRegister(); });
     if (showLoginLink) showLoginLink.addEventListener('click', (e) => { e.preventDefault(); this.showLogin(); });
     const langDe = document.getElementById('langBtnDe');
@@ -1129,6 +1135,200 @@ const app = {
     this.populateForm(data, 'openspool_extended');
     this.showStatus('writeStatus', 'success', `Spoolman Spule #${spool.id} importiert`);
   },
+
+  importFromSpoolmanFilament(filament) {
+    const vendor = filament.vendor || {};
+    const data = {
+      materialType: (filament.material || 'PLA').toUpperCase(),
+      brand: vendor.name || 'Generic',
+      colorHex: (filament.color_hex || 'FFFFFF').replace('#', ''),
+      minTemp: filament.settings_extruder_temp || '',
+      maxTemp: filament.settings_extruder_temp || '',
+      bedTempMin: filament.settings_bed_temp || '',
+      bedTempMax: filament.settings_bed_temp || '',
+      spoolmanId: 0,
+      lotNr: '',
+      materialName: filament.name || '',
+      density: filament.density || '',
+      filamentDiameter: filament.diameter || '1.75',
+      nominalWeight: filament.weight || '',
+      actualWeight: '',
+      emptySpoolWeight: filament.spool_weight || '',
+    };
+    this.setMode('create');
+    this.populateForm(data, 'openspool_extended');
+    this.showStatus('writeStatus', 'success', `Spoolman Filament #${filament.id} übernommen`);
+  },
+
+  // === Spoolman Picker (Create Tag) ===
+  _spoolmanPickerTab: 'spools',
+  _spoolmanPickerSpools: null,
+  _spoolmanPickerFilaments: null,
+  _spoolmanPickerFilamentById: null,
+
+  openSpoolmanPicker(tab) {
+    const overlay = document.getElementById('spoolmanPickerOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    this.setSpoolmanPickerTab(tab || 'spools');
+  },
+
+  closeSpoolmanPicker() {
+    const overlay = document.getElementById('spoolmanPickerOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  },
+
+  setSpoolmanPickerTab(tab) {
+    const next = tab === 'filaments' ? 'filaments' : 'spools';
+    this._spoolmanPickerTab = next;
+    const b1 = document.getElementById('spoolmanPickerTabSpools');
+    const b2 = document.getElementById('spoolmanPickerTabFilaments');
+    if (b1 && b2) {
+      b1.className = next === 'spools' ? 'btn-primary' : 'btn-secondary';
+      b2.className = next === 'filaments' ? 'btn-primary' : 'btn-secondary';
+    }
+    const search = document.getElementById('spoolmanPickerSearch');
+    if (search) search.value = '';
+    if (next === 'spools') this.loadSpoolmanSpoolsForPicker();
+    else this.loadSpoolmanFilamentsForPicker();
+  },
+
+  async loadSpoolmanSpoolsForPicker() {
+    const status = document.getElementById('spoolmanPickerStatus');
+    const list = document.getElementById('spoolmanPickerList');
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    if (status) { status.textContent = 'Lade Spulen…'; status.className = 'status-message warning show'; }
+    if (list) list.innerHTML = '';
+    try {
+      // Ensure filaments map exists for better labels when needed.
+      if (!this._spoolmanPickerFilamentById) {
+        await this.loadSpoolmanFilamentsForPicker(true);
+      }
+      const resp = await Auth.fetch(`${apiBase}/spoolman/spools`);
+      const spools = await resp.json();
+      if (!resp.ok) throw new Error(spools.message || spools.error || `HTTP ${resp.status}`);
+      this._spoolmanPickerSpools = Array.isArray(spools) ? spools : [];
+      if (status) { status.textContent = `${this._spoolmanPickerSpools.length} Spule(n) geladen`; status.className = 'status-message success show'; }
+      this.renderSpoolmanPicker();
+    } catch (e) {
+      if (status) { status.textContent = `Fehler: ${e.message}`; status.className = 'status-message error show'; }
+    }
+  },
+
+  async loadSpoolmanFilamentsForPicker(silent) {
+    const status = document.getElementById('spoolmanPickerStatus');
+    const list = document.getElementById('spoolmanPickerList');
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    if (!silent) {
+      if (status) { status.textContent = 'Lade Filamente…'; status.className = 'status-message warning show'; }
+      if (list) list.innerHTML = '';
+    }
+    try {
+      const resp = await Auth.fetch(`${apiBase}/spoolman/filaments`);
+      const filaments = await resp.json();
+      if (!resp.ok) throw new Error(filaments.message || filaments.error || `HTTP ${resp.status}`);
+      this._spoolmanPickerFilaments = Array.isArray(filaments) ? filaments : [];
+      const map = new Map();
+      this._spoolmanPickerFilaments.forEach(f => { if (f && f.id != null) map.set(String(f.id), f); });
+      this._spoolmanPickerFilamentById = map;
+      if (!silent) {
+        if (status) { status.textContent = `${this._spoolmanPickerFilaments.length} Filament(e) geladen`; status.className = 'status-message success show'; }
+        this.renderSpoolmanPicker();
+      }
+    } catch (e) {
+      if (!silent && status) { status.textContent = `Fehler: ${e.message}`; status.className = 'status-message error show'; }
+    }
+  },
+
+  filterSpoolmanPicker() {
+    this.renderSpoolmanPicker();
+  },
+
+  renderSpoolmanPicker() {
+    const list = document.getElementById('spoolmanPickerList');
+    if (!list) return;
+    const q = (document.getElementById('spoolmanPickerSearch')?.value || '').toLowerCase().trim();
+    list.innerHTML = '';
+
+    const addCard = (title, subtitle, colorHex, onClick) => {
+      const card = document.createElement('div');
+      card.className = 'spool-card';
+      card.onclick = onClick;
+      card.innerHTML = `
+        <div class="spool-color-dot" style="background: #${(colorHex || 'CCCCCC').replace('#','')};"></div>
+        <div class="spool-info">
+          <strong>${title}</strong>
+          <small>${subtitle}</small>
+        </div>
+        <div class="spool-weight">antippen</div>
+      `;
+      list.appendChild(card);
+    };
+
+    if (this._spoolmanPickerTab === 'spools') {
+      const spools = Array.isArray(this._spoolmanPickerSpools) ? this._spoolmanPickerSpools : [];
+      const filtered = !q ? spools : spools.filter(spool => {
+        const f = spool.filament || {};
+        const v = f.vendor || {};
+        const text = [spool.id, spool.lot_nr, f.name, f.material, f.color_hex, v.name].filter(Boolean).join(' ').toLowerCase();
+        return text.includes(q);
+      });
+      if (!filtered.length) {
+        list.innerHTML = '<p style="color:var(--text-secondary);">Keine Spulen gefunden.</p>';
+        return;
+      }
+      filtered.forEach(spool => {
+        let filament = spool.filament || {};
+        // Some spoolman instances may return filament as id; try map.
+        if (typeof filament === 'number' || typeof filament === 'string') {
+          filament = this._spoolmanPickerFilamentById?.get(String(filament)) || {};
+        } else if (filament && filament.id != null && this._spoolmanPickerFilamentById) {
+          filament = this._spoolmanPickerFilamentById.get(String(filament.id)) || filament;
+        }
+        const vendor = filament.vendor || {};
+        const brand = vendor.name || 'Unbekannt';
+        const name = filament.name || (filament.material || 'Filament');
+        const material = filament.material || 'Unknown';
+        const color = filament.color_hex || 'CCCCCC';
+        const remaining = spool.remaining_weight != null ? `${Math.round(spool.remaining_weight)}g übrig` : '';
+        addCard(
+          `${brand} ${name}`,
+          `${material} | ID: ${spool.id}${spool.lot_nr ? ` | Lot: ${spool.lot_nr}` : ''}${remaining ? ` | ${remaining}` : ''}`,
+          color,
+          () => { this.closeSpoolmanPicker(); this.importFromSpoolman(spool); }
+        );
+      });
+      return;
+    }
+
+    const filaments = Array.isArray(this._spoolmanPickerFilaments) ? this._spoolmanPickerFilaments : [];
+    const filtered = !q ? filaments : filaments.filter(f => {
+      const v = f.vendor || {};
+      const text = [f.id, f.name, f.material, f.color_hex, v.name].filter(Boolean).join(' ').toLowerCase();
+      return text.includes(q);
+    });
+    if (!filtered.length) {
+      list.innerHTML = '<p style="color:var(--text-secondary);">Keine Filamente gefunden.</p>';
+      return;
+    }
+    filtered.forEach(filament => {
+      const vendor = filament.vendor || {};
+      const brand = vendor.name || 'Unbekannt';
+      const name = filament.name || (filament.material || 'Filament');
+      const material = filament.material || 'Unknown';
+      const color = filament.color_hex || 'CCCCCC';
+      addCard(
+        `${brand} ${name}`,
+        `${material} | Filament-ID: ${filament.id}`,
+        color,
+        () => { this.closeSpoolmanPicker(); this.importFromSpoolmanFilament(filament); }
+      );
+    });
+  },
+
+  // === Mein Spoolman ===
+
+  _mySpoolmanSpools: [],
 
   // === Filament Database Integration ===
 
@@ -1472,6 +1672,7 @@ const app = {
       this.initFilamentListPage();
     } else if (mode === 'about') {
       document.getElementById('aboutSection').classList.remove('hidden');
+      this.loadReleaseNotes();
     } else if (mode === 'drying') {
       document.getElementById('dryingSection').classList.remove('hidden');
       this.renderDryingProfiles();
@@ -2140,21 +2341,6 @@ const app = {
 
       sizeInfo.style.background = colorStyle;
       document.getElementById('recordSize').textContent = `${size} bytes (${tagType})`;
-
-      const orcaProfileInfo = document.getElementById('orcaProfileInfo');
-      const orcaProfileName = document.getElementById('orcaProfileName');
-
-      if (format === 'openspool_extended') {
-        const brand = formData.brand || 'Generic';
-        const material = formData.materialType || 'PLA';
-        const subtype = formData.extendedSubType || 'Basic';
-        const profileName = `${brand} ${material} ${subtype}`.trim();
-
-        orcaProfileName.textContent = profileName;
-        orcaProfileInfo.classList.remove('hidden');
-      } else {
-        orcaProfileInfo.classList.add('hidden');
-      }
     } catch (e) {
       // Silently fail if form is incomplete
     }
@@ -2165,17 +2351,6 @@ const app = {
     const content = document.querySelector('.collapsible-content');
     collapsible.classList.toggle('collapsed');
     content.classList.toggle('collapsed');
-  },
-
-  copyOrcaProfile() {
-    const profileName = document.getElementById('orcaProfileName').textContent;
-    if (profileName && profileName !== '-') {
-      navigator.clipboard.writeText(profileName).then(() => {
-        this.showStatus('writeStatus', 'success', 'Profile name copied to clipboard!');
-      }).catch(() => {
-        this.showStatus('writeStatus', 'error', 'Failed to copy to clipboard');
-      });
-    }
   },
 
   initPalette(name) {
@@ -2209,6 +2384,71 @@ const app = {
     } else {
       this.rebuildPalette('material', catalog.materials);
       this.rebuildPalette('variant', catalog.variants);
+    }
+  },
+
+  _allowedColorsTimer: null,
+  _allowedColorsLastKey: '',
+  _allowedColorsActive: false,
+
+  refreshAllowedColors() {
+    // Only apply when logged in (filament DB endpoints are protected)
+    if (typeof Auth === 'undefined' || !Auth.isLoggedIn()) return;
+    if (typeof ColorPicker === 'undefined' || !ColorPicker) return;
+
+    const brand = (document.getElementById('brandValue')?.value || '').trim();
+    const material = (document.getElementById('materialType')?.value || '').trim();
+    const variant = (document.getElementById('extendedSubType')?.value || '').trim();
+    if (!brand || !material) return;
+
+    const key = `${brand}|${material}|${variant}`;
+    this._allowedColorsLastKey = key;
+    if (this._allowedColorsTimer) clearTimeout(this._allowedColorsTimer);
+    this._allowedColorsTimer = setTimeout(() => {
+      this._refreshAllowedColorsNow(key, brand, material, variant);
+    }, 200);
+  },
+
+  async _refreshAllowedColorsNow(key, brand, material, variant) {
+    // If selection changed since scheduling, skip.
+    if (key !== this._allowedColorsLastKey) return;
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const url = new URL(`${apiBase}/filaments/colors`);
+      url.searchParams.set('brand', brand);
+      url.searchParams.set('material', material);
+      if (variant) url.searchParams.set('variant', variant);
+
+      const resp = await Auth.fetch(url.toString());
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.message || data.error || `HTTP ${resp.status}`);
+
+      const colors = Array.isArray(data.colors) ? data.colors : [];
+      if (!colors.length) {
+        if (this._allowedColorsActive) {
+          for (let i = 1; i <= 4; i++) {
+            ColorPicker.buildSwatchGrid(i, this);
+            ColorPicker.highlightSwatch(i);
+          }
+          this._allowedColorsActive = false;
+        }
+        return;
+      }
+
+      this._allowedColorsActive = true;
+      const allowed = colors.map(h => String(h || '').replace('#', '').trim().toUpperCase()).filter(Boolean);
+      for (let i = 1; i <= 4; i++) {
+        ColorPicker.buildSwatchGrid(i, this, allowed);
+        ColorPicker.highlightSwatch(i);
+      }
+
+      // If current primary color isn't available, pick the first allowed.
+      const current = (document.getElementById('colorHex1')?.value || '').trim().toUpperCase();
+      if (allowed.length && current && !allowed.includes(current)) {
+        ColorPicker.selectColor(1, allowed[0], this);
+      }
+    } catch (e) {
+      // On any error, keep existing swatches (avoid thrashing).
     }
   },
 
@@ -2599,42 +2839,106 @@ const app = {
       const spoolmanFilterEl = document.getElementById('filListSpoolmanFilter');
       const spoolmanFilter = spoolmanFilterEl ? spoolmanFilterEl.value : '';
 
-      // Build set of filament names/brands present in Spoolman for filtering
-      let spoolmanFilamentKeys = null;
-      if (spoolmanFilter === 'spoolman' && this._mySpoolmanSpools && this._mySpoolmanSpools.length) {
-        spoolmanFilamentKeys = new Set(
-          this._mySpoolmanSpools.map(s => {
+      // Spoolman-Modus: direkt Spoolman-Spulen anzeigen
+      if (spoolmanFilter === 'spoolman') {
+        const url = this._normalizeSpoolmanUrl(this.spoolmanUrl);
+        if (!url) {
+          container.innerHTML = `<div style="text-align:center;padding:2rem;">
+            <p style="color:var(--text-secondary);margin-bottom:1rem;">⚠️ Keine Spoolman URL konfiguriert.</p>
+            <button class="btn-primary" style="width:auto;" onclick="app.setMode('settings')">⚙️ Spoolman einrichten</button>
+          </div>`;
+          document.getElementById('filListPagination').innerHTML = '';
+          return;
+        }
+
+        container.innerHTML = '<p style="text-align:center; color: var(--text-secondary);">Lade Spoolman-Spulen...</p>';
+        let spools = [];
+        try {
+          const resp = await fetch(`${url}/api/v1/spool`, { signal: AbortSignal.timeout(10000) });
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          spools = await resp.json();
+          this._mySpoolmanSpools = spools;
+        } catch (e) {
+          container.innerHTML = `<p style="text-align:center;color:var(--error);">Spoolman-Fehler: ${e.message}</p>`;
+          document.getElementById('filListPagination').innerHTML = '';
+          return;
+        }
+
+        // Suchfilter anwenden
+        const q = (document.getElementById('filListSearch').value || '').toLowerCase().trim();
+        const matFilter = (document.getElementById('filListMaterialFilter').value || '').toLowerCase();
+        if (q || matFilter) {
+          spools = spools.filter(s => {
             const f = s.filament || {};
             const v = f.vendor || {};
-            return `${(v.name || '').toLowerCase()}|${(f.name || '').toLowerCase()}`;
-          })
-        );
-      } else if (spoolmanFilter === 'spoolman' && this._spoolmanSpools && this._spoolmanSpools.length) {
-        spoolmanFilamentKeys = new Set(
-          this._spoolmanSpools.map(s => {
-            const f = s.filament || {};
-            const v = f.vendor || {};
-            return `${(v.name || '').toLowerCase()}|${(f.name || '').toLowerCase()}`;
-          })
-        );
+            if (matFilter && (f.material || '').toLowerCase() !== matFilter) return false;
+            if (q) {
+              const text = [v.name, f.name, f.material, s.id, s.lot_nr, f.color_hex]
+                .filter(Boolean).join(' ').toLowerCase();
+              if (!text.includes(q)) return false;
+            }
+            return true;
+          });
+        }
+
+        if (!spools.length) {
+          container.innerHTML = '<p style="text-align:center; color: var(--text-secondary);">Keine Spulen in Spoolman gefunden.</p>';
+          document.getElementById('filListPagination').innerHTML = '';
+          return;
+        }
+
+        container.innerHTML = '';
+        const grid = document.createElement('div');
+        grid.className = 'filament-grid';
+
+        spools.forEach(spool => {
+          const f = spool.filament || {};
+          const v = f.vendor || {};
+          const color = f.color_hex || 'CCCCCC';
+          const material = f.material || '?';
+          const brand = v.name || 'Unbekannt';
+          const name = f.name || material;
+          const remaining = spool.remaining_weight != null ? `⚖️ ${Math.round(spool.remaining_weight)}g` : '';
+          const density = f.density ? `· ${f.density} g/cm³` : '';
+
+          const card = document.createElement('div');
+          card.className = 'filament-card';
+          card.innerHTML = `
+            <div class="filament-color" style="background:#${color.replace('#','')};"></div>
+            <div class="filament-info">
+              <strong>${name}</strong>
+              <span class="profile-badge" style="font-size:0.7rem;">${material}</span>
+              <div style="font-size:0.75rem;color:var(--text-secondary);">${brand}</div>
+              <div style="font-size:0.7rem;color:var(--text-secondary);margin-top:0.2rem;">
+                ${remaining} ${density}
+                ${spool.lot_nr ? `· Lot: ${spool.lot_nr}` : ''}
+                · ID: ${spool.id}
+              </div>
+            </div>
+            <button class="btn-primary" style="width:auto;padding:0.3rem 0.6rem;font-size:0.75rem;margin-top:0.3rem;"
+              onclick="app.importFromSpoolman(${JSON.stringify(spool).replace(/"/g,'&quot;')})">
+              → Tag erstellen
+            </button>
+          `;
+          // onclick direkt über spool-id
+          card.querySelector('button').onclick = () => this.importFromSpoolman(spool);
+          grid.appendChild(card);
+        });
+
+        container.appendChild(grid);
+        document.getElementById('filListPagination').innerHTML =
+          `<p style="text-align:center;color:var(--text-secondary);font-size:0.8rem;">${spools.length} Spule(n) aus Spoolman</p>`;
+        return;
       }
 
+      // Standard-Modus: Open Filament Database
       const data = await ProfileDB.searchFilaments({
         brand: document.getElementById('filListBrandFilter').value,
         material: document.getElementById('filListMaterialFilter').value,
         q: document.getElementById('filListSearch').value,
         page: this._filListPage,
-        per_page: spoolmanFilter === 'spoolman' ? 200 : 40
+        per_page: 40
       });
-
-      // Client-side filter by Spoolman presence
-      if (spoolmanFilamentKeys) {
-        data.filaments = data.filaments.filter(f => {
-          const key = `${(f.brand || '').toLowerCase()}|${(f.name || '').toLowerCase()}`;
-          return spoolmanFilamentKeys.has(key);
-        });
-        data.total = data.filaments.length;
-      }
 
       if (data.total === 0) {
         container.innerHTML = '<p style="text-align:center; color: var(--text-secondary);">Keine Filamente gefunden.</p>';
@@ -2681,11 +2985,11 @@ const app = {
 
       container.appendChild(grid);
 
-      const perPage = spoolmanFilamentKeys ? data.total : (data.per_page || 40);
+      const perPage = data.per_page || 40;
       const totalPages = Math.ceil(data.total / perPage);
       const pag = document.getElementById('filListPagination');
       pag.innerHTML = '';
-      if (totalPages > 1 && !spoolmanFilamentKeys) {
+      if (totalPages > 1) {
         if (this._filListPage > 1) {
           const prev = document.createElement('button');
           prev.className = 'btn-secondary';
@@ -2721,7 +3025,7 @@ const app = {
       const last = fdb ? new Date(fdb.last_sync).toLocaleString('de-CH') : 'Nie';
       el.innerHTML = `📊 <strong>${status.totals.filaments}</strong> Filamente in der Datenbank · Letzte Aktualisierung: ${last} · Sync alle 24h`;
     } catch (e) {
-      el.innerHTML = '⚠️ Backend nicht erreichbar. Prüfe, ob die API läuft (Docker-Container spool-propus-api).';
+      el.innerHTML = '⚠️ Backend nicht erreichbar. Prüfe, ob die API läuft (bei Self-Hosting ggf. Docker-Container "spool-propus-api").';
     }
   },
 
@@ -2778,6 +3082,61 @@ const app = {
         })
       }).catch(() => {});
     }
+  },
+
+  // === Release Notes ===
+
+  async loadReleaseNotes() {
+    const container = document.getElementById('releaseNotesList');
+    const moreBtn = document.getElementById('releaseNotesMoreBtn');
+    if (!container) return;
+    if (container.dataset.loaded === '1') return;
+    try {
+      const resp = await fetch('changelog.json?v=' + (window._APP_VERSION || Date.now()));
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const entries = await resp.json();
+      container.dataset.loaded = '1';
+      this._renderReleaseNotes(entries, 5);
+    } catch (e) {
+      container.innerHTML = '<p style="color:var(--text-secondary);font-size:0.85rem;">Release Notes konnten nicht geladen werden.</p>';
+    }
+  },
+
+  _renderReleaseNotes(entries, visibleCount) {
+    const container = document.getElementById('releaseNotesList');
+    const moreBtn = document.getElementById('releaseNotesMoreBtn');
+    if (!container) return;
+    this._allReleaseEntries = entries;
+    container.innerHTML = '';
+    entries.forEach((entry, idx) => {
+      const div = document.createElement('div');
+      div.className = 'release-entry' + (idx >= visibleCount ? ' release-notes-hidden' : '');
+      const changes = entry.changes.map(c => `<li>${c}</li>`).join('');
+      const currentLabel = (typeof I18n !== 'undefined' && I18n.t) ? I18n.t('about.releaseCurrent') : 'Aktuell';
+      div.innerHTML = `
+        <span class="release-version${idx === 0 ? ' latest' : ''}">${entry.version}</span>
+        <span class="release-date">${entry.date}</span>
+        ${idx === 0 ? `<span style="font-size:0.7rem;background:rgba(0,212,170,0.15);color:var(--accent);padding:0.1rem 0.4rem;border-radius:4px;margin-left:0.4rem;font-weight:600;">${currentLabel}</span>` : ''}
+        <ul class="release-changes">${changes}</ul>
+      `;
+      container.appendChild(div);
+    });
+    if (moreBtn) {
+      if (entries.length > visibleCount) {
+        moreBtn.style.display = 'inline-flex';
+        moreBtn.textContent = `▼ Ältere Versionen anzeigen (${entries.length - visibleCount} weitere)`;
+      } else {
+        moreBtn.style.display = 'none';
+      }
+    }
+  },
+
+  showAllReleaseNotes() {
+    const container = document.getElementById('releaseNotesList');
+    const moreBtn = document.getElementById('releaseNotesMoreBtn');
+    if (!container) return;
+    container.querySelectorAll('.release-notes-hidden').forEach(el => el.classList.remove('release-notes-hidden'));
+    if (moreBtn) moreBtn.style.display = 'none';
   },
 
   // === URL Parameters (QR code deep links) ===
@@ -3064,6 +3423,7 @@ const app = {
     const btn = document.getElementById('spoolmanImportAllBtn');
     const statusEl = document.getElementById('spoolmanImportAllStatus');
     if (btn) btn.disabled = true;
+    if (statusEl) { statusEl.textContent = '⏳ Importiere…'; statusEl.style.cssText = 'font-size:0.85rem;color:var(--text-secondary);'; }
     let imported = 0;
     let skipped = 0;
     for (const spool of spools) {
@@ -3071,12 +3431,18 @@ const app = {
       this.importFromSpoolman(spool);
       this._markSpoolmanImported(spool.id);
       imported++;
-      if (statusEl) statusEl.textContent = `${imported} importiert…`;
+      if (statusEl) statusEl.textContent = `⏳ ${imported} importiert…`;
       await new Promise(r => setTimeout(r, 30));
     }
     if (btn) btn.disabled = false;
     const msg = `✅ ${imported} Spule(n) importiert${skipped ? `, ${skipped} bereits vorhanden` : ''}.`;
-    if (statusEl) statusEl.textContent = msg;
+    if (statusEl) {
+      statusEl.textContent = msg;
+      statusEl.style.cssText = 'font-size:0.85rem;font-weight:600;color:var(--success,#26de81);background:rgba(38,222,129,0.12);padding:0.3rem 0.7rem;border-radius:8px;';
+      setTimeout(() => {
+        if (statusEl) { statusEl.textContent = ''; statusEl.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);'; }
+      }, 6000);
+    }
     this.showMobileToast(msg, 'success');
     this._updateSpoolmanImportActions();
     this.filterSpoolmanSpoolsSettings();
@@ -3089,36 +3455,47 @@ const app = {
   _mySpoolmanEditSpool: null,
 
   async loadMySpoolman() {
-    const url = this._normalizeSpoolmanUrl(this.spoolmanUrl);
     const listEl = document.getElementById('mySpoolmanList');
     const statusEl = document.getElementById('mySpoolmanStatus');
     const countEl = document.getElementById('mySpoolmanCount');
+
+    const url = this._normalizeSpoolmanUrl(this.spoolmanUrl);
     if (!url) {
       if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:2rem 1rem;">
         <div style="font-size:2rem;margin-bottom:0.75rem;">🧵</div>
-        <p style="color:var(--text-secondary);margin-bottom:1rem;">Kein Spoolman konfiguriert.</p>
+        <p style="color:var(--text-secondary);margin-bottom:1rem;">Keine Spoolman-URL konfiguriert.</p>
         <button class="btn-primary" onclick="app.setMode('settings')" style="width:auto;">⚙️ Spoolman URL einrichten</button>
       </div>`;
+      if (countEl) countEl.textContent = '';
       return;
     }
-    if (listEl) listEl.innerHTML = '<p style="color:var(--text-secondary);">Lade Spulen…</p>';
+
+    if (listEl) listEl.innerHTML = '<p style="color:var(--text-secondary);">⏳ Lade Spulen…</p>';
     if (statusEl) { statusEl.textContent = ''; statusEl.className = 'status-message'; }
+    if (countEl) countEl.textContent = '';
+
     try {
       const resp = await fetch(`${url}/api/v1/spool?allow_archived=false`, { signal: AbortSignal.timeout(10000) });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const spools = await resp.json();
-      this._mySpoolmanSpools = spools;
-      // Populate material filter
+      this._mySpoolmanSpools = Array.isArray(spools) ? spools : [];
+
       const matSel = document.getElementById('mySpoolmanMaterialFilter');
       if (matSel) {
-        const mats = [...new Set(spools.map(s => (s.filament || {}).material).filter(Boolean))].sort();
+        const mats = [...new Set(this._mySpoolmanSpools.map(s => (s.filament || {}).material).filter(Boolean))].sort();
         matSel.innerHTML = '<option value="">Alle Materialien</option>' +
           mats.map(m => `<option value="${m}">${m}</option>`).join('');
       }
-      if (countEl) countEl.textContent = `${spools.length} Spule(n) in Spoolman`;
-      this.renderMySpoolman(spools);
+
+      if (countEl) countEl.textContent = `${this._mySpoolmanSpools.length} Spule(n) in Spoolman`;
+      this.renderMySpoolman(this._mySpoolmanSpools);
     } catch (e) {
-      if (listEl) listEl.innerHTML = `<p style="color:var(--error);">Fehler: ${e.message}</p>`;
+      const isBlocked = e.message === 'Failed to fetch' || e.name === 'TypeError';
+      if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:1.5rem 1rem;">
+        <p style="color:var(--error);margin-bottom:0.5rem;">⚠️ Fehler: ${e.message}</p>
+        ${isBlocked ? `<p style="color:var(--text-secondary);font-size:0.82rem;">Mögliche Ursache: Mixed Content (HTTPS → HTTP) oder Spoolman nicht erreichbar.<br>Prüfe die Spoolman-URL in den Einstellungen.</p>` : ''}
+        <button class="btn-secondary" onclick="app.loadMySpoolman()" style="width:auto;margin-top:0.75rem;">🔄 Erneut versuchen</button>
+      </div>`;
     }
   },
 
@@ -3268,22 +3645,32 @@ const app = {
 
   async testSpoolmanSettings() {
     const url = this._normalizeSpoolmanUrl(document.getElementById('spoolmanUrlSettings').value);
-    if (!url) { this.showStatus('spoolmanSettingsTestStatus', 'error', 'Bitte URL eingeben'); return; }
-    this.showStatus('spoolmanSettingsTestStatus', 'warning', 'Verbinde...');
+    if (!url) { this.showStatus('spoolmanSettingsTestStatus', 'error', t('spoolman.errorNoUrl') || 'Bitte URL eingeben'); return; }
+    this.showStatus('spoolmanSettingsTestStatus', 'warning', t('spoolman.connecting') || 'Verbinde...');
+    // Direct browser fetch – Spoolman runs locally at the user's side
     try {
-      const resp = await fetch(`${url}/api/v1/info`, { signal: AbortSignal.timeout(5000) });
+      const resp = await fetch(`${url}/api/v1/info`, { signal: AbortSignal.timeout(6000) });
       if (resp.ok) {
         const info = await resp.json();
-        this.showStatus('spoolmanSettingsTestStatus', 'success', `Verbunden! Spoolman v${info.version || '?'}`);
-      } else {
-        this.showStatus('spoolmanSettingsTestStatus', 'error', `HTTP ${resp.status}`);
+        this.showStatus('spoolmanSettingsTestStatus', 'success',
+          `✅ ${t('spoolman.connected') || 'Verbunden!'} Spoolman v${info.version || '?'}`);
+        return;
       }
+      this.showStatus('spoolmanSettingsTestStatus', 'error', `HTTP ${resp.status}`);
     } catch (e) {
-      try {
-        const resp2 = await fetch(`${url}/api/v1/spool`, { signal: AbortSignal.timeout(5000) });
-        if (resp2.ok) { this.showStatus('spoolmanSettingsTestStatus', 'success', 'Verbunden!'); return; }
-      } catch {}
-      this.showStatus('spoolmanSettingsTestStatus', 'error', `Fehler: ${e.message}`);
+      // Mixed Content: app is HTTPS, Spoolman is HTTP → browser blocks it
+      const isMixedContent = location.protocol === 'https:' && url.startsWith('http:');
+      if (isMixedContent) {
+        this.showStatus('spoolmanSettingsTestStatus', 'warning',
+          t('spoolman.mixedContentWarning') ||
+          '⚠️ Die App läuft über HTTPS, Spoolman über HTTP. Bitte Spoolman über HTTPS erreichbar machen oder die App lokal (http://) öffnen.');
+      } else if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+        this.showStatus('spoolmanSettingsTestStatus', 'error',
+          t('spoolman.errorTimeout') || 'Timeout – Spoolman antwortet nicht');
+      } else {
+        this.showStatus('spoolmanSettingsTestStatus', 'error',
+          t('spoolman.errorConnectionRefused') || 'Spoolman nicht erreichbar – IP/Port prüfen');
+      }
     }
   },
 
@@ -3493,14 +3880,38 @@ const app = {
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
     set('profileFirstName', u.firstName);
     set('profileLastName', u.lastName);
+    set('profileUsername', u.username);
     set('profileBirthDate', u.birthDate);
     set('profileAddress', u.address);
     set('profileCurrentPw', '');
     set('profileNewEmail', '');
     set('profileNewPw', '');
+    // Theme-Selector vorausfüllen
+    const currentTheme = (u.settings && u.settings.theme) || localStorage.getItem('theme') || 'dark';
+    this._selectProfileTheme(currentTheme, true);
     const st = document.getElementById('profileModalStatus');
     if (st) { st.textContent = ''; st.className = 'status-message'; }
     overlay.classList.remove('hidden');
+  },
+
+  _selectProfileTheme(theme, noPreview) {
+    const hidden = document.getElementById('profileThemeValue');
+    if (hidden) hidden.value = theme;
+    const dark = document.getElementById('themeOptDark');
+    const light = document.getElementById('themeOptLight');
+    if (dark) {
+      dark.style.borderColor = theme === 'dark' ? 'var(--accent)' : 'var(--border)';
+      dark.style.background = theme === 'dark' ? 'rgba(0,212,170,0.12)' : 'var(--bg-tertiary)';
+    }
+    if (light) {
+      light.style.borderColor = theme === 'light' ? 'var(--accent)' : 'var(--border)';
+      light.style.background = theme === 'light' ? 'rgba(0,212,170,0.12)' : 'var(--bg-tertiary)';
+    }
+    if (!noPreview) {
+      document.documentElement.setAttribute('data-theme', theme);
+      const tog = document.getElementById('themeToggle');
+      if (tog) tog.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
   },
 
   closeProfileModal() {
@@ -3509,26 +3920,33 @@ const app = {
   },
 
   async submitProfileUpdate() {
+    const st = document.getElementById('profileModalStatus');
+    const _st = (msg, cls) => {
+      if (!st) return;
+      st.textContent = msg;
+      st.className = 'status-message' + (cls ? ' ' + cls : '');
+      st.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
     const firstName = (document.getElementById('profileFirstName')?.value || '').trim();
     const lastName = (document.getElementById('profileLastName')?.value || '').trim();
+    const username = (document.getElementById('profileUsername')?.value || '').trim();
     const birthDate = (document.getElementById('profileBirthDate')?.value || '').trim();
     const address = (document.getElementById('profileAddress')?.value || '').trim();
-    const currentPw = document.getElementById('profileCurrentPw').value;
-    const newEmail = document.getElementById('profileNewEmail').value.trim();
-    const newPw = document.getElementById('profileNewPw').value;
-    const st = document.getElementById('profileModalStatus');
+    const currentPw = (document.getElementById('profileCurrentPw')?.value || '');
+    const newEmail = (document.getElementById('profileNewEmail')?.value || '').trim();
+    const newPw = (document.getElementById('profileNewPw')?.value || '');
 
     if ((newEmail || newPw) && !currentPw) {
-      st.textContent = '⚠️ Für E-Mail- oder Passwort-Änderung ist das aktuelle Passwort erforderlich.';
-      st.className = 'status-message error';
+      _st('⚠️ Für E-Mail- oder Passwort-Änderung ist das aktuelle Passwort erforderlich.', 'error');
       return;
     }
-    st.textContent = '⏳ Wird gespeichert…';
-    st.className = 'status-message';
+    _st('⏳ Wird gespeichert…', '');
 
+    const selectedTheme = document.getElementById('profileThemeValue')?.value || 'dark';
     const apiBase = `${location.protocol}//${location.host}/api`;
     try {
-      const body = { firstName, lastName, birthDate, address };
+      const body = { firstName, lastName, birthDate, address, username };
       if (currentPw) body.currentPassword = currentPw;
       if (newEmail) body.email = newEmail;
       if (newPw) body.password = newPw;
@@ -3540,28 +3958,47 @@ const app = {
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
-        st.textContent = '❌ ' + (data.message || 'Fehler beim Speichern');
-        st.className = 'status-message error';
+        _st('❌ ' + (data.message || `Fehler beim Speichern (HTTP ${resp.status})`), 'error');
         return;
       }
       if (this._user) {
         if (data.email) this._user.email = data.email;
+        if (data.username !== undefined) this._user.username = data.username;
         if (data.firstName !== undefined) this._user.firstName = data.firstName;
         if (data.lastName !== undefined) this._user.lastName = data.lastName;
         if (data.birthDate !== undefined) this._user.birthDate = data.birthDate;
         if (data.address !== undefined) this._user.address = data.address;
       }
+      // Theme sofort anwenden + per Settings-API persistieren
+      document.documentElement.setAttribute('data-theme', selectedTheme);
+      localStorage.setItem('theme', selectedTheme);
+      const tog = document.getElementById('themeToggle');
+      if (tog) tog.textContent = selectedTheme === 'dark' ? '☀️' : '🌙';
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = selectedTheme === 'dark' ? '#0b1120' : '#f0f4f8';
+      if (this._user) {
+        if (!this._user.settings) this._user.settings = {};
+        this._user.settings.theme = selectedTheme;
+      }
+      Auth.fetch(`${apiBase}/user/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          spoolmanUrl: this.spoolmanUrl || '',
+          theme: selectedTheme,
+          language: (this._user && this._user.settings && this._user.settings.language) || 'de'
+        })
+      }).catch(() => {});
       this._updateProfileUI();
-      st.textContent = '✅ Änderungen gespeichert!';
-      st.className = 'status-message success';
       if (newPw) {
+        _st('✅ Gespeichert – du wirst neu angemeldet…', 'success');
         setTimeout(() => { Auth.clearToken(); location.reload(); }, 1500);
       } else {
-        setTimeout(() => this.closeProfileModal(), 1500);
+        this.closeProfileModal();
+        this.showMobileToast('✅ Profil gespeichert', 'success');
       }
     } catch (e) {
-      st.textContent = '❌ Netzwerkfehler';
-      st.className = 'status-message error';
+      _st('❌ Netzwerkfehler: ' + (e && e.message ? e.message : String(e)), 'error');
     }
   },
 
@@ -3578,13 +4015,14 @@ const app = {
 
   _adminCan(tab) {
     const u = this._user || {};
+    if (tab === 'chat') return !!u.isAdmin; // chat: only full admins
     if (u.isAdmin) return true;
     const need = {
       users: 'admin.users',
       status: 'admin.status',
       backups: 'admin.backups',
       errors: 'admin.errors',
-      groups: 'admin.groups'
+      groups: 'admin.groups',
     }[tab];
     if (!need) return false;
     return this._adminPerms().includes(need);
@@ -3598,7 +4036,7 @@ const app = {
   },
 
   _adminFirstAllowedTab() {
-    const order = ['users', 'status', 'backups', 'errors', 'groups'];
+    const order = ['users', 'status', 'backups', 'errors', 'groups', 'chat'];
     for (const t of order) if (this._adminCan(t)) return t;
     return null;
   },
@@ -3641,11 +4079,273 @@ const app = {
     else if (tab === 'backups') this.adminLoadBackups();
     else if (tab === 'errors') this.adminLoadErrors();
     else if (tab === 'groups') this.adminLoadGroups();
+    else if (tab === 'chat') this.chatInit();
   },
 
   _adminFmt(ts) {
     if (!ts) return '—';
     return new Date(ts + 'Z').toLocaleString('de-CH', { dateStyle: 'short', timeStyle: 'short' });
+  },
+
+  // =====================
+  //  Admin: KI-Chat
+  // =====================
+  _chatConvId: null,
+  _chatSending: false,
+
+  async chatInit() {
+    await this.chatLoadConversations();
+    await this.chatCheckKey();
+  },
+
+  async chatCheckKey() {
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    const el = document.getElementById('chatKeyStatus');
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/chat/key`);
+      const data = await resp.json();
+      if (el) {
+        if (data.has_key) {
+          el.innerHTML = `<span style="color:var(--success,#26de81);">✅ Key gesetzt (${data.masked})</span>`;
+        } else {
+          el.innerHTML = `<span style="color:var(--warning,#f7b731);">⚠️ Kein Key – bitte eintragen</span>`;
+        }
+      }
+    } catch (e) {
+      if (el) el.textContent = 'Fehler beim Laden';
+    }
+  },
+
+  async chatSaveKey() {
+    const input = document.getElementById('chatKeyInput');
+    const key = (input ? input.value : '').trim();
+    if (!key) return;
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/chat/key`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: key })
+      });
+      const data = await resp.json();
+      if (!resp.ok) { this.showMobileToast(data.error || 'Fehler', 'error'); return; }
+      if (input) input.value = '';
+      this.showMobileToast('API-Key gespeichert ✅', 'success');
+      await this.chatCheckKey();
+    } catch (e) {
+      this.showMobileToast('Fehler: ' + e.message, 'error');
+    }
+  },
+
+  async chatLoadConversations() {
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    const list = document.getElementById('chatConvList');
+    if (!list) return;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/chat/conversations`);
+      const data = await resp.json();
+      const convs = data.conversations || [];
+      if (!convs.length) {
+        list.innerHTML = '<div style="padding:0.75rem;font-size:0.78rem;color:var(--text-secondary);text-align:center;">Noch keine Gespräche</div>';
+        return;
+      }
+      list.innerHTML = convs.map(c => {
+        const active = c.id === this._chatConvId;
+        return `<div onclick="app.chatLoadConversation(${c.id})"
+          style="padding:0.55rem 0.75rem;cursor:pointer;border-radius:8px;margin:0.15rem 0.4rem;
+                 font-size:0.8rem;line-height:1.3;transition:background .12s;
+                 background:${active ? 'var(--accent)' : 'transparent'};
+                 color:${active ? '#fff' : 'var(--text-primary)'};"
+          onmouseover="if(${!active})this.style.background='var(--bg-tertiary)'"
+          onmouseout="if(${!active})this.style.background='transparent'">
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${this._escHtml(c.title)}</div>
+          <div style="font-size:0.7rem;opacity:0.6;margin-top:0.1rem;">${c.msg_count} Nachrichten</div>
+        </div>`;
+      }).join('');
+    } catch (e) {
+      if (list) list.innerHTML = `<div style="padding:0.75rem;font-size:0.78rem;color:var(--error);">Fehler: ${e.message}</div>`;
+    }
+  },
+
+  async chatLoadConversation(cid) {
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    this._chatConvId = cid;
+    const messagesEl = document.getElementById('chatMessages');
+    const titleEl = document.getElementById('chatTitle');
+    const exportBtn = document.getElementById('chatExportBtn');
+    const deleteBtn = document.getElementById('chatDeleteBtn');
+    if (messagesEl) messagesEl.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:1rem;">Lade…</div>';
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/chat/conversations/${cid}`);
+      const data = await resp.json();
+      if (!resp.ok) { this.showMobileToast(data.error || 'Fehler', 'error'); return; }
+      if (titleEl) titleEl.textContent = data.conversation.title;
+      if (exportBtn) exportBtn.style.display = '';
+      if (deleteBtn) deleteBtn.style.display = '';
+      this._chatRenderMessages(data.messages || []);
+      await this.chatLoadConversations();
+    } catch (e) {
+      this.showMobileToast('Fehler: ' + e.message, 'error');
+    }
+  },
+
+  _chatRenderMessages(messages) {
+    const el = document.getElementById('chatMessages');
+    if (!el) return;
+    if (!messages.length) {
+      el.innerHTML = '<div style="text-align:center;color:var(--text-secondary);font-size:0.85rem;margin-top:2rem;">Noch keine Nachrichten in diesem Gespräch.</div>';
+      return;
+    }
+    el.innerHTML = messages.map(m => {
+      const isUser = m.role === 'user';
+      const content = this._chatFormatContent(m.content);
+      return `<div style="display:flex;flex-direction:column;align-items:${isUser ? 'flex-end' : 'flex-start'};">
+        <div style="max-width:85%;padding:0.6rem 0.9rem;border-radius:${isUser ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
+                    background:${isUser ? 'var(--accent)' : 'var(--bg-tertiary)'};
+                    color:${isUser ? '#fff' : 'var(--text-primary)'};
+                    font-size:0.88rem;line-height:1.55;word-break:break-word;">
+          ${content}
+        </div>
+        <div style="font-size:0.68rem;color:var(--text-secondary);margin-top:0.2rem;padding:0 0.3rem;">
+          ${isUser ? 'Du' : '🤖 KI'} · ${this._adminFmt(m.created_at)}
+        </div>
+      </div>`;
+    }).join('');
+    el.scrollTop = el.scrollHeight;
+  },
+
+  _chatFormatContent(text) {
+    // Simple markdown: code blocks, bold, inline code
+    let s = this._escHtml(text);
+    s = s.replace(/```([\s\S]*?)```/g, '<pre style="background:var(--bg-secondary);padding:0.5rem 0.75rem;border-radius:8px;overflow-x:auto;font-size:0.8rem;margin:0.4rem 0;white-space:pre-wrap;">$1</pre>');
+    s = s.replace(/`([^`]+)`/g, '<code style="background:var(--bg-secondary);padding:0.1rem 0.35rem;border-radius:4px;font-size:0.82rem;">$1</code>');
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/\n/g, '<br>');
+    return s;
+  },
+
+  _escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  },
+
+  chatNewConversation() {
+    this._chatConvId = null;
+    const messagesEl = document.getElementById('chatMessages');
+    const titleEl = document.getElementById('chatTitle');
+    const exportBtn = document.getElementById('chatExportBtn');
+    const deleteBtn = document.getElementById('chatDeleteBtn');
+    if (titleEl) titleEl.textContent = 'Neues Gespräch';
+    if (exportBtn) exportBtn.style.display = 'none';
+    if (deleteBtn) deleteBtn.style.display = 'none';
+    if (messagesEl) messagesEl.innerHTML = `<div style="text-align:center;color:var(--text-secondary);font-size:0.85rem;margin-top:2rem;">
+      🤖 KI-Assistent für Spool Tag Propus<br>
+      <span style="font-size:0.78rem;opacity:0.7;">Stelle Fragen zum Projekt, Code, Bugs oder Features.</span>
+    </div>`;
+    const input = document.getElementById('chatInput');
+    if (input) input.focus();
+  },
+
+  chatInputKeydown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      this.chatSend();
+    }
+  },
+
+  async chatSend() {
+    if (this._chatSending) return;
+    const input = document.getElementById('chatInput');
+    const statusEl = document.getElementById('chatStatus');
+    const sendBtn = document.getElementById('chatSendBtn');
+    const message = (input ? input.value : '').trim();
+    if (!message) return;
+
+    this._chatSending = true;
+    if (input) input.value = '';
+    if (sendBtn) sendBtn.disabled = true;
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--text-secondary);">⏳ KI denkt nach…</span>';
+
+    // Optimistic: show user message immediately
+    const messagesEl = document.getElementById('chatMessages');
+    const tempId = 'chat-temp-' + Date.now();
+    if (messagesEl) {
+      const prev = messagesEl.querySelector('[data-welcome]');
+      if (prev) prev.remove();
+      const div = document.createElement('div');
+      div.id = tempId;
+      div.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;';
+      div.innerHTML = `<div style="max-width:85%;padding:0.6rem 0.9rem;border-radius:14px 14px 4px 14px;
+        background:var(--accent);color:#fff;font-size:0.88rem;line-height:1.55;word-break:break-word;">
+        ${this._escHtml(message)}</div>
+        <div style="font-size:0.68rem;color:var(--text-secondary);margin-top:0.2rem;padding:0 0.3rem;">Du · jetzt</div>`;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/chat/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, conversation_id: this._chatConvId })
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        if (statusEl) statusEl.innerHTML = `<span style="color:var(--error);">⚠️ ${this._escHtml(data.error || 'Fehler')}</span>`;
+        const tmp = document.getElementById(tempId);
+        if (tmp) tmp.remove();
+        return;
+      }
+      this._chatConvId = data.conversation_id;
+      if (statusEl) statusEl.textContent = '';
+      // Reload full conversation to get proper timestamps
+      await this.chatLoadConversation(this._chatConvId);
+    } catch (e) {
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--error);">⚠️ Netzwerkfehler: ${this._escHtml(e.message)}</span>`;
+      const tmp = document.getElementById(tempId);
+      if (tmp) tmp.remove();
+    } finally {
+      this._chatSending = false;
+      if (sendBtn) sendBtn.disabled = false;
+      if (input) input.focus();
+    }
+  },
+
+  async chatExport() {
+    if (!this._chatConvId) return;
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/chat/conversations/${this._chatConvId}/export`);
+      const data = await resp.json();
+      if (!resp.ok) { this.showMobileToast(data.error || 'Fehler', 'error'); return; }
+      // Download as .md file in browser
+      const blob = new Blob([data.markdown], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chat-${this._chatConvId}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      const saved = data.saved_path ? ` (auch gespeichert: ${data.saved_path})` : '';
+      this.showMobileToast(`Exportiert${saved}`, 'success');
+    } catch (e) {
+      this.showMobileToast('Fehler: ' + e.message, 'error');
+    }
+  },
+
+  async chatDeleteConversation() {
+    if (!this._chatConvId) return;
+    if (!confirm('Gespräch wirklich löschen?')) return;
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/chat/conversations/${this._chatConvId}`, { method: 'DELETE' });
+      if (!resp.ok) { this.showMobileToast('Fehler beim Löschen', 'error'); return; }
+      this.showMobileToast('Gespräch gelöscht', 'success');
+      this.chatNewConversation();
+      await this.chatLoadConversations();
+    } catch (e) {
+      this.showMobileToast('Fehler: ' + e.message, 'error');
+    }
   },
 
   async adminLoadUsers() {
@@ -3661,13 +4361,21 @@ const app = {
       const users = data.users || [];
       if (!users.length) { body.innerHTML = '<p>Keine Benutzer.</p>'; return; }
       let html = `<table class="admin-table"><thead><tr>
-        <th>ID</th><th>E-Mail</th><th>Erstellt</th><th>Rollen</th><th>Gruppe</th><th>Backups</th><th>Aktionen</th>
+        <th>ID</th><th>Benutzername</th><th>E-Mail</th><th>Erstellt</th><th>Letzte Anmeldung</th><th>Rolle</th><th>Status</th><th>Gruppe</th><th>Backups</th><th>Aktionen</th>
       </tr></thead><tbody>`;
       for (const u of users) {
-        const badges = [
+        const statusBadges = [
           u.is_admin ? '<span class="badge badge-admin">Admin</span>' : '',
           u.is_locked ? '<span class="badge badge-locked">Gesperrt</span>' : ''
         ].filter(Boolean).join(' ');
+        const role = (u.role || 'user').toLowerCase();
+        const roleSelect = `<select style="padding:0.25rem 0.4rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.8rem;min-width:110px;"
+                onchange="app._adminSetUserRole(${u.id}, this.value)">
+              <option value="user" ${role==='user'?'selected':''}>User</option>
+              <option value="viewer" ${role==='viewer'?'selected':''}>Viewer</option>
+              <option value="manager" ${role==='manager'?'selected':''}>Manager</option>
+              <option value="support" ${role==='support'?'selected':''}>Support</option>
+            </select>`;
         const groups = Array.isArray(this._adminGroups) ? this._adminGroups : [];
         const groupOptions = [
           `<option value="">—</option>`,
@@ -3675,11 +4383,14 @@ const app = {
         ].join('');
         html += `<tr>
           <td>${u.id}</td>
+          <td>${u.username || '<span style="color:var(--text-secondary);font-size:0.8rem;">—</span>'}</td>
           <td>${u.email}</td>
           <td>${this._adminFmt(u.created_at)}</td>
-          <td>${badges || '<span style="color:var(--text-secondary);font-size:0.8rem;">—</span>'}</td>
+          <td title="${(u.last_login_ip || '').replace(/\"/g,'&quot;')}">${u.last_login_at ? this._adminFmt(u.last_login_at) : '<span style="color:var(--text-secondary);font-size:0.8rem;">—</span>'}</td>
+          <td>${roleSelect}</td>
+          <td>${statusBadges || '<span style="color:var(--text-secondary);font-size:0.8rem;">—</span>'}</td>
           <td>
-            <select style="padding:0.25rem 0.4rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.8rem;"
+            <select style="padding:0.25rem 0.4rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.8rem;min-width:160px;"
                     onchange="app._adminSetUserGroup(${u.id}, this.value)">
               ${groupOptions}
             </select>
@@ -3728,6 +4439,23 @@ const app = {
     });
     // keep table up to date (also refreshes group names if changed)
     this.adminLoadUsers();
+  },
+
+  async _adminSetUserRole(uid, role) {
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/users/${uid}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role })
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      // keep table up to date
+      this.adminLoadUsers();
+    } catch (e) {
+      this.showMobileToast(`Fehler: ${e.message}`, 'error');
+      this.adminLoadUsers();
+    }
   },
 
   async _adminToggleAdmin(uid, current, email) {
@@ -3827,6 +4555,10 @@ const app = {
     }
   },
 
+  _adminErrorReports: [],
+  _adminErrorSort: { col: 'id', dir: 'desc' },
+  _adminErrorFilter: 'all',
+
   async adminLoadErrors() {
     const body = document.getElementById('adminErrorsBody');
     if (!body) return;
@@ -3836,26 +4568,168 @@ const app = {
       const resp = await Auth.fetch(`${apiBase}/admin/error-reports`);
       const data = await resp.json();
       if (!resp.ok) { body.innerHTML = `<p style="color:var(--error)">Fehler: ${data.message||resp.status}</p>`; return; }
-      const reports = data.reports || [];
-      if (!reports.length) { body.innerHTML = '<p>Keine Fehlerberichte.</p>'; return; }
-      let html = `<table class="admin-table"><thead><tr>
-        <th>ID</th><th>Meldung</th><th>Beschreibung</th><th>Screenshot</th><th>Erstellt</th>
-      </tr></thead><tbody>`;
-      for (const r of reports) {
-        const msg = (r.error_message||'').slice(0,80) || '(kein)';
-        const ub = (r.user_message||'').slice(0,60) || '—';
-        html += `<tr>
-          <td>${r.id}</td>
-          <td style="font-size:0.78rem;max-width:220px;word-break:break-word;">${msg}</td>
-          <td style="font-size:0.78rem;max-width:200px;">${ub}</td>
-          <td>${r.has_screenshot ? `<button class="btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.5rem;" onclick="app._adminShowScreenshot(${r.id})">📷 Ansehen</button>` : '—'}</td>
-          <td>${this._adminFmt(r.created_at)}</td>
-        </tr>`;
-      }
-      html += '</tbody></table>';
-      body.innerHTML = html;
+      this._adminErrorReports = data.reports || [];
+      this._adminRenderErrors();
     } catch (e) {
       body.innerHTML = `<p style="color:var(--error)">Netzwerkfehler: ${e.message}</p>`;
+    }
+  },
+
+  _adminRenderErrors() {
+    const body = document.getElementById('adminErrorsBody');
+    if (!body) return;
+
+    const STATUS_META = {
+      'neu':           { label: '🆕 Neu',           color: '#6c8ef7', bg: 'rgba(108,142,247,0.15)' },
+      'in_bearbeitung':{ label: '⚙️ In Bearbeitung', color: '#f7b731', bg: 'rgba(247,183,49,0.15)'  },
+      'erledigt':      { label: '✅ Erledigt',       color: '#26de81', bg: 'rgba(38,222,129,0.15)'  },
+      'archiviert':    { label: '📦 Archiviert',     color: '#a29bfe', bg: 'rgba(162,155,254,0.15)' },
+    };
+    const STATUS_ORDER = { 'neu': 0, 'in_bearbeitung': 1, 'erledigt': 2, 'archiviert': 3 };
+
+    let reports = [...this._adminErrorReports];
+
+    // Filter
+    const f = this._adminErrorFilter || 'all';
+    if (f !== 'all') reports = reports.filter(r => (r.status || 'neu') === f);
+
+    // Sort
+    const { col, dir } = this._adminErrorSort;
+    reports.sort((a, b) => {
+      let va, vb;
+      if (col === 'id')      { va = a.id;          vb = b.id; }
+      else if (col === 'status') { va = STATUS_ORDER[a.status||'neu'] ?? 99; vb = STATUS_ORDER[b.status||'neu'] ?? 99; }
+      else if (col === 'date')   { va = a.created_at; vb = b.created_at; }
+      else { va = a.id; vb = b.id; }
+      if (va < vb) return dir === 'asc' ? -1 : 1;
+      if (va > vb) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    const arrow = (c) => {
+      if (col !== c) return `<span style="opacity:0.3;font-size:0.7rem;"> ↕</span>`;
+      return `<span style="font-size:0.7rem;"> ${dir === 'asc' ? '↑' : '↓'}</span>`;
+    };
+    const thBtn = (c, label) =>
+      `<th style="cursor:pointer;user-select:none;white-space:nowrap;" onclick="app._adminErrorSortBy('${c}')">${label}${arrow(c)}</th>`;
+
+    // Filter-Tabs
+    const filterCounts = { all: this._adminErrorReports.length };
+    for (const r of this._adminErrorReports) {
+      const s = r.status || 'neu';
+      filterCounts[s] = (filterCounts[s] || 0) + 1;
+    }
+    const filterTabs = [
+      { key: 'all',           label: 'Alle' },
+      { key: 'neu',           label: '🆕 Neu' },
+      { key: 'in_bearbeitung',label: '⚙️ In Bearbeitung' },
+      { key: 'erledigt',      label: '✅ Erledigt' },
+      { key: 'archiviert',    label: '📦 Archiviert' },
+    ].map(t => {
+      const active = f === t.key;
+      const cnt = filterCounts[t.key] || 0;
+      return `<button onclick="app._adminErrorFilterBy('${t.key}')"
+        style="font-size:0.75rem;padding:0.3rem 0.7rem;border-radius:999px;border:1.5px solid;cursor:pointer;
+               background:${active ? 'var(--accent)' : 'var(--bg-secondary)'};
+               color:${active ? '#fff' : 'var(--text-secondary)'};
+               border-color:${active ? 'var(--accent)' : 'var(--border)'};
+               font-weight:${active ? '700' : '400'};transition:all .15s;">
+        ${t.label}${cnt > 0 ? ` <span style="opacity:0.75;">(${cnt})</span>` : ''}
+      </button>`;
+    }).join('');
+
+    if (!reports.length) {
+      body.innerHTML = `
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;">${filterTabs}</div>
+        <p style="color:var(--text-secondary);text-align:center;padding:1.5rem;">Keine Einträge für diesen Filter.</p>`;
+      return;
+    }
+
+    let html = `
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;">${filterTabs}</div>
+      <div style="overflow-x:auto;">
+      <table class="admin-table"><thead><tr>
+        ${thBtn('id','ID')}
+        <th>Meldung</th><th>Beschreibung</th><th>Screenshot</th>
+        ${thBtn('status','Status')}
+        ${thBtn('date','Erstellt')}
+        <th>Aktionen</th>
+      </tr></thead><tbody>`;
+
+    for (const r of reports) {
+      const msg = (r.error_message||'').slice(0,80) || '(kein)';
+      const ub  = (r.user_message||'').slice(0,60)  || '—';
+      const st  = r.status || 'neu';
+      const sm  = STATUS_META[st] || STATUS_META['neu'];
+      const statusBadge = `<span style="display:inline-block;padding:0.2rem 0.55rem;border-radius:999px;
+        font-size:0.72rem;font-weight:700;background:${sm.bg};color:${sm.color};white-space:nowrap;">${sm.label}</span>`;
+      const statusSelect = `<select onchange="app._adminSetErrorStatus(${r.id}, this.value)"
+        style="font-size:0.75rem;padding:0.2rem 0.4rem;border-radius:8px;background:var(--bg-secondary);
+               color:var(--text-primary);border:1px solid var(--border);cursor:pointer;margin-top:0.3rem;width:100%;">
+        <option value="neu"            ${st==='neu'?'selected':''}>🆕 Neu</option>
+        <option value="in_bearbeitung" ${st==='in_bearbeitung'?'selected':''}>⚙️ In Bearbeitung</option>
+        <option value="erledigt"       ${st==='erledigt'?'selected':''}>✅ Erledigt</option>
+        <option value="archiviert"     ${st==='archiviert'?'selected':''}>📦 Archiviert</option>
+      </select>`;
+      html += `<tr id="err-row-${r.id}">
+        <td style="font-weight:700;">${r.id}</td>
+        <td style="font-size:0.78rem;max-width:200px;word-break:break-word;">${msg}</td>
+        <td style="font-size:0.78rem;max-width:180px;word-break:break-word;">${ub}</td>
+        <td>${r.has_screenshot ? `<button class="btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.5rem;width:auto;" onclick="app._adminShowScreenshot(${r.id})">📷 Ansehen</button>` : '—'}</td>
+        <td style="min-width:140px;">${statusBadge}${statusSelect}</td>
+        <td style="white-space:nowrap;font-size:0.78rem;">${this._adminFmt(r.created_at)}</td>
+        <td>
+          <button class="btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.5rem;width:auto;color:var(--error);border-color:var(--error)33;"
+            onclick="app._adminDeleteError(${r.id})">🗑️ Löschen</button>
+        </td>
+      </tr>`;
+    }
+    html += '</tbody></table></div>';
+    body.innerHTML = html;
+  },
+
+  _adminErrorSortBy(col) {
+    if (this._adminErrorSort.col === col) {
+      this._adminErrorSort.dir = this._adminErrorSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this._adminErrorSort = { col, dir: col === 'id' ? 'desc' : 'asc' };
+    }
+    this._adminRenderErrors();
+  },
+
+  _adminErrorFilterBy(key) {
+    this._adminErrorFilter = key;
+    this._adminRenderErrors();
+  },
+
+  async _adminSetErrorStatus(rid, status) {
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/error-reports/${rid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const entry = this._adminErrorReports.find(r => r.id === rid);
+      if (entry) entry.status = status;
+      this._adminRenderErrors();
+    } catch (e) {
+      this.showMobileToast(`Fehler: ${e.message}`, 'error');
+    }
+  },
+
+  async _adminDeleteError(rid) {
+    if (!confirm(`Fehlerbericht #${rid} wirklich löschen?`)) return;
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/error-reports/${rid}`, { method: 'DELETE' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      this._adminErrorReports = this._adminErrorReports.filter(r => r.id !== rid);
+      this._adminRenderErrors();
+      this.showMobileToast(`Bericht #${rid} gelöscht`, 'success');
+    } catch (e) {
+      this.showMobileToast(`Fehler: ${e.message}`, 'error');
     }
   },
 
@@ -3895,30 +4769,104 @@ const app = {
       this._adminGroups = groups;
       const perms = this._adminPermissionCatalog();
 
-      // Pill-chip style checkbox for a permission
-      const permChip = (p, cls, extra = '') => {
+      // Optional: load users so we can assign group/role from this tab.
+      let users = [];
+      try {
+        const ur = await Auth.fetch(`${apiBase}/admin/users`);
+        const ud = await ur.json();
+        if (ur.ok) users = ud.users || [];
+      } catch (e) {
+        // ignore; user might not have admin.users permission
+      }
+
+      // Permission-Toggle-Chip
+      const permCard = (p, cls, extra = '') => {
         const m = PERM_META[p.key] || { icon: '🔑', color: 'var(--accent)', bg: 'rgba(0,200,200,0.1)' };
+        const shortLabel = { 'admin.users': 'Benutzer', 'admin.status': 'Status', 'admin.backups': 'Backups', 'admin.errors': 'Fehler', 'admin.groups': 'Gruppen' };
+        const uid = `perm-${cls}-${p.key}-${Math.random().toString(36).slice(2,7)}`;
+        const isChecked = extra.includes('checked');
+        const checkedStyle = isChecked
+          ? `background:${m.color};border-color:${m.color};color:#fff;`
+          : `background:var(--bg-tertiary);border-color:var(--border);color:var(--text-secondary);`;
         return `
-          <label style="display:flex;align-items:center;gap:0.45rem;padding:0.45rem 0.7rem;
-                        border-radius:999px;border:1.5px solid ${m.color}33;background:${m.bg};
-                        cursor:pointer;transition:border-color .15s,background .15s;user-select:none;"
-                 onmouseover="this.style.borderColor='${m.color}'" onmouseout="this.style.borderColor='${m.color}33'">
-            <input type="checkbox" class="${cls}" value="${p.key}" ${extra}
-                   style="width:15px;height:15px;accent-color:${m.color};cursor:pointer;flex-shrink:0;">
-            <span style="font-size:0.82rem;">${m.icon}</span>
-            <span style="font-size:0.82rem;font-weight:600;color:${m.color};">${p.key}</span>
-            <span style="font-size:0.75rem;color:var(--text-secondary);margin-left:0.1rem;">${p.label}</span>
+          <label for="${uid}" style="display:inline-flex;align-items:center;gap:0.45rem;
+                        padding:0.45rem 0.85rem;border-radius:999px;border:1.5px solid;
+                        ${checkedStyle}
+                        cursor:pointer;transition:all .15s;user-select:none;
+                        font-size:0.82rem;font-weight:600;white-space:nowrap;"
+                 onclick="(function(lbl,color,bg){
+                   var cb=lbl.querySelector('input');
+                   var on=cb.checked;
+                   lbl.style.background=on?color:'var(--bg-tertiary)';
+                   lbl.style.borderColor=on?color:'var(--border)';
+                   lbl.style.color=on?'#fff':'var(--text-secondary)';
+                 })(this,'${m.color}','${m.bg}')">
+            <input type="checkbox" id="${uid}" class="${cls}" value="${p.key}" ${extra}
+                   style="display:none;">
+            <span style="font-size:1rem;line-height:1;">${m.icon}</span>
+            <span>${shortLabel[p.key] || p.key}</span>
           </label>`;
       };
 
-      const createPerms = `<div style="display:flex;flex-direction:column;gap:0.4rem;margin:0.75rem 0;">
-        ${perms.map(p => permChip(p, 'adm-perm-create')).join('')}
+      const createPerms = `<div style="display:flex;flex-wrap:wrap;gap:0.45rem;margin:0.6rem 0 0.9rem;">
+        ${perms.map(p => permCard(p, 'adm-perm-create')).join('')}
       </div>`;
+
+      const assignUserCard = (() => {
+        if (!users.length) return '';
+        const userOpts = users.map(u => {
+          const label = `${u.email}${u.username ? ` (${u.username})` : ''}`;
+          return `<option value="${u.id}">${label}</option>`;
+        }).join('');
+        const groupOpts = [
+          `<option value="">— Keine Gruppe —</option>`,
+          ...groups.map(g => `<option value="${g.id}">${g.name}</option>`)
+        ].join('');
+        return `
+          <div style="border:1px solid var(--border);background:var(--bg-secondary);border-radius:14px;
+                      padding:1.05rem;margin-bottom:1.25rem;">
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.85rem;">
+              <span style="font-size:1.05rem;">👤</span>
+              <strong style="font-size:0.95rem;">Benutzer zuweisen</strong>
+              <span style="color:var(--text-secondary);font-size:0.8rem;">(Gruppe + Rolle)</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1.6fr 1.2fr 0.9fr;gap:0.65rem;align-items:end;">
+              <div>
+                <label style="font-size:0.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em;font-weight:700;">Benutzer</label>
+                <select id="admAssignUser" style="width:100%;margin-top:0.3rem;padding:0.5rem 0.75rem;border-radius:10px;font-size:0.9rem;">
+                  ${userOpts}
+                </select>
+              </div>
+              <div>
+                <label style="font-size:0.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em;font-weight:700;">Gruppe</label>
+                <select id="admAssignGroup" style="width:100%;margin-top:0.3rem;padding:0.5rem 0.75rem;border-radius:10px;font-size:0.9rem;">
+                  ${groupOpts}
+                </select>
+              </div>
+              <div>
+                <label style="font-size:0.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em;font-weight:700;">Rolle</label>
+                <select id="admAssignRole" style="width:100%;margin-top:0.3rem;padding:0.5rem 0.75rem;border-radius:10px;font-size:0.9rem;">
+                  <option value="user">User</option>
+                  <option value="viewer">Viewer</option>
+                  <option value="manager">Manager</option>
+                  <option value="support">Support</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.85rem;">
+              <button class="btn-success" style="width:auto;border-radius:10px;padding:0.5rem 1.1rem;"
+                      onclick="app._adminAssignUserGroupRole()">✅ Zuweisen</button>
+              <button class="btn-secondary" style="width:auto;border-radius:10px;padding:0.5rem 1.1rem;"
+                      onclick="app.adminLoadGroups()">🔄 Aktualisieren</button>
+            </div>
+            <div id="admAssignStatus" class="status-message" style="margin-top:0.6rem;"></div>
+          </div>`;
+      })();
 
       const renderGroup = (g) => {
         const gp = Array.isArray(g.permissions) ? g.permissions : [];
-        const checks = `<div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.5rem;">
-          ${perms.map(p => permChip(p, 'adm-perm-edit', `data-gid="${g.id}" ${gp.includes(p.key) ? 'checked' : ''}`)).join('')}
+        const checks = `<div style="display:flex;flex-wrap:wrap;gap:0.45rem;margin-top:0.5rem;">
+          ${perms.map(p => permCard(p, 'adm-perm-edit', `data-gid="${g.id}" ${gp.includes(p.key) ? 'checked' : ''}`)).join('')}
         </div>`;
         const safeNameAttr = String(g.name || '').replace(/"/g, '&quot;');
         const safeNameJs = String(g.name || '').replace(/'/g, '&#39;');
@@ -3961,6 +4909,7 @@ const app = {
       };
 
       body.innerHTML = `
+        ${assignUserCard}
         <!-- Create new group card -->
         <div style="border:1.5px dashed var(--accent)55;background:var(--bg-secondary);border-radius:14px;
                     padding:1.1rem;margin-bottom:1.25rem;">
@@ -3985,6 +4934,25 @@ const app = {
         </div>`;
     } catch (e) {
       body.innerHTML = `<p style="color:var(--error)">Netzwerkfehler: ${e.message}</p>`;
+    }
+  },
+
+  async _adminAssignUserGroupRole() {
+    const uid = document.getElementById('admAssignUser')?.value;
+    const gid = document.getElementById('admAssignGroup')?.value || '';
+    const role = document.getElementById('admAssignRole')?.value || 'user';
+    const st = document.getElementById('admAssignStatus');
+    if (st) { st.textContent = ''; st.className = 'status-message'; }
+    if (!uid) {
+      if (st) { st.textContent = 'Bitte Benutzer auswählen.'; st.className = 'status-message error'; }
+      return;
+    }
+    try {
+      await this._adminSetUserGroup(uid, gid);
+      await this._adminSetUserRole(uid, role);
+      if (st) { st.textContent = '✅ Gespeichert'; st.className = 'status-message success'; }
+    } catch (e) {
+      if (st) { st.textContent = '❌ Fehler: ' + (e.message || 'Netzwerkfehler'); st.className = 'status-message error'; }
     }
   },
 

@@ -1227,6 +1227,7 @@
       padding: 0;
       margin: 0;
       transition: background 0.2s, border-color 0.2s;
+      z-index: 25;
     }
     .theme-toggle:hover { border-color: var(--accent); }
 
@@ -1442,6 +1443,10 @@
       font-weight: 700;
       margin-right: 0.5rem;
     }
+    .release-version.latest {
+      background: var(--accent);
+      color: #fff;
+    }
     .release-date { font-size: 0.75rem; color: var(--text-secondary); }
     .release-changes { margin-top: 0.35rem; padding-left: 1rem; }
     .release-changes li {
@@ -1450,6 +1455,7 @@
       margin-bottom: 0.2rem;
       line-height: 1.4;
     }
+    .release-notes-hidden { display: none; }
 
     .hidden {
       display: none !important;
@@ -1512,7 +1518,7 @@
     <p>Filament Tag Manager mit
       <a href="https://openspool.io/rfid.html" target="_blank">OpenSpool</a> &amp;
       <a href="https://specs.openprinttag.org/" target="_blank">OpenPrintTag</a> |
-      <a href="https://github.com/propuscode/spool-tag-propus" target="_blank" rel="noopener">GitHub</a> |
+      <a href="https://github.com/Janez76/spool-tag-propus" target="_blank" rel="noopener">GitHub</a> |
       <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener" title="Discord Community" style="display:inline-flex;align-items:center;gap:0.25rem;color:var(--accent);"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>Discord</a>
     </p>
     <span id="langSwitcher" style="display:inline-flex;gap:0.25rem;margin-left:0.5rem;">
@@ -1555,23 +1561,27 @@
 
   <!-- Login / Register -->
   <div id="authSection" class="container" style="max-width: 400px; margin-top: 2rem;">
-    <form id="loginForm" class="section" onsubmit="return false;">
+    <form id="loginForm" class="section">
       <h2 class="section-title" data-i18n="auth.login">Anmelden</h2>
       <div class="form-group">
-        <label data-i18n="auth.email">E-Mail</label>
-        <input type="email" id="loginEmail" placeholder="deine@email.de" autocomplete="email">
+        <label data-i18n="auth.identifier">E-Mail oder Benutzername</label>
+        <input type="text" id="loginEmail" data-i18n-placeholder="auth.identifierPlaceholder" placeholder="E-Mail oder Benutzername" autocomplete="username">
       </div>
       <div class="form-group">
         <label data-i18n="auth.password">Passwort</label>
         <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
       </div>
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">
+        <input type="checkbox" id="loginRemember" checked style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);">
+        <label for="loginRemember" style="font-size:0.88rem;color:var(--text-secondary);cursor:pointer;" data-i18n="auth.rememberMe">Angemeldet bleiben (30 Tage)</label>
+      </div>
       <div id="authError" class="status-message error" style="display:none;margin-bottom:0.5rem;"></div>
-      <button type="button" class="btn-primary" id="loginBtn" style="width:100%;" data-i18n="auth.loginBtn">Anmelden</button>
+      <button type="submit" class="btn-primary" id="loginBtn" style="width:100%;" data-i18n="auth.loginBtn">Anmelden</button>
       <p style="margin-top:1rem;text-align:center;">
         <a href="#" id="showRegisterLink" style="color:var(--accent);" data-i18n="auth.noAccount">Noch kein Konto? Registrieren</a>
       </p>
     </form>
-    <form id="registerForm" class="section hidden" onsubmit="return false;">
+    <form id="registerForm" class="section hidden">
       <h2 class="section-title" data-i18n="auth.register">Registrieren</h2>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
         <div class="form-group" style="margin-bottom:0;">
@@ -1592,6 +1602,10 @@
         <input type="text" id="registerAddress" placeholder="Musterstrasse 1, 3000 Bern" autocomplete="street-address">
       </div>
       <div class="form-group">
+        <label data-i18n="auth.username">Benutzername</label>
+        <input type="text" id="registerUsername" data-i18n-placeholder="auth.usernamePlaceholder" placeholder="z.B. janez" autocomplete="username">
+      </div>
+      <div class="form-group">
         <label data-i18n="auth.email">E-Mail</label>
         <input type="email" id="registerEmail" placeholder="deine@email.de" autocomplete="email">
       </div>
@@ -1604,7 +1618,7 @@
         <input type="password" id="registerPasswordConfirm" placeholder="••••••••" autocomplete="new-password">
       </div>
       <div id="registerError" class="status-message error" style="display:none;margin-bottom:0.5rem;"></div>
-      <button type="button" class="btn-primary" id="registerBtn" style="width:100%;" data-i18n="auth.registerBtn">Registrieren</button>
+      <button type="submit" class="btn-primary" id="registerBtn" style="width:100%;" data-i18n="auth.registerBtn">Registrieren</button>
       <p style="margin-top:1rem;text-align:center;">
         <a href="#" id="showLoginLink" style="color:var(--accent);" data-i18n="auth.backToLogin">Zurück zur Anmeldung</a>
       </p>
@@ -1654,8 +1668,8 @@
 
         <div class="mode-card accent-card" onclick="app.setMode('myspoolman')" id="mySpoolmanCard">
           <span class="mode-card-icon">🧵</span>
-          <span class="mode-card-label">Mein Spoolman</span>
-          <span class="mode-card-desc">Meine Filamente verwalten</span>
+          <span class="mode-card-label" data-i18n="mode.mySpoolman">Mein Spoolman</span>
+          <span class="mode-card-desc" data-i18n="mode.mySpoolmanDesc">Meine Filamente verwalten</span>
         </div>
         <div class="mode-card" onclick="app.setMode('profiles')">
           <span class="mode-card-icon">⬇️</span>
@@ -1682,8 +1696,8 @@
         </div>
         <div class="mode-card" onclick="app.setMode('settings')">
           <span class="mode-card-icon">⚙️</span>
-          <span class="mode-card-label">Einstellungen</span>
-          <span class="mode-card-desc">Spoolman, Backup & mehr</span>
+          <span class="mode-card-label" data-i18n="mode.settings">Einstellungen</span>
+          <span class="mode-card-desc" data-i18n="mode.settingsDesc">Spoolman, Backup & mehr</span>
         </div>
 
         <div class="mode-bottom-row">
@@ -1714,80 +1728,80 @@
 
     <!-- Settings Section -->
     <div id="settingsSection" class="section hidden">
-      <h2 class="section-title">⚙️ Einstellungen</h2>
+      <h2 class="section-title" data-i18n="settings.title">⚙️ Einstellungen</h2>
 
       <!-- Settings Tabs -->
       <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:1.5rem;overflow-x:auto;">
-        <button class="settings-tab-btn active" data-stab="spoolman" onclick="app.switchSettingsTab('spoolman')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:3px solid var(--accent);color:var(--accent);font-weight:700;font-size:0.9rem;cursor:pointer;white-space:nowrap;margin-bottom:-2px;">📦 Spoolman</button>
-        <button class="settings-tab-btn" data-stab="backup" onclick="app.switchSettingsTab('backup')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:3px solid transparent;color:var(--text-secondary);font-weight:600;font-size:0.9rem;cursor:pointer;white-space:nowrap;margin-bottom:-2px;">💾 Backup</button>
+        <button class="settings-tab-btn active" data-stab="spoolman" onclick="app.switchSettingsTab('spoolman')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:3px solid var(--accent);color:var(--accent);font-weight:700;font-size:0.9rem;cursor:pointer;white-space:nowrap;margin-bottom:-2px;">📦 <span data-i18n="settings.spoolmanTab">Spoolman</span></button>
+        <button class="settings-tab-btn" data-stab="backup" onclick="app.switchSettingsTab('backup')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:3px solid transparent;color:var(--text-secondary);font-weight:600;font-size:0.9rem;cursor:pointer;white-space:nowrap;margin-bottom:-2px;">💾 <span data-i18n="settings.backupTab">Backup</span></button>
       </div>
 
       <!-- Tab: Spoolman -->
       <div id="stab-spoolman">
-        <h3 style="font-size:1rem;margin-bottom:0.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:.78rem;">Verbindung</h3>
+        <h3 style="font-size:.78rem;margin-bottom:0.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;" data-i18n="settings.connectionSection">Verbindung</h3>
         <div class="form-group">
-          <label>Spoolman Server URL</label>
+          <label data-i18n="spoolman.urlLabel">Spoolman Server URL</label>
           <div style="display:flex;gap:0.5rem;">
             <input type="text" id="spoolmanUrlSettings" placeholder="http://192.168.1.4:7912" style="flex:1;">
-            <button class="btn-primary" onclick="app.testSpoolmanSettings()" style="width:auto;padding:0.5rem 1rem;">Testen</button>
+            <button class="btn-primary" onclick="app.testSpoolmanSettings()" style="width:auto;padding:0.5rem 1rem;" data-i18n="common.test">Testen</button>
           </div>
-          <small style="color:var(--text-secondary)">z.B. http://192.168.1.4:7912 – beides mit oder ohne http:// funktioniert</small>
+          <small style="color:var(--text-secondary)" data-i18n="spoolman.urlHint">z.B. http://192.168.1.4:7912 – beides mit oder ohne http:// funktioniert</small>
         </div>
         <div id="spoolmanSettingsTestStatus" class="status-message"></div>
-        <button class="btn-success" onclick="app.saveSpoolmanUrlSettings()" style="margin-top:0.5rem;">💾 Speichern</button>
+        <button class="btn-success" onclick="app.saveSpoolmanUrlSettings()" style="margin-top:0.5rem;">💾 <span data-i18n="common.save">Speichern</span></button>
 
         <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);">
-          <h3 style="font-size:.78rem;margin-bottom:0.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Spulen importieren</h3>
+          <h3 style="font-size:.78rem;margin-bottom:0.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;" data-i18n="spoolman.importSpools">Spulen importieren</h3>
           <div id="spoolmanSettingsStatus" class="status-message" style="margin-bottom:0.5rem;"></div>
-          <input type="text" id="spoolmanSearchSettings" placeholder="Suche nach Name, Material, Marke..." oninput="app.filterSpoolmanSpoolsSettings()" style="margin-bottom:0.5rem;" id="spoolmanSearchSettings">
+          <input type="text" id="spoolmanSearchSettings" data-i18n-placeholder="spoolman.searchPlaceholder" placeholder="Suche nach Name, Material, Marke..." oninput="app.filterSpoolmanSpoolsSettings()" style="margin-bottom:0.5rem;">
           <div id="spoolmanImportActions" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin:0.25rem 0 0.5rem;">
-            <div id="spoolmanImportHint" style="flex:1;min-width:220px;color:var(--text-secondary);font-size:0.8rem;">
+            <div id="spoolmanImportHint" style="flex:1;min-width:220px;color:var(--text-secondary);font-size:0.8rem;" data-i18n="spoolman.importHint">
               Spule auswählen, dann „Jetzt importieren“.
             </div>
-            <button id="spoolmanImportNowBtn" class="btn-success" disabled style="width:auto;padding:0.45rem 0.9rem;">⬇️ Jetzt importieren</button>
-            <button id="spoolmanImportClearBtn" class="btn-secondary" disabled style="width:auto;padding:0.45rem 0.9rem;">✕ Auswahl</button>
+            <button id="spoolmanImportNowBtn" class="btn-success" disabled style="width:auto;padding:0.45rem 0.9rem;" data-i18n="spoolman.importNow">⬇️ Jetzt importieren</button>
+            <button id="spoolmanImportClearBtn" class="btn-secondary" disabled style="width:auto;padding:0.45rem 0.9rem;" data-i18n="spoolman.clearSelection">✕ Auswahl</button>
           </div>
           <!-- Bulk import -->
           <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:0.5rem;">
-            <button id="spoolmanImportAllBtn" class="btn-primary" onclick="app.importAllSpoolmanSpools()" style="width:auto;padding:0.45rem 0.9rem;">📦 Alle importieren</button>
+            <button id="spoolmanImportAllBtn" class="btn-primary" onclick="app.importAllSpoolmanSpools()" style="width:auto;padding:0.45rem 0.9rem;" data-i18n="spoolman.importAll">📦 Alle importieren</button>
             <span id="spoolmanImportAllStatus" style="font-size:0.8rem;color:var(--text-secondary);"></span>
           </div>
           <div id="spoolmanSpoolListSettings" style="margin-top:0.75rem;"></div>
-          <button class="btn-secondary" style="margin-top:0.75rem;" onclick="app.loadSpoolmanSpoolsSettings()">🔄 Spulen laden</button>
+          <button class="btn-secondary" style="margin-top:0.75rem;" onclick="app.loadSpoolmanSpoolsSettings()" data-i18n="spoolman.loadSpools">🔄 Spulen laden</button>
         </div>
       </div>
 
       <!-- Tab: Backup -->
       <div id="stab-backup" style="display:none;">
-        <h3 style="font-size:.78rem;margin-bottom:0.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Daten exportieren / importieren</h3>
-        <p style="color:var(--text-secondary);margin-bottom:1rem;font-size:0.9rem;">Sichere deine Einstellungen (Spoolman-URL, Theme, Sprache). Bei Updates gehen keine Daten verloren.</p>
+        <h3 style="font-size:.78rem;margin-bottom:0.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;" data-i18n="backup.title">Daten exportieren / importieren</h3>
+        <p style="color:var(--text-secondary);margin-bottom:1rem;font-size:0.9rem;" data-i18n="backup.description">Sichere deine Einstellungen (Spoolman-URL, Theme, Sprache). Bei Updates gehen keine Daten verloren.</p>
         <div id="backupSettingsStatus" class="status-message"></div>
         <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem;">
-          <button class="btn-primary" onclick="app.exportUserData()">📤 Meine Daten exportieren</button>
+          <button class="btn-primary" onclick="app.exportUserData()">📤 <span data-i18n="backup.exportData">Meine Daten exportieren</span></button>
           <label class="btn-secondary" style="margin:0;cursor:pointer;">
-            <span>📥 Daten wiederherstellen</span>
+            <span data-i18n="backup.importData">📥 Daten wiederherstellen</span>
             <input type="file" id="backupFileInputSettings" accept=".json" style="display:none" onchange="app.importUserDataSettings(event)">
           </label>
         </div>
-        <h3 style="font-size:.78rem;margin-bottom:0.5rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Server-Backups (automatisch)</h3>
+        <h3 style="font-size:.78rem;margin-bottom:0.5rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;" data-i18n="backup.serverBackups">Server-Backups (automatisch)</h3>
         <div id="backupListSettings" class="info-box" style="min-height:80px;">
-          <p style="color:var(--text-secondary);">Lade Backups...</p>
+          <p style="color:var(--text-secondary);" data-i18n="backup.loading">Lade Backups...</p>
         </div>
       </div>
 
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top:1.5rem;">← Zurück zum Menü</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top:1.5rem;" data-i18n="common.backToMenu">← Zurück zum Menü</button>
     </div>
 
     <!-- My Spoolman Section -->
     <div id="mySpoolmanSection" class="section hidden">
-      <h2 class="section-title">🧵 Mein Spoolman</h2>
+      <h2 class="section-title" data-i18n="mySpoolman.title">🧵 Mein Spoolman</h2>
       <p style="color:var(--text-secondary);margin-bottom:1rem;font-size:0.9rem;">Alle deine Filamente aus Spoolman – auswählen, Tag erstellen oder bearbeiten.</p>
 
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;align-items:center;">
-        <input type="text" id="mySpoolmanSearch" placeholder="Suche nach Name, Material, Marke, Farbe…"
+        <input type="text" id="mySpoolmanSearch" data-i18n-placeholder="mySpoolman.searchPlaceholder" placeholder="Suche nach Name, Material, Marke, Farbe…"
                oninput="app.filterMySpoolman()" style="flex:1;min-width:180px;">
         <select id="mySpoolmanMaterialFilter" onchange="app.filterMySpoolman()" style="width:auto;min-width:120px;">
-          <option value="">Alle Materialien</option>
+          <option value="" data-i18n="mySpoolman.allMaterials">Alle Materialien</option>
         </select>
         <button class="btn-secondary" onclick="app.loadMySpoolman()" style="width:auto;padding:0.45rem 0.9rem;">🔄</button>
       </div>
@@ -1796,25 +1810,13 @@
       <div id="mySpoolmanCount" style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.5rem;"></div>
       <div id="mySpoolmanList"></div>
 
-      <!-- Edit modal -->
-      <div id="mySpoolmanEditOverlay" class="qr-overlay hidden" onclick="if(event.target===this)app.closeMySpoolmanEdit()">
-        <div class="qr-modal" style="max-width:480px;">
-          <h3>✏️ Spule bearbeiten</h3>
-          <div id="mySpoolmanEditFields"></div>
-          <div id="mySpoolmanEditStatus" class="status-message" style="margin-top:0.5rem;"></div>
-          <div class="qr-actions" style="margin-top:1rem;">
-            <button class="btn-success" onclick="app.saveMySpoolmanEdit()">💾 Speichern</button>
-            <button class="btn-secondary" onclick="app.closeMySpoolmanEdit()">Abbrechen</button>
-          </div>
-        </div>
-      </div>
 
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top:1.5rem;">← Zurück zum Menü</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top:1.5rem;" data-i18n="common.backToMenu">← Zurück zum Menü</button>
     </div>
 
     <!-- Filament Database Browser -->
     <div id="filamentDbSection" class="section hidden">
-      <h2 class="section-title">🔍 Filament Datenbank</h2>
+      <h2 class="section-title" data-i18n="filamentDb.title">🔍 Filament Datenbank</h2>
       <small style="color: var(--text-secondary); display: block; margin-bottom: 1rem;">
         126 Marken &amp; 13.000+ Farbvarianten aus der <a href="https://api.openfilamentdatabase.org/" target="_blank">Open Filament Database</a>
       </small>
@@ -1857,7 +1859,7 @@
       </div>
 
       <div id="dbStatus" class="status-message"></div>
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
     </div>
 
     <!-- Spoolman Import Section -->
@@ -1866,7 +1868,7 @@
       <input type="text" id="spoolmanSearch" placeholder="Suche nach Name, Material, Marke..." oninput="app.filterSpoolmanSpools()" style="margin-bottom: 0.5rem;">
       <div id="spoolmanStatus" class="status-message"></div>
       <div id="spoolmanSpoolList" style="margin-top: 1rem;"></div>
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
     </div>
 
     <!-- Read Section -->
@@ -1893,7 +1895,7 @@
         <div id="decodedData" class="decoded-data"></div>
       </div>
 
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
     </div>
 
     <!-- Tag Summary (Read-Only View) -->
@@ -1905,7 +1907,7 @@
         <button class="btn-primary" onclick="app.editTagData()" style="flex:1; min-width: 140px;">✏️ Bearbeiten</button>
       </div>
       <div id="rewriteStatus" class="status-message"></div>
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
     </div>
 
     <!-- Form Section (Create / Update) -->
@@ -1917,6 +1919,12 @@
         <label>Tag Format</label>
         <select id="formatSelect" onchange="app.updateFormat()"></select>
         <small style="color: var(--text-secondary)">OpenSpool: Simple JSON | OpenPrintTag: Advanced CBOR</small>
+      </div>
+
+      <div class="form-group">
+        <label>Spoolman</label>
+        <button type="button" class="btn-secondary" onclick="app.openSpoolmanPicker('spools')" style="width:100%;">🧵 Aus Spoolman wählen (Spulen/Filamente)</button>
+        <small style="color: var(--text-secondary)">Wählt eine Spule oder ein Filament aus deiner Spoolman-Instanz und füllt das Formular automatisch.</small>
       </div>
 
       <!-- Brand -->
@@ -2180,19 +2188,15 @@
       </div>
 
       <!-- Orca Profile Info -->
-      <div id="orcaProfileInfo" class="info-box hidden" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-        <span>🔧 <strong>Snapmaker Orca Profile:</strong> <span id="orcaProfileName">-</span></span>
-        <button class="btn-secondary" onclick="app.copyOrcaProfile()" style="width: auto; padding: 0.25rem 0.5rem; margin: 0;">📋</button>
-      </div>
 
       <div id="writeStatus" class="status-message"></div>
 
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
     </div>
 
     <!-- Slicer Profiles Section -->
     <div id="profilesSection" class="section hidden">
-      <h2 class="section-title">⬇️ Slicer Profile</h2>
+      <h2 class="section-title" data-i18n="slicerProfiles.title">⬇️ Slicer Profile</h2>
       <p style="color: var(--text-secondary); margin-bottom: 1rem;">Filament-Profile für Orca Slicer und Bambu Studio – automatisch von GitHub synchronisiert.</p>
 
       <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
@@ -2200,7 +2204,7 @@
           <option value="">Alle Hersteller</option>
         </select>
         <select id="profileMaterialFilter" onchange="app.loadProfiles()" style="flex: 1; min-width: 120px;">
-          <option value="">Alle Materialien</option>
+          <option value="" data-i18n="mySpoolman.allMaterials">Alle Materialien</option>
         </select>
       </div>
       <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
@@ -2212,20 +2216,20 @@
       <div id="profileResults"></div>
       <div id="profilePagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;"></div>
       <div id="profileStatus" class="status-message"></div>
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
     </div>
 
     <!-- Filament Database Section -->
     <div id="filamentListSection" class="section hidden">
-      <h2 class="section-title">🗄️ Filament Datenbank</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 1rem;">Alle Filamente aus der Open Filament Database – wird täglich automatisch aktualisiert.</p>
+      <h2 class="section-title" data-i18n="allFilaments.title">🗄️ Filament Datenbank</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;" data-i18n="allFilaments.subtitle">Alle Filamente aus der Open Filament Database – wird täglich automatisch aktualisiert.</p>
 
       <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
         <select id="filListBrandFilter" onchange="app.onFilListBrandChange()" style="flex: 1; min-width: 140px;">
           <option value="">Alle Marken</option>
         </select>
         <select id="filListMaterialFilter" onchange="app.loadFilamentList()" style="flex: 1; min-width: 120px;">
-          <option value="">Alle Materialien</option>
+          <option value="" data-i18n="mySpoolman.allMaterials">Alle Materialien</option>
         </select>
         <select id="filListSpoolmanFilter" onchange="app.loadFilamentList()" style="flex: 1; min-width: 130px;">
           <option value="">Alle Quellen</option>
@@ -2241,18 +2245,18 @@
       <div id="filListResults"></div>
       <div id="filListPagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;"></div>
       <div id="filListStatus" class="status-message"></div>
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
     </div>
 
     <!-- Drying Profiles Section -->
     <div id="dryingSection" class="section hidden">
-      <h2 class="section-title">🌡️ Trocknungsprofile</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">Empfohlene Trocknungstemperaturen und -zeiten für alle gängigen Filamente.</p>
+      <h2 class="section-title" data-i18n="drying.title">🌡️ Trocknungsprofile</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 0.5rem;" data-i18n="drying.subtitle">Empfohlene Trocknungstemperaturen und -zeiten für alle gängigen Filamente.</p>
       <div style="margin-bottom: 1rem;">
         <input type="text" id="dryingSearch" placeholder="Material suchen..." oninput="app.filterDryingProfiles()">
       </div>
       <div id="dryingGrid" class="drying-grid"></div>
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
     </div>
 
     <!-- QR Scanner Section -->
@@ -2285,164 +2289,104 @@
 
     <!-- About / Release Notes -->
     <div id="aboutSection" class="section hidden">
-      <h2 class="section-title">ℹ️ Über Spool Tag Propus</h2>
-      <div style="display:inline-block;background:rgba(251,191,36,0.15);border:1px solid var(--warning);color:var(--warning);padding:0.3rem 0.7rem;border-radius:6px;font-size:0.8rem;font-weight:700;margin-bottom:1rem;">⚠️ BETA — Dieses Projekt befindet sich in aktiver Entwicklung</div>
+      <h2 class="section-title" data-i18n="about.title">ℹ️ Über Spool Tag Propus</h2>
+      <div style="display:inline-block;background:rgba(251,191,36,0.15);border:1px solid var(--warning);color:var(--warning);padding:0.3rem 0.7rem;border-radius:6px;font-size:0.8rem;font-weight:700;margin-bottom:1rem;" data-i18n="about.beta">⚠️ BETA — Dieses Projekt befindet sich in aktiver Entwicklung</div>
       <p style="color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.6;">
-        <strong style="color: var(--text-primary);">Spool Tag Propus</strong> ist ein Open-Source Filament Tag Manager für 3D-Drucker.
-        Erstelle, lese und verwalte NFC-Tags und QR-Codes für deine Filament-Spulen — kompatibel mit
-        <a href="https://openspool.io/rfid.html" target="_blank" style="color:var(--accent);">OpenSpool</a> und
+        <strong style="color: var(--text-primary);">Spool Tag Propus</strong> <span data-i18n="about.description">ist ein Open-Source Filament Tag Manager für 3D-Drucker. Erstelle, lese und verwalte NFC-Tags und QR-Codes für deine Filament-Spulen — kompatibel mit</span>
+        <a href="https://openspool.io/rfid.html" target="_blank" style="color:var(--accent);">OpenSpool</a> &amp;
         <a href="https://specs.openprinttag.org/" target="_blank" style="color:var(--accent);">OpenPrintTag</a>.
       </p>
 
-      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);">Features</h3>
+      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);" data-i18n="about.featuresTitle">Features</h3>
       <div style="margin-bottom: 1.5rem;">
         <div class="about-feature">
           <span class="about-feature-icon">📝</span>
           <div class="about-feature-text">
-            <strong>NFC Tags Lesen &amp; Schreiben</strong>
-            <span>Beschreibe NFC-Tags direkt vom Handy (Android Chrome) mit Filament-Daten in OpenSpool (JSON) oder OpenPrintTag (CBOR) Format. Kompatibel mit Bambu Lab, OrcaSlicer und allen OpenSpool-fähigen Druckern.</span>
+            <strong data-i18n="about.feature1Title">NFC Tags Lesen &amp; Schreiben</strong>
+            <span data-i18n="about.feature1Desc">Beschreibe NFC-Tags direkt vom Handy (Android Chrome) mit Filament-Daten in OpenSpool (JSON) oder OpenPrintTag (CBOR) Format. Kompatibel mit Bambu Lab, OrcaSlicer und allen OpenSpool-fähigen Druckern.</span>
           </div>
         </div>
         <div class="about-feature">
           <span class="about-feature-icon">📱</span>
           <div class="about-feature-text">
-            <strong>QR-Code Generator &amp; Scanner</strong>
-            <span>Generiere QR-Codes mit deinen Filament-Daten zum Ausdrucken und Aufkleben auf die Spule. Scanne QR-Codes mit der Kamera, um Daten sofort zu laden — funktioniert auf allen Geräten.</span>
+            <strong data-i18n="about.feature2Title">QR-Code Generator &amp; Scanner</strong>
+            <span data-i18n="about.feature2Desc">Generiere QR-Codes mit deinen Filament-Daten zum Ausdrucken und Aufkleben auf die Spule. Scanne QR-Codes mit der Kamera, um Daten sofort zu laden — funktioniert auf allen Geräten.</span>
           </div>
         </div>
         <div class="about-feature">
           <span class="about-feature-icon">🔍</span>
           <div class="about-feature-text">
-            <strong>Filament Datenbank</strong>
-            <span>Durchsuche über 13.000 Farbvarianten von 126+ Marken aus der Open Filament Database. Wähle ein Filament und erstelle direkt einen Tag.</span>
+            <strong data-i18n="about.feature3Title">Filament Datenbank</strong>
+            <span data-i18n="about.feature3Desc">Durchsuche über 13.000 Farbvarianten von 126+ Marken aus der Open Filament Database. Wähle ein Filament und erstelle direkt einen Tag.</span>
           </div>
         </div>
         <div class="about-feature">
           <span class="about-feature-icon">⬇️</span>
           <div class="about-feature-text">
-            <strong>Slicer Profile</strong>
-            <span>4.000+ Filament-Profile für OrcaSlicer und Bambu Studio — automatisch von GitHub synchronisiert. Lade Profile direkt herunter, gefiltert nach Hersteller, Material und Drucker.</span>
+            <strong data-i18n="about.feature4Title">Slicer Profile</strong>
+            <span data-i18n="about.feature4Desc">4.000+ Filament-Profile für OrcaSlicer und Bambu Studio — automatisch von GitHub synchronisiert. Lade Profile direkt herunter, gefiltert nach Hersteller, Material und Drucker.</span>
           </div>
         </div>
         <div class="about-feature">
           <span class="about-feature-icon">📦</span>
           <div class="about-feature-text">
-            <strong>Spoolman Integration</strong>
-            <span>Verbinde dich mit deiner Spoolman-Instanz, durchsuche dein Spulen-Inventar und importiere Filament-Daten direkt in einen Tag.</span>
+            <strong data-i18n="about.feature5Title">Spoolman Integration</strong>
+            <span data-i18n="about.feature5Desc">Verbinde dich mit deiner Spoolman-Instanz, durchsuche dein Spulen-Inventar und importiere Filament-Daten direkt in einen Tag.</span>
           </div>
         </div>
         <div class="about-feature">
           <span class="about-feature-icon">🌡️</span>
           <div class="about-feature-text">
-            <strong>Trocknungsprofile</strong>
-            <span>Empfohlene Trocknungstemperaturen und -zeiten für 20+ Materialien — von PLA bis PEEK. Mit Feuchtigkeitsempfindlichkeit und Hinweisen.</span>
+            <strong data-i18n="about.feature6Title">Trocknungsprofile</strong>
+            <span data-i18n="about.feature6Desc">Empfohlene Trocknungstemperaturen und -zeiten für 20+ Materialien — von PLA bis PEEK. Mit Feuchtigkeitsempfindlichkeit und Hinweisen.</span>
           </div>
         </div>
         <div class="about-feature">
           <span class="about-feature-icon">🎨</span>
           <div class="about-feature-text">
-            <strong>Farbpalette &amp; Marken-Filter</strong>
-            <span>45 vordefinierte Filament-Farben. Materialien und Varianten werden automatisch auf die gewählte Marke gefiltert (z.B. Bambu Lab zeigt nur deren Materialien).</span>
+            <strong data-i18n="about.feature7Title">Farbpalette &amp; Marken-Filter</strong>
+            <span data-i18n="about.feature7Desc">45 vordefinierte Filament-Farben. Materialien und Varianten werden automatisch auf die gewählte Marke gefiltert (z.B. Bambu Lab zeigt nur deren Materialien).</span>
           </div>
         </div>
         <div class="about-feature">
           <span class="about-feature-icon">📲</span>
           <div class="about-feature-text">
-            <strong>Progressive Web App (PWA)</strong>
-            <span>Installierbar auf dem Handy-Homescreen. Funktioniert offline für Tag-Erstellung und Trocknungsprofile.</span>
+            <strong data-i18n="about.feature8Title">Progressive Web App (PWA)</strong>
+            <span data-i18n="about.feature8Desc">Installierbar auf dem Handy-Homescreen. Funktioniert offline für Tag-Erstellung und Trocknungsprofile.</span>
           </div>
         </div>
         <div class="about-feature">
           <span class="about-feature-icon">☀️</span>
           <div class="about-feature-text">
-            <strong>Hell- &amp; Dunkelmodus</strong>
-            <span>Umschaltbar über den Button oben rechts. Deine Einstellung wird gespeichert.</span>
+            <strong data-i18n="about.feature9Title">Hell- &amp; Dunkelmodus</strong>
+            <span data-i18n="about.feature9Desc">Umschaltbar über den Button oben rechts. Deine Einstellung wird gespeichert.</span>
           </div>
         </div>
       </div>
 
-      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);">Plattform-Unterstützung</h3>
+      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);" data-i18n="about.platformTitle">Plattform-Unterstützung</h3>
       <div style="margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
-        <p><strong style="color:var(--text-primary);">NFC Schreiben:</strong> Android Chrome (HTTPS erforderlich)</p>
-        <p><strong style="color:var(--text-primary);">QR-Code Scanner:</strong> Chrome 83+, Safari 17.2+, Edge 83+</p>
-        <p><strong style="color:var(--text-primary);">Datei-Download:</strong> Alle Browser — Datei mit NFC Tools App auf Tag schreiben (iOS &amp; Android)</p>
-        <p><strong style="color:var(--text-primary);">Web Share:</strong> Mobile Browser mit Web Share API</p>
+        <p><strong style="color:var(--text-primary);" data-i18n="about.platformNfc">NFC Schreiben:</strong> <span data-i18n="about.platformNfcVal">Android Chrome (HTTPS erforderlich)</span></p>
+        <p><strong style="color:var(--text-primary);" data-i18n="about.platformQr">QR-Code Scanner:</strong> <span data-i18n="about.platformQrVal">Chrome 83+, Safari 17.2+, Edge 83+</span></p>
+        <p><strong style="color:var(--text-primary);" data-i18n="about.platformDownload">Datei-Download:</strong> <span data-i18n="about.platformDownloadVal">Alle Browser — Datei mit NFC Tools App auf Tag schreiben (iOS &amp; Android)</span></p>
+        <p><strong style="color:var(--text-primary);" data-i18n="about.platformShare">Web Share:</strong> <span data-i18n="about.platformShareVal">Mobile Browser mit Web Share API</span></p>
       </div>
 
-      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);">Release Notes</h3>
-      <div>
-        <div class="release-entry">
-          <span class="release-version">v1.6.9-beta</span>
-          <span class="release-date">20. Februar 2026</span>
-          <ul class="release-changes">
-            <li>Trocknungsprofil-Datenbank mit 20+ Materialien</li>
-            <li>QR-Code Generator — Filament-Daten als QR auf Spule kleben</li>
-            <li>QR-Code Scanner — Kamera-basiert mit BarcodeDetector API</li>
-            <li>Hell-/Dunkelmodus mit Toggle im Header</li>
-            <li>Suchfilter für Spoolman-Spulen</li>
-            <li>Scan-Ergebnis zeigt nur gelesene Daten (QR + URL)</li>
-            <li>About-Seite mit Feature-Übersicht und Release Notes</li>
-          </ul>
-        </div>
-        <div class="release-entry">
-          <span class="release-version">v1.5.0-beta</span>
-          <span class="release-date">20. Februar 2026</span>
-          <ul class="release-changes">
-            <li>Profil-Buttons: @base Profile gefiltert, Nozzle-Varianten korrekt</li>
-            <li>Download-Buttons zeigen Druckername (A1, X1C, H2D…) statt «Allgemein»</li>
-            <li>Bessere Temperatur-Anzeige bei Slicer-Profilen</li>
-          </ul>
-        </div>
-        <div class="release-entry">
-          <span class="release-version">v1.3.0</span>
-          <span class="release-date">Februar 2026</span>
-          <ul class="release-changes">
-            <li>Slicer-Profile von OrcaSlicer GitHub (4.000+ Profile)</li>
-            <li>Filament-Datenbank mit Open Filament Database</li>
-            <li>Profil-Karten mit Temperatur-Chips und Drucker-Buttons</li>
-            <li>Service Worker Caching Fix für API-Calls</li>
-            <li>Cloudflare Tunnel Kompatibilität</li>
-          </ul>
-        </div>
-        <div class="release-entry">
-          <span class="release-version">v1.2.0</span>
-          <span class="release-date">Februar 2026</span>
-          <ul class="release-changes">
-            <li>Tag-Summary: Nur gelesene Daten anzeigen (statt volles Formular)</li>
-            <li>NFC auf dem Handy: HTTPS-Support, Plattform-Erkennung</li>
-            <li>PWA: Installierbar als App, Offline-Modus</li>
-            <li>Web Share API für Datei-Teilen</li>
-          </ul>
-        </div>
-        <div class="release-entry">
-          <span class="release-version">v1.1.0</span>
-          <span class="release-date">Februar 2026</span>
-          <ul class="release-changes">
-            <li>Farbpalette mit 45 vordefinierten Filament-Farben</li>
-            <li>Marken-spezifische Material-/Varianten-Filterung</li>
-            <li>Spoolman Integration</li>
-            <li>Filament Datenbank Browser (Open Filament DB)</li>
-          </ul>
-        </div>
-        <div class="release-entry">
-          <span class="release-version">v1.0.0</span>
-          <span class="release-date">Februar 2026</span>
-          <ul class="release-changes">
-            <li>Erster Release: NFC Tag Lesen/Schreiben</li>
-            <li>OpenSpool (JSON) &amp; OpenPrintTag (CBOR) Format</li>
-            <li>Datei Download als Fallback</li>
-            <li>Deployment auf UGREEN NAS via Docker</li>
-          </ul>
-        </div>
+      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);" data-i18n="about.releaseTitle">Release Notes</h3>
+      <div id="releaseNotesList">
+        <div style="color:var(--text-secondary);font-size:0.85rem;" data-i18n="about.releaseLoading">⏳ Wird geladen…</div>
       </div>
+      <button id="releaseNotesMoreBtn" onclick="app.showAllReleaseNotes()" style="display:none;margin-top:0.75rem;width:auto;padding:0.45rem 1.1rem;font-size:0.85rem;" class="btn-secondary" data-i18n="about.releaseMoreBtn">
+        ▼ Ältere Versionen anzeigen
+      </button>
 
       <div style="margin-top:1.5rem;padding:1rem;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;text-align:center;">
-        <p style="font-size:0.9rem;margin-bottom:0.75rem;">Gefällt dir Spool Tag Propus? Unterstütze die Entwicklung!</p>
+        <p style="font-size:0.9rem;margin-bottom:0.75rem;" data-i18n="about.supportTitle">Gefällt dir Spool Tag Propus? Unterstütze die Entwicklung!</p>
         <div style="display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:center;align-items:center;">
           <a href="https://buymeacoffee.com/propuscode" target="_blank" rel="noopener"
              style="display:inline-flex;align-items:center;gap:0.5rem;background:#FFDD00;color:#000;padding:0.5rem 1rem;border-radius:8px;font-weight:700;font-size:0.9rem;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 2px 8px rgba(255,221,0,0.4);">
             <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height:28px;width:auto;" />
-            Unterstützen
+            <span data-i18n="about.supportBtn">Unterstützen</span>
           </a>
           <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener"
              style="display:inline-flex;align-items:center;gap:0.5rem;background:#5865F2;color:#fff;padding:0.5rem 1rem;border-radius:8px;font-weight:700;font-size:0.9rem;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;">
@@ -2450,10 +2394,10 @@
             Discord
           </a>
         </div>
-        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.6rem;">Jede Unterstützung hilft, Spool Tag Propus weiterzuentwickeln.</p>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.6rem;" data-i18n="about.supportHint">Jede Unterstützung hilft, Spool Tag Propus weiterzuentwickeln.</p>
       </div>
 
-      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← Zurück zum Menü</button>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
     </div>
 
     <!-- Write NFC Modal (placeholder) -->
@@ -2465,7 +2409,7 @@
 
   <footer>
     <p>Spool Tag Propus - Filament Tag Manager</p>
-    <p>© 2026 Spool Tag Propus · v1.6.64 · <a href="https://buymeacoffee.com/propuscode" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.35rem;background:#FFDD00;color:#000;padding:0.25rem 0.6rem;border-radius:6px;font-weight:700;font-size:0.8rem;text-decoration:none;"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height:20px;width:auto;" /> Unterstützen</a> · <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.3rem;background:#5865F2;color:#fff;padding:0.25rem 0.5rem;border-radius:6px;font-weight:700;font-size:0.8rem;text-decoration:none;">Discord</a> · <a href="#" onclick="app.showErrorReportModal(); return false;" style="color:var(--text-secondary);font-size:0.85rem;">🐛 Fehler melden</a></p>
+    <p>© 2026 Spool Tag Propus · v1.6.109 · <a href="https://buymeacoffee.com/propuscode" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.35rem;background:#FFDD00;color:#000;padding:0.25rem 0.6rem;border-radius:6px;font-weight:700;font-size:0.8rem;text-decoration:none;"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height:20px;width:auto;" /> Unterstützen</a> · <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.3rem;background:#5865F2;color:#fff;padding:0.25rem 0.5rem;border-radius:6px;font-weight:700;font-size:0.8rem;text-decoration:none;">Discord</a> · <a href="#" onclick="app.showErrorReportModal(); return false;" style="color:var(--text-secondary);font-size:0.85rem;">🐛 Fehler melden</a></p>
   </footer>
 
   <!-- Error Report Modal -->
@@ -2519,6 +2463,7 @@
         <button class="admin-tab-btn" data-tab="backups" onclick="app.switchAdminTab('backups')">💾 Backups</button>
         <button class="admin-tab-btn" data-tab="errors" onclick="app.switchAdminTab('errors')">🐛 Fehlerberichte</button>
         <button class="admin-tab-btn" data-tab="groups" onclick="app.switchAdminTab('groups')">🧩 Gruppen</button>
+        <button class="admin-tab-btn" data-tab="chat" onclick="app.switchAdminTab('chat')">🤖 KI-Assistent</button>
       </div>
 
       <!-- Tab: Users -->
@@ -2575,6 +2520,79 @@
           <p style="color:var(--text-secondary);">Wird geladen…</p>
         </div>
       </div>
+
+      <!-- Tab: KI-Assistent -->
+      <div id="adminTab-chat" class="admin-tab-panel" style="padding:0;">
+        <div style="display:flex;height:calc(100vh - 180px);min-height:400px;overflow:hidden;">
+
+          <!-- Sidebar: Konversationen -->
+          <div id="chatSidebar" style="width:220px;flex-shrink:0;border-right:1px solid var(--border);
+               display:flex;flex-direction:column;background:var(--bg-secondary);">
+            <div style="padding:0.75rem;border-bottom:1px solid var(--border);display:flex;gap:0.4rem;">
+              <button class="btn-primary" onclick="app.chatNewConversation()"
+                style="flex:1;font-size:0.8rem;padding:0.4rem 0.5rem;">✏️ Neu</button>
+              <button class="btn-secondary" onclick="app.chatLoadConversations()"
+                style="width:auto;font-size:0.8rem;padding:0.4rem 0.6rem;" title="Aktualisieren">🔄</button>
+            </div>
+            <div id="chatConvList" style="flex:1;overflow-y:auto;padding:0.4rem 0;"></div>
+            <!-- API-Key Bereich -->
+            <div style="padding:0.6rem;border-top:1px solid var(--border);">
+              <div style="font-size:0.7rem;color:var(--text-secondary);margin-bottom:0.35rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">OpenAI API-Key</div>
+              <div id="chatKeyStatus" style="font-size:0.72rem;color:var(--text-secondary);margin-bottom:0.35rem;"></div>
+              <div style="display:flex;gap:0.3rem;">
+                <input type="password" id="chatKeyInput" placeholder="sk-..." autocomplete="off"
+                  style="flex:1;font-size:0.75rem;padding:0.3rem 0.5rem;border-radius:8px;min-width:0;">
+                <button class="btn-success" onclick="app.chatSaveKey()"
+                  style="width:auto;font-size:0.75rem;padding:0.3rem 0.5rem;">💾</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hauptbereich: Chat -->
+          <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+            <!-- Konversations-Header -->
+            <div id="chatHeader" style="padding:0.65rem 1rem;border-bottom:1px solid var(--border);
+                 display:flex;align-items:center;gap:0.5rem;background:var(--bg-secondary);">
+              <span id="chatTitle" style="font-weight:600;font-size:0.9rem;flex:1;overflow:hidden;
+                    text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary);">
+                Wähle ein Gespräch oder starte ein neues
+              </span>
+              <button id="chatExportBtn" onclick="app.chatExport()" title="Als Markdown exportieren"
+                style="display:none;width:auto;font-size:0.75rem;padding:0.25rem 0.55rem;" class="btn-secondary">
+                📥 Export
+              </button>
+              <button id="chatDeleteBtn" onclick="app.chatDeleteConversation()" title="Gespräch löschen"
+                style="display:none;width:auto;font-size:0.75rem;padding:0.25rem 0.55rem;color:var(--error);border-color:var(--error)33;" class="btn-secondary">
+                🗑️
+              </button>
+            </div>
+
+            <!-- Nachrichten -->
+            <div id="chatMessages" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:0.75rem;">
+              <div style="text-align:center;color:var(--text-secondary);font-size:0.85rem;margin-top:2rem;">
+                🤖 KI-Assistent für Spool Tag Propus<br>
+                <span style="font-size:0.78rem;opacity:0.7;">Stelle Fragen zum Projekt, Code, Bugs oder Features.</span>
+              </div>
+            </div>
+
+            <!-- Eingabe -->
+            <div style="padding:0.75rem;border-top:1px solid var(--border);background:var(--bg-secondary);">
+              <div id="chatStatus" style="font-size:0.78rem;color:var(--text-secondary);min-height:1.2em;margin-bottom:0.4rem;"></div>
+              <div style="display:flex;gap:0.5rem;align-items:flex-end;">
+                <textarea id="chatInput" rows="2" placeholder="Nachricht eingeben… (Enter = senden, Shift+Enter = Zeilenumbruch)"
+                  style="flex:1;resize:none;font-size:0.88rem;padding:0.5rem 0.75rem;border-radius:10px;
+                         line-height:1.4;max-height:120px;overflow-y:auto;"
+                  onkeydown="app.chatInputKeydown(event)"></textarea>
+                <button id="chatSendBtn" class="btn-primary" onclick="app.chatSend()"
+                  style="width:auto;padding:0.5rem 0.9rem;font-size:0.88rem;align-self:flex-end;">
+                  ➤ Senden
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -2594,6 +2612,27 @@
           <label>Nachname</label>
           <input type="text" id="profileLastName" placeholder="Mustermann" style="width:100%;padding:0.5rem;" autocomplete="family-name">
         </div>
+      </div>
+      <div class="form-group">
+        <label>Benutzername</label>
+        <input type="text" id="profileUsername" placeholder="z.B. janez" style="width:100%;padding:0.5rem;" autocomplete="username">
+        <small style="color:var(--text-secondary)">3–30 Zeichen: a-z, 0-9, . _ -</small>
+      </div>
+      <div class="form-group">
+        <label>Design</label>
+        <div style="display:flex;gap:0.75rem;">
+          <button type="button" id="themeOptDark"
+            onclick="app._selectProfileTheme('dark')"
+            style="display:flex;align-items:center;gap:0.5rem;padding:0.55rem 1rem;border:2px solid var(--border);border-radius:8px;flex:1;justify-content:center;cursor:pointer;background:var(--bg-tertiary);color:var(--text-primary);font-size:0.95rem;transition:border-color 0.15s,background 0.15s;">
+            🌙 Dunkel
+          </button>
+          <button type="button" id="themeOptLight"
+            onclick="app._selectProfileTheme('light')"
+            style="display:flex;align-items:center;gap:0.5rem;padding:0.55rem 1rem;border:2px solid var(--border);border-radius:8px;flex:1;justify-content:center;cursor:pointer;background:var(--bg-tertiary);color:var(--text-primary);font-size:0.95rem;transition:border-color 0.15s,background 0.15s;">
+            ☀️ Hell
+          </button>
+        </div>
+        <input type="hidden" id="profileThemeValue" value="dark">
       </div>
       <div class="form-group">
         <label>Geburtsdatum</label>
@@ -2626,6 +2665,30 @@
     </div>
   </div>
 
+  <!-- ===== Spoolman Picker (Create Tag) ===== -->
+  <div id="spoolmanPickerOverlay" class="qr-overlay hidden" onclick="if(event.target===this)app.closeSpoolmanPicker()">
+    <div class="qr-modal" style="max-width:720px;max-height:90vh;overflow-y:auto;">
+      <h3>🧵 Spoolman Auswahl</h3>
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1rem;">Wähle eine Spule oder ein Filament – die Felder werden ins „Neuer Tag“-Formular übernommen.</p>
+
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+        <button id="spoolmanPickerTabSpools" class="btn-primary" type="button" style="width:auto;" onclick="app.setSpoolmanPickerTab('spools')">Spulen</button>
+        <button id="spoolmanPickerTabFilaments" class="btn-secondary" type="button" style="width:auto;" onclick="app.setSpoolmanPickerTab('filaments')">Filamente</button>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0.75rem;">
+        <input type="text" id="spoolmanPickerSearch" placeholder="Suche…" oninput="app.filterSpoolmanPicker()" style="width:100%;">
+      </div>
+
+      <div id="spoolmanPickerStatus" class="status-message" style="margin-bottom:0.5rem;"></div>
+      <div id="spoolmanPickerList"></div>
+
+      <div class="qr-actions" style="margin-top:1rem;">
+        <button class="btn-secondary" type="button" onclick="app.closeSpoolmanPicker()">Schliessen</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Install Banner -->
   <div id="installBanner" class="install-banner hidden">
     <span>📲 Spool Tag Propus als App installieren</span>
@@ -2634,23 +2697,25 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-  <script src="auth.js?v=65"></script>
-  <script src="i18n.js?v=65"></script>
-  <script src="cbor.js?v=35"></script>
-  <script src="ndef.js?v=35"></script>
-  <script src="openspool.js?v=35"></script>
-  <script src="openprinttag.js?v=35"></script>
-  <script src="formats.js?v=35"></script>
-  <script src="color.js?v=35"></script>
-  <script src="filamentdb.js?v=35"></script>
-  <script src="profiledb.js?v=35"></script>
-  <script src="drying.js?v=35"></script>
-  <script src="qr.js?v=35"></script>
-  <script src="app.js?v=65"></script>
+  <script src="auth.js?v=109"></script>
+  <script src="i18n.js?v=109"></script>
+  <script src="cbor.js?v=109"></script>
+  <script src="ndef.js?v=109"></script>
+  <script src="openspool.js?v=109"></script>
+  <script src="openprinttag.js?v=109"></script>
+  <script src="formats.js?v=109"></script>
+  <script src="color.js?v=109"></script>
+  <script src="filamentdb.js?v=109"></script>
+  <script src="profiledb.js?v=109"></script>
+  <script src="drying.js?v=109"></script>
+  <script src="qr.js?v=109"></script>
+  <script src="app.js?v=109"></script>
   <script>
     if ('serviceWorker' in navigator) {
       // Cloudflare caches sw.js aggressively; version query forces updates.
-      navigator.serviceWorker.register('sw.js?v=65').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=109').catch(() => {});
+      // Force update check on every page load
+      navigator.serviceWorker.ready.then(reg => reg.update()).catch(() => {});
     }
 
     let deferredPrompt;
@@ -2668,5 +2733,18 @@
       document.getElementById('installBanner').classList.add('hidden');
     });
   </script>
+
+  <!-- Spule bearbeiten – global modal (immer über allem, unabhängig vom Scroll) -->
+  <div id="mySpoolmanEditOverlay" class="qr-overlay hidden" onclick="if(event.target===this)app.closeMySpoolmanEdit()">
+    <div class="qr-modal" style="max-width:480px;">
+      <h3>✏️ Spule bearbeiten</h3>
+      <div id="mySpoolmanEditFields"></div>
+      <div id="mySpoolmanEditStatus" class="status-message" style="margin-top:0.5rem;"></div>
+      <div class="qr-actions" style="margin-top:1rem;">
+        <button class="btn-success" onclick="app.saveMySpoolmanEdit()">💾 Speichern</button>
+        <button class="btn-secondary" onclick="app.closeMySpoolmanEdit()">Abbrechen</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
