@@ -102,6 +102,10 @@ For NFC support on mobile, HTTPS is required. See the [HTTPS Setup](#https-setup
 |---|---|---|
 | `DB_PATH` | `/data/spool_propus.db` | Path to the SQLite database |
 | `SYNC_INTERVAL` | `24` | Hours between automatic data syncs |
+| `GITHUB_TOKEN` | — | Optional: GitHub Personal Access Token for creating issues from error reports |
+| `GITHUB_REPO` | — | Optional: Repository in `owner/repo` format (e.g. `Janez76/spool-propus`) |
+
+If both `GITHUB_TOKEN` and `GITHUB_REPO` are set, error reports submitted via "Fehler melden" will automatically create a GitHub issue. Create a token at [GitHub Settings → Developer settings → Personal access tokens](https://github.com/settings/tokens) with `repo` scope (or fine-grained: Issues write access).
 
 ### HTTPS Setup
 
@@ -118,6 +122,8 @@ Enter your Spoolman server URL in the app (e.g., `http://192.168.1.x:7912`) to i
 ---
 
 ## 📁 Project Structure
+
+> **Mehrere Propus/Spool-Projekte auf deiner NAS?** Siehe [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) für die Übersicht und Verknüpfungen.
 
 ```
 ├── public/                 # Frontend (static files)

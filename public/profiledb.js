@@ -11,7 +11,8 @@ const ProfileDB = {
     Object.entries(params).forEach(([k, v]) => {
       if (v) url.searchParams.set(k, v);
     });
-    const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    const fetchFn = (typeof Auth !== 'undefined' && Auth.fetch) ? Auth.fetch.bind(Auth) : fetch;
+    const resp = await fetchFn(url, { signal: AbortSignal.timeout(15000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     return resp.json();
   },
@@ -58,7 +59,8 @@ const ProfileDB = {
 
   async triggerSync() {
     const url = `${this.BASE_URL}/sync/trigger`;
-    const resp = await fetch(url, { method: 'POST' });
+    const fetchFn = (typeof Auth !== 'undefined' && Auth.fetch) ? Auth.fetch.bind(Auth) : fetch;
+    const resp = await fetchFn(url, { method: 'POST' });
     return resp.json();
   }
 };

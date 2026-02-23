@@ -22,6 +22,11 @@ services:
     environment:
       - DB_PATH=/data/spool_propus.db
       - SYNC_INTERVAL=24
+      # Auth (required for login)
+      - JWT_SECRET=change-me-in-production
+      # Optional: Create GitHub issues from error reports (see README)
+      # - GITHUB_TOKEN=ghp_xxxx
+      # - GITHUB_REPO=Janez76/spool-propus
     restart: unless-stopped
     networks:
       - spool-net

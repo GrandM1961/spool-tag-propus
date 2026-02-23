@@ -127,6 +127,111 @@ const platform = {
   }
 };
 
+// Error Reporter - captures errors and sends to backend
+const ErrorReporter = {
+  _lastError: null,
+
+  capture(message, source, lineno, colno, error) {
+    this._lastError = {
+      message: String(message || ''),
+      stack: (error && error.stack) || '',
+      source: source || '',
+      line: lineno,
+      col: colno
+    };
+  },
+
+  capturePromise(reason) {
+    const msg = reason && (reason.message || String(reason));
+    const stack = reason && reason.stack ? reason.stack : '';
+    this._lastError = { message: msg, stack, source: '', line: 0, col: 0 };
+  },
+
+  getLastError() {
+    return this._lastError;
+  },
+
+  clear() {
+    this._lastError = null;
+  },
+
+  async send(userMessage = '', screenshot = null) {
+    const err = this._lastError || {};
+    const loc = window.location;
+    const apiBase = `${loc.protocol}//${loc.host}/api`;
+    const payload = {
+      errorMessage: err.message || '',
+      errorStack: err.stack || '',
+      userMessage: (userMessage || '').trim().slice(0, 2000),
+      pageUrl: window.location.href,
+      url: (typeof app !== 'undefined' && app.spoolmanUrl) ? app.spoolmanUrl : ''
+    };
+    if (screenshot) payload.screenshot = screenshot;
+
+    const fetchFn = (typeof Auth !== 'undefined' && Auth.fetch) ? Auth.fetch.bind(Auth) : fetch;
+    const headers = (typeof Auth !== 'undefined' && Auth.getHeaders) ? Auth.getHeaders() : { 'Content-Type': 'application/json' };
+    const resp = await fetchFn(`${apiBase}/error-report`, {
+      method: 'POST',
+      headers,
+      // Avoid hanging forever on slow mobile networks / tunnels.
+      signal: (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) ? AbortSignal.timeout(15000) : undefined,
+      body: JSON.stringify(payload)
+    });
+
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok && data.status === 'ok') return true;
+    throw new Error(data.message || `HTTP ${resp.status}`);
+  }
+};
+
+
+// Event-Delegation (läuft beim Laden, unabhängig von init-Return)
+document.addEventListener('click', function(e) {
+  if (typeof app === 'undefined') return;
+  const btn = e.target.closest('.lang-btn');
+  if (btn) {
+    e.preventDefault();
+    e.stopPropagation();
+    app.setLanguage(btn.dataset.lang || 'de');
+    return;
+  }
+  if (e.target.closest('#themeToggle') || e.target.closest('.theme-toggle')) {
+    e.preventDefault();
+    app.toggleTheme();
+    return;
+  }
+  if (e.target.closest('#logoutBtn')) {
+    e.preventDefault();
+    app.logout();
+    return;
+  }
+  if (e.target.closest('#spoolmanLink')) {
+    e.preventDefault();
+    app.openSpoolman();
+    return;
+  }
+  if (e.target.closest('#loginBtn')) {
+    e.preventDefault();
+    app.doLogin();
+    return;
+  }
+  if (e.target.closest('#registerBtn')) {
+    e.preventDefault();
+    app.doRegister();
+    return;
+  }
+  if (e.target.closest('#showRegisterLink')) {
+    e.preventDefault();
+    app.showRegister();
+    return;
+  }
+  if (e.target.closest('#showLoginLink')) {
+    e.preventDefault();
+    app.showLogin();
+    return;
+  }
+}, true);
+
 // Main Application
 const app = {
   nfcSupported: false,
@@ -213,7 +318,569 @@ const app = {
     },
   },
 
-  init() {
+  _errorReportScreenshot: null,
+
+  showErrorReportModal() {
+    const overlay = document.getElementById('errorReportOverlay');
+    const preview = document.getElementById('errorReportPreview');
+    const textarea = document.getElementById('errorReportUserMessage');
+    const status = document.getElementById('errorReportStatus');
+    if (!overlay) return;
+
+    const err = ErrorReporter.getLastError();
+    if (err && (err.message || err.stack)) {
+      preview.style.display = 'block';
+      preview.textContent = (err.message || '(keine Nachricht)') + (err.stack ? '\n\n' + err.stack.slice(0, 500) : '');
+      preview.title = 'Letzter erfasster Fehler';
+    } else {
+      preview.style.display = 'none';
+    }
+    if (textarea) textarea.value = '';
+    if (status) { status.textContent = ''; status.className = 'status-message'; }
+    this.clearErrorReportFile();
+    overlay.classList.remove('hidden');
+  },
+
+  closeErrorReportModal() {
+    const overlay = document.getElementById('errorReportOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    this.clearErrorReportFile();
+  },
+
+  clearErrorReportFile() {
+    this._errorReportScreenshot = null;
+    const fileInput = document.getElementById('errorReportFile');
+    const thumb = document.getElementById('errorReportThumb');
+    const label = document.getElementById('errorReportDropLabel');
+    const info = document.getElementById('errorReportFileInfo');
+    if (fileInput) fileInput.value = '';
+    if (thumb) thumb.style.display = 'none';
+    if (label) label.style.display = 'block';
+    if (info) info.textContent = '';
+  },
+
+  handleErrorReportFileDrop(files) {
+    if (files && files.length > 0) this._processErrorReportFile(files[0]);
+  },
+
+  handleErrorReportFileChange(files) {
+    if (files && files.length > 0) this._processErrorReportFile(files[0]);
+  },
+
+  _canvasToDataUrl(canvas, type, quality) {
+    // toBlob is async and less janky than toDataURL on mobile.
+    return new Promise((resolve, reject) => {
+      try {
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('Bild konnte nicht codiert werden'));
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result || ''));
+          r.onerror = () => reject(new Error('Bild konnte nicht gelesen werden'));
+          r.readAsDataURL(blob);
+        }, type, quality);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  },
+
+  async _processErrorReportFile(file) {
+    const info = document.getElementById('errorReportFileInfo');
+    const MAX_BYTES = 5 * 1024 * 1024;
+
+    if (!file.type.startsWith('image/')) {
+      if (info) info.textContent = '⚠️ Nur Bilddateien erlaubt (PNG, JPG, WebP).';
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      if (info) info.textContent = '⚠️ Datei zu groß (max. 5 MB).';
+      return;
+    }
+    if (info) info.textContent = '⏳ Bild wird vorbereitet…';
+
+    try {
+      const reader = new FileReader();
+      const fileDataUrl = await new Promise((resolve, reject) => {
+        reader.onload = (e) => resolve(e && e.target ? e.target.result : '');
+        reader.onerror = () => reject(new Error('Datei konnte nicht gelesen werden'));
+        reader.readAsDataURL(file);
+      });
+
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('Bild konnte nicht geladen werden'));
+        img.src = fileDataUrl;
+      });
+
+      // Keep payload small for mobile + tunnels.
+      const MAX_DIM = 1280;
+      let w = img.width, h = img.height;
+      if (w > MAX_DIM || h > MAX_DIM) {
+        const ratio = Math.min(MAX_DIM / w, MAX_DIM / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+
+      // Try a couple qualities to keep it reasonably small.
+      let dataUrl = await this._canvasToDataUrl(canvas, 'image/jpeg', 0.72);
+      let kb = Math.round(dataUrl.length * 0.75 / 1024);
+      if (kb > 900) {
+        dataUrl = await this._canvasToDataUrl(canvas, 'image/jpeg', 0.6);
+        kb = Math.round(dataUrl.length * 0.75 / 1024);
+      }
+
+      this._errorReportScreenshot = dataUrl;
+
+      const thumb = document.getElementById('errorReportThumb');
+      const thumbImg = document.getElementById('errorReportThumbImg');
+      const label = document.getElementById('errorReportDropLabel');
+      if (thumbImg) thumbImg.src = dataUrl;
+      if (thumb) thumb.style.display = 'inline-block';
+      if (label) label.style.display = 'none';
+      if (info) info.textContent = `✅ ${file.name} · ${w}×${h}px · ~${kb} KB`;
+    } catch (e) {
+      this._errorReportScreenshot = null;
+      if (info) info.textContent = '❌ Screenshot konnte nicht vorbereitet werden.';
+    }
+  },
+
+  async submitErrorReport() {
+    const textarea = document.getElementById('errorReportUserMessage');
+    const status = document.getElementById('errorReportStatus');
+    const submitBtn = document.getElementById('errorReportSubmitBtn');
+    const cancelBtn = document.getElementById('errorReportCancelBtn');
+    const userMessage = textarea ? textarea.value : '';
+
+    if (status) { status.textContent = ''; status.className = 'status-message'; }
+
+    try {
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.dataset.originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Wird gesendet…';
+      }
+      if (cancelBtn) cancelBtn.disabled = true;
+      if (status) { status.textContent = '⏳ Sende…'; status.className = 'status-message warning'; }
+
+      await ErrorReporter.send(userMessage, this._errorReportScreenshot);
+      if (status) {
+        status.textContent = '✅ Danke! Der Fehlerbericht wurde gesendet.';
+        status.className = 'status-message success';
+      }
+      this.showMobileToast && this.showMobileToast('Fehlerbericht gesendet', 'success');
+      setTimeout(() => this.closeErrorReportModal(), 1500);
+    } catch (e) {
+      if (status) {
+        status.textContent = '❌ Senden fehlgeschlagen: ' + (e.message || 'Netzwerkfehler');
+        status.className = 'status-message error';
+      }
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = submitBtn.dataset.originalText || 'Absenden';
+      }
+      if (cancelBtn) cancelBtn.disabled = false;
+    }
+  },
+
+  async checkAuth() {
+    const authSection = document.getElementById('authSection');
+    const appContainer = document.getElementById('appContainer');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const themeToggle = document.getElementById('themeToggle');
+
+    if (!Auth || !Auth.isLoggedIn()) {
+      if (authSection) authSection.style.display = 'block';
+      if (appContainer) appContainer.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      return false;
+    }
+
+    const loc = window.location;
+    const apiBase = `${loc.protocol}//${loc.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/auth/me`);
+      if (!resp.ok) {
+        Auth.clearToken();
+        if (authSection) authSection.style.display = 'block';
+        if (appContainer) appContainer.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        const wrap = document.getElementById('profileMenuWrap');
+        if (wrap) wrap.style.display = 'none';
+        return false;
+      }
+      const user = await resp.json();
+      this._user = user;
+      this._loadSpoolmanImportState();
+      if (user.settings) {
+        this.spoolmanUrl = user.settings.spoolmanUrl || '';
+        if (user.settings.theme) {
+          document.documentElement.setAttribute('data-theme', user.settings.theme);
+          localStorage.setItem('theme', user.settings.theme);
+        }
+        if (user.settings.language && typeof I18n !== 'undefined' && I18n.setLanguage) {
+          I18n.setLanguage(user.settings.language);
+        }
+      }
+      this._migrateLocalStorageToBackend().catch(() => {});
+      if (authSection) authSection.style.display = 'none';
+      if (appContainer) appContainer.style.display = 'block';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      this._updateProfileUI();
+      if (typeof I18n !== 'undefined' && I18n.refreshElements) I18n.refreshElements();
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        const lang = I18n && I18n.getLanguage ? I18n.getLanguage() : 'de';
+        btn.classList.toggle('accent-card', btn.dataset.lang === lang);
+        btn.classList.toggle('btn-secondary', btn.dataset.lang !== lang);
+      });
+      return true;
+    } catch (e) {
+      Auth.clearToken();
+      if (authSection) authSection.style.display = 'block';
+      if (appContainer) appContainer.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      return false;
+    }
+  },
+
+  async _migrateLocalStorageToBackend() {
+    const oldUrl = localStorage.getItem('spoolmanUrl');
+    const oldTheme = localStorage.getItem('theme');
+    if (!oldUrl && !oldTheme) return;
+    const loc = window.location;
+    const apiBase = `${loc.protocol}//${loc.host}/api`;
+    const payload = {
+      spoolmanUrl: this._normalizeSpoolmanUrl(oldUrl || this.spoolmanUrl || ''),
+      theme: oldTheme || 'dark',
+      language: 'de'
+    };
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    try {
+      await Auth.fetch(`${apiBase}/user/settings`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+        signal: ctrl.signal
+      });
+      this.spoolmanUrl = payload.spoolmanUrl;
+      localStorage.removeItem('spoolmanUrl');
+    } catch (e) {}
+    clearTimeout(t);
+  },
+
+  async exportUserData() {
+    const loc = window.location;
+    const apiBase = `${loc.protocol}//${loc.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/user/export`);
+      if (!resp.ok) throw new Error('Export failed');
+      const data = await resp.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'spooltagpropus-backup.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      this.showStatus('backupStatus', 'success', typeof I18n !== 'undefined' ? I18n.t('backup.exportSuccess') : 'Daten exportiert');
+    } catch (e) {
+      this.showStatus('backupStatus', 'error', e.message || 'Export fehlgeschlagen');
+    }
+  },
+
+  async importUserData(ev) {
+    const file = ev && ev.target && ev.target.files && ev.target.files[0];
+    if (!file) return;
+    const el = ev.target;
+    el.value = '';
+    const loc = window.location;
+    const apiBase = `${loc.protocol}//${loc.host}/api`;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const resp = await Auth.fetch(`${apiBase}/user/import`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.message || 'Import fehlgeschlagen');
+      }
+      await this._applyRestoredSettings(data);
+      this.showStatus('backupStatus', 'success', typeof I18n !== 'undefined' ? I18n.t('backup.importSuccess') : 'Daten wiederhergestellt');
+    } catch (e) {
+      this.showStatus('backupStatus', 'error', e.message || 'Import fehlgeschlagen');
+    }
+  },
+
+  async _applyRestoredSettings(data) {
+    const theme = (data.theme || 'dark').slice(0, 20);
+    const lang = (data.language === 'en' ? 'en' : 'de');
+    this.spoolmanUrl = this._normalizeSpoolmanUrl((data.spoolmanUrl || data.spoolman_url || '') || '');
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    if (typeof I18n !== 'undefined' && I18n.setLanguage) I18n.setLanguage(lang);
+    if (typeof I18n !== 'undefined' && I18n.refreshElements) I18n.refreshElements();
+    const loc = window.location;
+    await Auth.fetch(`${loc.protocol}//${loc.host}/api/user/settings`, {
+      method: 'PUT',
+      body: JSON.stringify({ spoolmanUrl: this.spoolmanUrl, theme, language: lang })
+    });
+  },
+
+  async loadBackupList() {
+    const listEl = document.getElementById('backupList');
+    const statusEl = document.getElementById('backupStatus');
+    if (!listEl) return;
+    listEl.innerHTML = '<p style="color: var(--text-secondary);">' + (typeof I18n !== 'undefined' ? I18n.t('backup.loading') : 'Lade Backups...') + '</p>';
+    const loc = window.location;
+    const apiBase = `${loc.protocol}//${loc.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/user/backups`);
+      if (!resp.ok) throw new Error('Fehler beim Laden');
+      const { backups } = await resp.json();
+      if (!backups || backups.length === 0) {
+        listEl.innerHTML = '<p style="color: var(--text-secondary);">' + (typeof I18n !== 'undefined' ? I18n.t('backup.noBackups') : 'Keine Server-Backups vorhanden.') + '</p>';
+        return;
+      }
+      listEl.innerHTML = backups.map(b => {
+        const d = b.createdAt ? new Date(b.createdAt).toLocaleString() : '-';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border-color);">
+          <span>${d}</span>
+          <button class="btn-secondary" onclick="app.restoreBackup(${b.id})">${typeof I18n !== 'undefined' && I18n.t ? I18n.t('common.restore') : 'Wiederherstellen'}</button>
+        </div>`;
+      }).join('');
+    } catch (e) {
+      listEl.innerHTML = `<p style="color: var(--error);">${e.message || 'Fehler'}</p>`;
+    }
+  },
+
+  async restoreBackup(id) {
+    const loc = window.location;
+    const apiBase = `${loc.protocol}//${loc.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/user/restore/${id}`, { method: 'POST' });
+      if (!resp.ok) throw new Error('Wiederherstellung fehlgeschlagen');
+      const data = await resp.json();
+      if (data.settings) {
+        await this._applyRestoredSettings(data.settings);
+      }
+      this.showStatus('backupStatus', 'success', typeof I18n !== 'undefined' ? I18n.t('backup.importSuccess') : 'Backup wiederhergestellt');
+      this.loadBackupList();
+    } catch (e) {
+      this.showStatus('backupStatus', 'error', e.message || 'Fehler');
+    }
+  },
+
+  showLogin() {
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('authError').style.display = 'none';
+    document.getElementById('registerError').style.display = 'none';
+  },
+
+  showRegister() {
+    document.getElementById('registerForm').classList.remove('hidden');
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('authError').style.display = 'none';
+    document.getElementById('registerError').style.display = 'none';
+  },
+
+  async doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('authError');
+    const btn = document.getElementById('loginBtn');
+    errEl.style.display = 'none';
+
+    if (!email || !password) {
+      errEl.textContent = 'Bitte E-Mail und Passwort eingeben.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.dataset.originalText = btn.textContent;
+      btn.textContent = 'Wird angemeldet…';
+    }
+    const loc = window.location;
+    const apiBase = `${loc.protocol}//${loc.host}/api`;
+    try {
+      const resp = await fetch(`${apiBase}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        errEl.textContent = data.message || 'Anmeldung fehlgeschlagen.';
+        errEl.style.display = 'block';
+        if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText || 'Anmelden'; }
+        return;
+      }
+      Auth.setToken(data.token);
+      if (btn) btn.textContent = 'Weiterleitung…';
+      location.reload();
+    } catch (e) {
+      errEl.textContent = 'Netzwerkfehler. Bitte später erneut versuchen.';
+      errEl.style.display = 'block';
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = btn.dataset.originalText || 'Anmelden';
+      }
+    }
+  },
+
+  async doRegister() {
+    const firstName = (document.getElementById('registerFirstName')?.value || '').trim();
+    const lastName = (document.getElementById('registerLastName')?.value || '').trim();
+    const birthDate = (document.getElementById('registerBirthDate')?.value || '').trim();
+    const address = (document.getElementById('registerAddress')?.value || '').trim();
+    const email = document.getElementById('registerEmail').value.trim();
+    const password = document.getElementById('registerPassword').value;
+    const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
+    const errEl = document.getElementById('registerError');
+    errEl.style.display = 'none';
+
+    if (!firstName || !lastName) {
+      errEl.textContent = 'Bitte Vor- und Nachname eingeben.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!birthDate) {
+      errEl.textContent = 'Bitte Geburtsdatum eingeben.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!email || !password) {
+      errEl.textContent = 'Bitte E-Mail und Passwort eingeben.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (password.length < 8) {
+      errEl.textContent = 'Passwort muss mindestens 8 Zeichen haben.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (password !== passwordConfirm) {
+      errEl.textContent = 'Passwörter stimmen nicht überein.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const loc = window.location;
+    const apiBase = `${loc.protocol}//${loc.host}/api`;
+    try {
+      const resp = await fetch(`${apiBase}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, firstName, lastName, address, birthDate })
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        errEl.textContent = data.message || 'Registrierung fehlgeschlagen.';
+        errEl.style.display = 'block';
+        return;
+      }
+      Auth.setToken(data.token);
+      location.reload();
+    } catch (e) {
+      errEl.textContent = 'Netzwerkfehler. Bitte später erneut versuchen.';
+      errEl.style.display = 'block';
+    }
+  },
+
+  logout() {
+    Auth.clearToken();
+    location.reload();
+  },
+
+  async setLanguage(lang) {
+    if (typeof I18n === 'undefined' || !I18n.setLanguage) return;
+    I18n.setLanguage(lang);
+    if (I18n.refreshElements) I18n.refreshElements();
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.classList.toggle('accent-card', btn.dataset.lang === lang);
+      btn.classList.toggle('btn-secondary', btn.dataset.lang !== lang);
+    });
+    if (Auth && Auth.isLoggedIn() && this._user) {
+      const loc = window.location;
+      try {
+        await Auth.fetch(`${loc.protocol}//${loc.host}/api/user/settings`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            spoolmanUrl: this.spoolmanUrl || '',
+            theme: document.documentElement.getAttribute('data-theme') || 'dark',
+            language: lang
+          })
+        });
+      } catch (e) {}
+    }
+  },
+
+  async init() {
+    const authSection = document.getElementById('authSection');
+    const appContainer = document.getElementById('appContainer');
+
+    // Auth-Buttons/Links immer verbinden (vor checkAuth, da init sonst vorher returniert)
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const showRegisterLink = document.getElementById('showRegisterLink');
+    const showLoginLink = document.getElementById('showLoginLink');
+    if (loginBtn) loginBtn.addEventListener('click', (e) => { e.preventDefault(); this.doLogin(); });
+    if (registerBtn) registerBtn.addEventListener('click', (e) => { e.preventDefault(); this.doRegister(); });
+    if (showRegisterLink) showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); this.showRegister(); });
+    if (showLoginLink) showLoginLink.addEventListener('click', (e) => { e.preventDefault(); this.showLogin(); });
+    const langDe = document.getElementById('langBtnDe');
+    const langEn = document.getElementById('langBtnEn');
+    const themeToggle = document.getElementById('themeToggle');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const spoolmanLink = document.getElementById('spoolmanLink');
+    if (langDe) langDe.addEventListener('click', () => this.setLanguage('de'));
+    if (langEn) langEn.addEventListener('click', () => this.setLanguage('en'));
+    if (themeToggle) themeToggle.addEventListener('click', () => this.toggleTheme());
+    if (logoutBtn) logoutBtn.addEventListener('click', (e) => { e.preventDefault(); this.logout(); });
+    if (spoolmanLink) spoolmanLink.addEventListener('click', (e) => { e.preventDefault(); this.openSpoolman(); });
+
+    // Profile dropdown
+    const avatarBtn = document.getElementById('profileAvatarBtn');
+    if (avatarBtn) avatarBtn.addEventListener('click', (e) => { e.stopPropagation(); this._toggleProfileDrop(); });
+    const profileLogoutBtn = document.getElementById('profileLogoutBtn');
+    if (profileLogoutBtn) profileLogoutBtn.addEventListener('click', () => { this._closeProfileDrop(); this.logout(); });
+    document.addEventListener('click', () => this._closeProfileDrop());
+
+    // Spoolman Import (Einstellungen): Auswahl + "Jetzt importieren"
+    const importNowBtn = document.getElementById('spoolmanImportNowBtn');
+    if (importNowBtn) importNowBtn.addEventListener('click', () => this.importSelectedSpoolmanSettings());
+    const importClearBtn = document.getElementById('spoolmanImportClearBtn');
+    if (importClearBtn) importClearBtn.addEventListener('click', () => this.clearSpoolmanSelectionSettings());
+    const spoolList = document.getElementById('spoolmanSpoolListSettings');
+    if (spoolList && !this._spoolmanSettingsListBound) {
+      this._spoolmanSettingsListBound = true;
+      spoolList.addEventListener('click', (e) => {
+        const row = e.target.closest('[data-spool-id]');
+        if (!row) return;
+        if (row.classList.contains('is-imported')) return;
+        const sid = parseInt(row.getAttribute('data-spool-id') || '0', 10);
+        if (!sid) return;
+        this.selectSpoolmanSpoolSettings(sid);
+      });
+    }
+
+    if (typeof Auth === 'undefined') {
+      if (authSection) authSection.style.display = 'none';
+      if (appContainer) appContainer.style.display = 'block';
+    } else {
+      const ok = await this.checkAuth();
+      if (!ok) return;
+    }
+
     this.loadTheme();
     this.checkNFC();
     if (typeof ColorPicker !== 'undefined' && ColorPicker && typeof ColorPicker.init === 'function') {
@@ -235,6 +902,14 @@ const app = {
 
   // === Spoolman Integration ===
 
+  _normalizeSpoolmanUrl(url) {
+    if (!url || typeof url !== 'string') return '';
+    const trimmed = url.trim().replace(/\/+$/, '');
+    if (!trimmed) return '';
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `http://${trimmed}`;
+  },
+
   initSpoolman() {
     const urlInput = document.getElementById('spoolmanUrl');
     if (urlInput && this.spoolmanUrl) {
@@ -245,15 +920,23 @@ const app = {
 
   updateSpoolmanLink() {
     const link = document.getElementById('spoolmanLink');
-    if (link && this.spoolmanUrl) {
-      link.href = this.spoolmanUrl;
+    const url = this._normalizeSpoolmanUrl(this.spoolmanUrl);
+    if (link && url) {
+      link.href = url;
       link.onclick = null;
+    }
+    // Update "Mein Spoolman" dashboard card subtitle
+    const card = document.getElementById('mySpoolmanCard');
+    if (card) {
+      const desc = card.querySelector('.mode-card-desc');
+      if (desc) desc.textContent = url ? 'Meine Filamente verwalten' : 'Spoolman URL konfigurieren';
     }
   },
 
   openSpoolman() {
-    if (this.spoolmanUrl) {
-      window.open(this.spoolmanUrl, '_blank');
+    const url = this._normalizeSpoolmanUrl(this.spoolmanUrl);
+    if (url) {
+      window.open(url, '_blank');
     } else {
       this.showSpoolmanSetup();
     }
@@ -273,7 +956,7 @@ const app = {
   },
 
   async testSpoolman() {
-    const url = document.getElementById('spoolmanUrl').value.replace(/\/+$/, '');
+    const url = this._normalizeSpoolmanUrl(document.getElementById('spoolmanUrl').value);
     if (!url) {
       this.showStatus('spoolmanTestStatus', 'error', 'Bitte URL eingeben');
       return;
@@ -302,10 +985,27 @@ const app = {
     }
   },
 
-  saveSpoolmanUrl() {
-    const url = document.getElementById('spoolmanUrl').value.replace(/\/+$/, '');
+  async saveSpoolmanUrl() {
+    const url = this._normalizeSpoolmanUrl(document.getElementById('spoolmanUrl').value);
+    if (!url) {
+      this.showMobileToast('Bitte gültige URL eingeben', 'error');
+      return;
+    }
     this.spoolmanUrl = url;
     localStorage.setItem('spoolmanUrl', url);
+    if (Auth && Auth.isLoggedIn()) {
+      const loc = window.location;
+      try {
+        await Auth.fetch(`${loc.protocol}//${loc.host}/api/user/settings`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            spoolmanUrl: url,
+            theme: document.documentElement.getAttribute('data-theme') || 'dark',
+            language: 'de'
+          })
+        });
+      } catch (e) {}
+    }
     this.updateSpoolmanLink();
     this.closeSpoolmanSetup();
     this.showMobileToast('Spoolman URL gespeichert', 'success');
@@ -314,7 +1014,8 @@ const app = {
   _spoolmanSpools: [],
 
   async loadSpoolmanSpools() {
-    if (!this.spoolmanUrl) {
+    const url = this._normalizeSpoolmanUrl(this.spoolmanUrl);
+    if (!url) {
       this.showSpoolmanSetup();
       return;
     }
@@ -326,7 +1027,7 @@ const app = {
     if (searchEl) searchEl.value = '';
 
     try {
-      const resp = await fetch(`${this.spoolmanUrl}/api/v1/spool`, {
+      const resp = await fetch(`${url}/api/v1/spool`, {
         signal: AbortSignal.timeout(10000)
       });
 
@@ -710,12 +1411,34 @@ const app = {
       'modeSelection', 'readSection', 'tagSummarySection', 'formSection',
       'spoolmanSection', 'spoolmanSetup', 'filamentDbSection',
       'profilesSection', 'filamentListSection', 'dryingSection', 'qrScanSection',
-      'aboutSection'
+      'aboutSection', 'backupSection', 'settingsSection', 'mySpoolmanSection'
     ];
     sections.forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     });
+
+    // Update sub-navigation bar
+    const subNav = document.getElementById('subNav');
+    const subNavTitle = document.getElementById('subNavTitle');
+    const modeLabels = {
+      'read': '📖 Tag Lesen', 'create': '✏️ Neuer Tag', 'update': '✏️ Tag Bearbeiten',
+      'tagsummary': '🏷️ Tag Zusammenfassung',
+      'profiles': '⬇️ Slicer Profile', 'filamentlist': '🗄️ Alle Filamente',
+      'drying': '🌡️ Trocknung', 'qrscan': '📷 QR-Scanner', 'about': 'ℹ️ Über',
+      'backup': '💾 Backup', 'settings': '⚙️ Einstellungen',
+      'spoolman-import': '📦 Spoolman Import', 'myspoolman': '🧵 Mein Spoolman'
+    };
+    if (subNav) {
+      if (mode === 'menu' || mode === 'home') {
+        subNav.style.display = 'none';
+        document.body.classList.remove('sub-mode');
+      } else {
+        subNav.style.display = 'flex';
+        document.body.classList.add('sub-mode');
+        if (subNavTitle) subNavTitle.textContent = modeLabels[mode] || mode;
+      }
+    }
 
     const formatSelect = document.getElementById('formatSelect');
 
@@ -761,6 +1484,16 @@ const app = {
       }
       document.getElementById('spoolmanSection').classList.remove('hidden');
       this.loadSpoolmanSpools();
+    } else if (mode === 'backup') {
+      document.getElementById('backupSection').classList.remove('hidden');
+      if (typeof I18n !== 'undefined' && I18n.refreshElements) I18n.refreshElements();
+      this.loadBackupList();
+    } else if (mode === 'settings') {
+      document.getElementById('settingsSection').classList.remove('hidden');
+      this.switchSettingsTab('spoolman');
+    } else if (mode === 'myspoolman') {
+      document.getElementById('mySpoolmanSection').classList.remove('hidden');
+      this.loadMySpoolman();
     }
 
     const floatBtn = document.getElementById('floatingWriteBtn');
@@ -966,7 +1699,16 @@ const app = {
   },
 
   initEventListeners() {
-    document.getElementById('fileInput').addEventListener('change', (e) => {
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('a.profile-dl-btn');
+      if (btn && btn.href && Auth && Auth.isLoggedIn()) {
+        e.preventDefault();
+        this.downloadProfileByUrl(btn.href);
+      }
+    });
+
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) fileInput.addEventListener('change', (e) => {
       this.handleFileUpload(e.target.files[0]);
     });
 
@@ -1007,6 +1749,27 @@ const app = {
     document.getElementById('matteFinish').addEventListener('change', () => {
       this.updateRecordSize();
     });
+  },
+
+  async downloadProfileByUrl(url) {
+    try {
+      const resp = await Auth.fetch(url);
+      if (!resp.ok) throw new Error('Download failed');
+      const blob = await resp.blob();
+      const cd = resp.headers.get('Content-Disposition');
+      let filename = 'profile.json';
+      if (cd && cd.includes('filename=')) {
+        const m = cd.match(/filename="?([^";]+)"?/);
+        if (m) filename = m[1];
+      }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      this.showMobileToast && this.showMobileToast('Download fehlgeschlagen', 'error');
+    }
   },
 
   handleFileUpload(file) {
@@ -1794,6 +2557,17 @@ const app = {
     }
 
     this.loadFilListSyncInfo();
+    // Pre-load Spoolman spools for the Spoolman filter (non-blocking)
+    if (this.spoolmanUrl && (!this._mySpoolmanSpools || !this._mySpoolmanSpools.length) &&
+        (!this._spoolmanSpools || !this._spoolmanSpools.length)) {
+      const url = this._normalizeSpoolmanUrl(this.spoolmanUrl);
+      if (url) {
+        fetch(`${url}/api/v1/spool?allow_archived=false`, { signal: AbortSignal.timeout(8000) })
+          .then(r => r.ok ? r.json() : [])
+          .then(spools => { this._mySpoolmanSpools = spools; this._spoolmanSpools = spools; })
+          .catch(() => {});
+      }
+    }
     this.loadFilamentList();
   },
 
@@ -1822,13 +2596,45 @@ const app = {
     container.innerHTML = '<p style="text-align:center; color: var(--text-secondary);">Lade Filamente...</p>';
 
     try {
+      const spoolmanFilterEl = document.getElementById('filListSpoolmanFilter');
+      const spoolmanFilter = spoolmanFilterEl ? spoolmanFilterEl.value : '';
+
+      // Build set of filament names/brands present in Spoolman for filtering
+      let spoolmanFilamentKeys = null;
+      if (spoolmanFilter === 'spoolman' && this._mySpoolmanSpools && this._mySpoolmanSpools.length) {
+        spoolmanFilamentKeys = new Set(
+          this._mySpoolmanSpools.map(s => {
+            const f = s.filament || {};
+            const v = f.vendor || {};
+            return `${(v.name || '').toLowerCase()}|${(f.name || '').toLowerCase()}`;
+          })
+        );
+      } else if (spoolmanFilter === 'spoolman' && this._spoolmanSpools && this._spoolmanSpools.length) {
+        spoolmanFilamentKeys = new Set(
+          this._spoolmanSpools.map(s => {
+            const f = s.filament || {};
+            const v = f.vendor || {};
+            return `${(v.name || '').toLowerCase()}|${(f.name || '').toLowerCase()}`;
+          })
+        );
+      }
+
       const data = await ProfileDB.searchFilaments({
         brand: document.getElementById('filListBrandFilter').value,
         material: document.getElementById('filListMaterialFilter').value,
         q: document.getElementById('filListSearch').value,
         page: this._filListPage,
-        per_page: 40
+        per_page: spoolmanFilter === 'spoolman' ? 200 : 40
       });
+
+      // Client-side filter by Spoolman presence
+      if (spoolmanFilamentKeys) {
+        data.filaments = data.filaments.filter(f => {
+          const key = `${(f.brand || '').toLowerCase()}|${(f.name || '').toLowerCase()}`;
+          return spoolmanFilamentKeys.has(key);
+        });
+        data.total = data.filaments.length;
+      }
 
       if (data.total === 0) {
         container.innerHTML = '<p style="text-align:center; color: var(--text-secondary);">Keine Filamente gefunden.</p>';
@@ -1875,10 +2681,11 @@ const app = {
 
       container.appendChild(grid);
 
-      const totalPages = Math.ceil(data.total / data.per_page);
+      const perPage = spoolmanFilamentKeys ? data.total : (data.per_page || 40);
+      const totalPages = Math.ceil(data.total / perPage);
       const pag = document.getElementById('filListPagination');
       pag.innerHTML = '';
-      if (totalPages > 1) {
+      if (totalPages > 1 && !spoolmanFilamentKeys) {
         if (this._filListPage > 1) {
           const prev = document.createElement('button');
           prev.className = 'btn-secondary';
@@ -1906,14 +2713,16 @@ const app = {
   },
 
   async loadFilListSyncInfo() {
+    const el = document.getElementById('filListSyncInfo');
     try {
       const status = await ProfileDB.getSyncStatus();
-      const el = document.getElementById('filListSyncInfo');
       const src = status.sources || [];
       const fdb = src.find(s => s.source === 'filament_database');
       const last = fdb ? new Date(fdb.last_sync).toLocaleString('de-CH') : 'Nie';
-      el.innerHTML = `📊 <strong>${status.totals.filaments}</strong> Filamente in der Datenbank · Letzte Aktualisierung: ${last}`;
-    } catch (e) {}
+      el.innerHTML = `📊 <strong>${status.totals.filaments}</strong> Filamente in der Datenbank · Letzte Aktualisierung: ${last} · Sync alle 24h`;
+    } catch (e) {
+      el.innerHTML = '⚠️ Backend nicht erreichbar. Prüfe, ob die API läuft (Docker-Container spool-propus-api).';
+    }
   },
 
   async useFilamentForTag(filamentId) {
@@ -1958,6 +2767,17 @@ const app = {
     if (toggle) toggle.textContent = next === 'dark' ? '☀️' : '🌙';
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = next === 'dark' ? '#0b1120' : '#f0f4f8';
+    if (Auth && Auth.isLoggedIn() && this._user && this._user.settings) {
+      const loc = window.location;
+      Auth.fetch(`${loc.protocol}//${loc.host}/api/user/settings`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          spoolmanUrl: this.spoolmanUrl || '',
+          theme: next,
+          language: (this._user.settings.language || 'de')
+        })
+      }).catch(() => {});
+    }
   },
 
   // === URL Parameters (QR code deep links) ===
@@ -2136,8 +2956,1116 @@ const app = {
   filterDryingProfiles() {
     const q = document.getElementById('dryingSearch').value;
     this.renderDryingProfiles(q);
+  },
+
+  // =========================
+  //  Spoolman Import UX (Einstellungen)
+  // =========================
+  _spoolmanSettingsListBound: false,
+  _spoolmanSelectedId: null,
+  _spoolmanImportedIds: null,
+
+  _spoolmanImportedStorageKey() {
+    const uid = this._user && this._user.id ? String(this._user.id) : 'anon';
+    return `spooltag_spoolman_imported_ids_${uid}`;
+  },
+
+  _loadSpoolmanImportState() {
+    try {
+      const raw = localStorage.getItem(this._spoolmanImportedStorageKey());
+      const arr = raw ? JSON.parse(raw) : [];
+      this._spoolmanImportedIds = new Set((Array.isArray(arr) ? arr : []).map(x => parseInt(x, 10)).filter(Boolean));
+    } catch {
+      this._spoolmanImportedIds = new Set();
+    }
+    this._updateSpoolmanImportActions();
+  },
+
+  _isSpoolmanImported(id) {
+    const sid = parseInt(id, 10);
+    if (!sid) return false;
+    if (!this._spoolmanImportedIds) this._loadSpoolmanImportState();
+    return this._spoolmanImportedIds.has(sid);
+  },
+
+  _markSpoolmanImported(id) {
+    const sid = parseInt(id, 10);
+    if (!sid) return;
+    if (!this._spoolmanImportedIds) this._loadSpoolmanImportState();
+    this._spoolmanImportedIds.add(sid);
+    try {
+      localStorage.setItem(this._spoolmanImportedStorageKey(), JSON.stringify(Array.from(this._spoolmanImportedIds)));
+    } catch {}
+  },
+
+  _selectedSpoolmanObject() {
+    const sid = parseInt(this._spoolmanSelectedId, 10);
+    if (!sid) return null;
+    return (this._spoolmanSpools || []).find(s => parseInt(s.id, 10) === sid) || null;
+  },
+
+  _updateSpoolmanImportActions() {
+    const hint = document.getElementById('spoolmanImportHint');
+    const nowBtn = document.getElementById('spoolmanImportNowBtn');
+    const clrBtn = document.getElementById('spoolmanImportClearBtn');
+    const spool = this._selectedSpoolmanObject();
+    const hasSelection = !!spool;
+    if (nowBtn) nowBtn.disabled = !hasSelection;
+    if (clrBtn) clrBtn.disabled = !hasSelection;
+    if (!hint) return;
+    if (!hasSelection) {
+      hint.textContent = 'Spule auswählen, dann „Jetzt importieren“.';
+      return;
+    }
+    const f = spool.filament || {};
+    const v = f.vendor || {};
+    const name = [v.name, f.name].filter(Boolean).join(' – ') || `Spool #${spool.id}`;
+    hint.textContent = `Ausgewählt: ${name}`;
+  },
+
+  selectSpoolmanSpoolSettings(spoolId) {
+    const sid = parseInt(spoolId, 10);
+    if (!sid) return;
+    if (this._isSpoolmanImported(sid)) return;
+    this._spoolmanSelectedId = sid;
+    this.filterSpoolmanSpoolsSettings();
+    this._updateSpoolmanImportActions();
+  },
+
+  clearSpoolmanSelectionSettings() {
+    this._spoolmanSelectedId = null;
+    this.filterSpoolmanSpoolsSettings();
+    this._updateSpoolmanImportActions();
+  },
+
+  importSelectedSpoolmanSettings() {
+    const spool = this._selectedSpoolmanObject();
+    if (!spool) return;
+    if (this._isSpoolmanImported(spool.id)) {
+      this.showMobileToast && this.showMobileToast('Diese Spule wurde bereits importiert.', 'warning');
+      return;
+    }
+    this.importFromSpoolman(spool);
+    this._markSpoolmanImported(spool.id);
+    this._spoolmanSelectedId = null;
+    this._updateSpoolmanImportActions();
+    this.filterSpoolmanSpoolsSettings();
+  },
+
+  // =====================
+  //  Bulk-Import all Spoolman spools
+  // =====================
+  async importAllSpoolmanSpools() {
+    const spools = this._spoolmanSpools;
+    if (!spools || !spools.length) {
+      this.showMobileToast('Zuerst Spulen laden.', 'warning');
+      return;
+    }
+    const btn = document.getElementById('spoolmanImportAllBtn');
+    const statusEl = document.getElementById('spoolmanImportAllStatus');
+    if (btn) btn.disabled = true;
+    let imported = 0;
+    let skipped = 0;
+    for (const spool of spools) {
+      if (this._isSpoolmanImported(spool.id)) { skipped++; continue; }
+      this.importFromSpoolman(spool);
+      this._markSpoolmanImported(spool.id);
+      imported++;
+      if (statusEl) statusEl.textContent = `${imported} importiert…`;
+      await new Promise(r => setTimeout(r, 30));
+    }
+    if (btn) btn.disabled = false;
+    const msg = `✅ ${imported} Spule(n) importiert${skipped ? `, ${skipped} bereits vorhanden` : ''}.`;
+    if (statusEl) statusEl.textContent = msg;
+    this.showMobileToast(msg, 'success');
+    this._updateSpoolmanImportActions();
+    this.filterSpoolmanSpoolsSettings();
+  },
+
+  // =====================
+  //  My Spoolman Section
+  // =====================
+  _mySpoolmanSpools: [],
+  _mySpoolmanEditSpool: null,
+
+  async loadMySpoolman() {
+    const url = this._normalizeSpoolmanUrl(this.spoolmanUrl);
+    const listEl = document.getElementById('mySpoolmanList');
+    const statusEl = document.getElementById('mySpoolmanStatus');
+    const countEl = document.getElementById('mySpoolmanCount');
+    if (!url) {
+      if (listEl) listEl.innerHTML = `<div style="text-align:center;padding:2rem 1rem;">
+        <div style="font-size:2rem;margin-bottom:0.75rem;">🧵</div>
+        <p style="color:var(--text-secondary);margin-bottom:1rem;">Kein Spoolman konfiguriert.</p>
+        <button class="btn-primary" onclick="app.setMode('settings')" style="width:auto;">⚙️ Spoolman URL einrichten</button>
+      </div>`;
+      return;
+    }
+    if (listEl) listEl.innerHTML = '<p style="color:var(--text-secondary);">Lade Spulen…</p>';
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'status-message'; }
+    try {
+      const resp = await fetch(`${url}/api/v1/spool?allow_archived=false`, { signal: AbortSignal.timeout(10000) });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const spools = await resp.json();
+      this._mySpoolmanSpools = spools;
+      // Populate material filter
+      const matSel = document.getElementById('mySpoolmanMaterialFilter');
+      if (matSel) {
+        const mats = [...new Set(spools.map(s => (s.filament || {}).material).filter(Boolean))].sort();
+        matSel.innerHTML = '<option value="">Alle Materialien</option>' +
+          mats.map(m => `<option value="${m}">${m}</option>`).join('');
+      }
+      if (countEl) countEl.textContent = `${spools.length} Spule(n) in Spoolman`;
+      this.renderMySpoolman(spools);
+    } catch (e) {
+      if (listEl) listEl.innerHTML = `<p style="color:var(--error);">Fehler: ${e.message}</p>`;
+    }
+  },
+
+  filterMySpoolman() {
+    const q = (document.getElementById('mySpoolmanSearch').value || '').toLowerCase().trim();
+    const mat = (document.getElementById('mySpoolmanMaterialFilter').value || '').toLowerCase();
+    const filtered = this._mySpoolmanSpools.filter(spool => {
+      const f = spool.filament || {};
+      const v = f.vendor || {};
+      if (mat && (f.material || '').toLowerCase() !== mat) return false;
+      if (!q) return true;
+      return [v.name, f.name, f.material, spool.id, spool.lot_nr, f.color_hex, spool.comment]
+        .filter(Boolean).join(' ').toLowerCase().includes(q);
+    });
+    this.renderMySpoolman(filtered);
+  },
+
+  renderMySpoolman(spools) {
+    const listEl = document.getElementById('mySpoolmanList');
+    if (!listEl) return;
+    if (!spools || !spools.length) {
+      listEl.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:1.5rem 0;">Keine Spulen gefunden.</p>';
+      return;
+    }
+    listEl.innerHTML = spools.map(spool => {
+      const f = spool.filament || {};
+      const v = f.vendor || {};
+      const color = (f.color_hex || 'CCCCCC').replace('#', '');
+      const name = [v.name, f.name].filter(Boolean).join(' – ') || `Spool #${spool.id}`;
+      const mat = f.material || '';
+      const rem = spool.remaining_weight != null ? `${Math.round(spool.remaining_weight)}g` : '—';
+      const comment = spool.comment ? `<div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.2rem;font-style:italic;">${spool.comment}</div>` : '';
+      const lot = spool.lot_nr ? `<span style="font-size:0.7rem;background:var(--bg-secondary);border-radius:4px;padding:0.1rem 0.35rem;">Lot: ${spool.lot_nr}</span>` : '';
+      const archived = spool.archived ? `<span style="font-size:0.7rem;background:#ff6b6b22;color:#ff6b6b;border-radius:4px;padding:0.1rem 0.35rem;">archiviert</span>` : '';
+      return `<div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.85rem 0.9rem;background:var(--bg-secondary);border-radius:12px;margin-bottom:0.5rem;border:1px solid var(--border);">
+        <div style="width:36px;height:36px;border-radius:50%;background:#${color};flex-shrink:0;border:2px solid rgba(255,255,255,0.15);margin-top:0.1rem;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+          <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.15rem;display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center;">
+            <span>${mat}</span>
+            <span>·</span>
+            <span>🧵 ${rem}</span>
+            ${lot}${archived}
+          </div>
+          ${comment}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.35rem;flex-shrink:0;">
+          <button class="btn-primary" onclick="app.importFromSpoolman(${JSON.stringify(spool).replace(/"/g,'&quot;')})" style="width:auto;padding:0.3rem 0.6rem;font-size:0.75rem;">→ Tag</button>
+          <button class="btn-secondary" onclick="app.openMySpoolmanEdit(${spool.id})" style="width:auto;padding:0.3rem 0.6rem;font-size:0.75rem;">✏️</button>
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  openMySpoolmanEdit(spoolId) {
+    const spool = this._mySpoolmanSpools.find(s => parseInt(s.id, 10) === parseInt(spoolId, 10));
+    if (!spool) return;
+    this._mySpoolmanEditSpool = spool;
+    const f = spool.filament || {};
+    const v = f.vendor || {};
+    const name = [v.name, f.name].filter(Boolean).join(' – ') || `Spool #${spool.id}`;
+    const fieldsEl = document.getElementById('mySpoolmanEditFields');
+    if (!fieldsEl) return;
+    fieldsEl.innerHTML = `
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:0.75rem;">${name}</p>
+      <div class="form-group">
+        <label>Verbleibendes Gewicht (g)</label>
+        <input type="number" id="editSpoolWeight" value="${spool.remaining_weight != null ? Math.round(spool.remaining_weight) : ''}" min="0" step="1">
+      </div>
+      <div class="form-group">
+        <label>Lot-Nummer</label>
+        <input type="text" id="editSpoolLot" value="${spool.lot_nr || ''}">
+      </div>
+      <div class="form-group">
+        <label>Kommentar / Beschreibung</label>
+        <textarea id="editSpoolComment" rows="3" style="width:100%;resize:vertical;">${spool.comment || ''}</textarea>
+      </div>
+    `;
+    const overlay = document.getElementById('mySpoolmanEditOverlay');
+    if (overlay) overlay.classList.remove('hidden');
+    const statusEl = document.getElementById('mySpoolmanEditStatus');
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'status-message'; }
+  },
+
+  closeMySpoolmanEdit() {
+    const overlay = document.getElementById('mySpoolmanEditOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    this._mySpoolmanEditSpool = null;
+  },
+
+  async saveMySpoolmanEdit() {
+    const spool = this._mySpoolmanEditSpool;
+    if (!spool) return;
+    const url = this._normalizeSpoolmanUrl(this.spoolmanUrl);
+    if (!url) return;
+    const weight = parseFloat(document.getElementById('editSpoolWeight').value);
+    const lot = document.getElementById('editSpoolLot').value.trim();
+    const comment = document.getElementById('editSpoolComment').value.trim();
+    const statusEl = document.getElementById('mySpoolmanEditStatus');
+    if (statusEl) { statusEl.textContent = 'Speichern…'; statusEl.className = 'status-message warning'; }
+    try {
+      const body = {};
+      if (!isNaN(weight)) body.remaining_weight = weight;
+      if (lot !== undefined) body.lot_nr = lot || null;
+      if (comment !== undefined) body.comment = comment || null;
+      const resp = await fetch(`${url}/api/v1/spool/${spool.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      if (statusEl) { statusEl.textContent = '✅ Gespeichert!'; statusEl.className = 'status-message success'; }
+      this.showMobileToast('Spule gespeichert', 'success');
+      setTimeout(() => {
+        this.closeMySpoolmanEdit();
+        this.loadMySpoolman();
+      }, 800);
+    } catch (e) {
+      if (statusEl) { statusEl.textContent = `Fehler: ${e.message}`; statusEl.className = 'status-message error'; }
+    }
+  },
+
+  // =====================
+  //  Settings Section
+  // =====================
+  switchSettingsTab(tab) {
+    document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+      const isActive = btn.dataset.stab === tab;
+      btn.style.borderBottomColor = isActive ? 'var(--accent)' : 'transparent';
+      btn.style.color = isActive ? 'var(--accent)' : 'var(--text-secondary)';
+      btn.style.fontWeight = isActive ? '700' : '600';
+    });
+    const spoolTab = document.getElementById('stab-spoolman');
+    const backupTab = document.getElementById('stab-backup');
+    if (spoolTab) spoolTab.style.display = tab === 'spoolman' ? 'block' : 'none';
+    if (backupTab) backupTab.style.display = tab === 'backup' ? 'block' : 'none';
+
+    if (tab === 'spoolman') {
+      const inp = document.getElementById('spoolmanUrlSettings');
+      if (inp) inp.value = this.spoolmanUrl || '';
+      if (this.spoolmanUrl) this.loadSpoolmanSpoolsSettings();
+    } else if (tab === 'backup') {
+      this._loadBackupListSettings();
+    }
+  },
+
+  async testSpoolmanSettings() {
+    const url = this._normalizeSpoolmanUrl(document.getElementById('spoolmanUrlSettings').value);
+    if (!url) { this.showStatus('spoolmanSettingsTestStatus', 'error', 'Bitte URL eingeben'); return; }
+    this.showStatus('spoolmanSettingsTestStatus', 'warning', 'Verbinde...');
+    try {
+      const resp = await fetch(`${url}/api/v1/info`, { signal: AbortSignal.timeout(5000) });
+      if (resp.ok) {
+        const info = await resp.json();
+        this.showStatus('spoolmanSettingsTestStatus', 'success', `Verbunden! Spoolman v${info.version || '?'}`);
+      } else {
+        this.showStatus('spoolmanSettingsTestStatus', 'error', `HTTP ${resp.status}`);
+      }
+    } catch (e) {
+      try {
+        const resp2 = await fetch(`${url}/api/v1/spool`, { signal: AbortSignal.timeout(5000) });
+        if (resp2.ok) { this.showStatus('spoolmanSettingsTestStatus', 'success', 'Verbunden!'); return; }
+      } catch {}
+      this.showStatus('spoolmanSettingsTestStatus', 'error', `Fehler: ${e.message}`);
+    }
+  },
+
+  async saveSpoolmanUrlSettings() {
+    const url = this._normalizeSpoolmanUrl(document.getElementById('spoolmanUrlSettings').value);
+    if (!url) { this.showMobileToast('Bitte gültige URL eingeben', 'error'); return; }
+    this.spoolmanUrl = url;
+    localStorage.setItem('spoolmanUrl', url);
+    if (Auth && Auth.isLoggedIn()) {
+      const loc = window.location;
+      try {
+        await Auth.fetch(`${loc.protocol}//${loc.host}/api/user/settings`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            spoolmanUrl: url,
+            theme: document.documentElement.getAttribute('data-theme') || 'dark',
+            language: typeof I18n !== 'undefined' ? (I18n.getLanguage ? I18n.getLanguage() : 'de') : 'de'
+          })
+        });
+      } catch (e) {}
+    }
+    this.updateSpoolmanLink();
+    this.showMobileToast('Spoolman URL gespeichert', 'success');
+    this.showStatus('spoolmanSettingsTestStatus', 'success', '✅ URL gespeichert!');
+    if (this.spoolmanUrl) this.loadSpoolmanSpoolsSettings();
+  },
+
+  async loadSpoolmanSpoolsSettings() {
+    const url = this._normalizeSpoolmanUrl(this.spoolmanUrl);
+    if (!url) return;
+    const listEl = document.getElementById('spoolmanSpoolListSettings');
+    const statusEl = document.getElementById('spoolmanSettingsStatus');
+    if (listEl) listEl.innerHTML = '<p style="color:var(--text-secondary);">Lade Spulen...</p>';
+    if (statusEl) { statusEl.textContent = ''; statusEl.className = 'status-message'; }
+    try {
+      const resp = await fetch(`${url}/api/v1/spool?allow_archived=false`, { signal: AbortSignal.timeout(8000) });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const spools = await resp.json();
+      this._spoolmanSpools = spools;
+      this._updateSpoolmanImportActions();
+      this._renderSpoolmanListSettings(spools);
+    } catch (e) {
+      if (statusEl) this.showStatus('spoolmanSettingsStatus', 'error', `Fehler: ${e.message}`);
+      if (listEl) listEl.innerHTML = '';
+    }
+  },
+
+  filterSpoolmanSpoolsSettings() {
+    const q = (document.getElementById('spoolmanSearchSettings').value || '').toLowerCase().trim();
+    const filtered = !q ? this._spoolmanSpools : this._spoolmanSpools.filter(spool => {
+      const f = spool.filament || {};
+      const v = f.vendor || {};
+      return [v.name, f.name, f.material, spool.id, spool.lot_nr, f.color_hex]
+        .filter(Boolean).join(' ').toLowerCase().includes(q);
+    });
+    this._renderSpoolmanListSettings(filtered);
+  },
+
+  _renderSpoolmanListSettings(spools) {
+    const listEl = document.getElementById('spoolmanSpoolListSettings');
+    if (!listEl) return;
+    if (!spools || !spools.length) {
+      listEl.innerHTML = '<p style="color:var(--text-secondary);">Keine Spulen gefunden.</p>';
+      return;
+    }
+    listEl.innerHTML = spools.map(spool => {
+      const f = spool.filament || {};
+      const v = f.vendor || {};
+      const color = (f.color_hex || 'CCCCCC').replace('#', '');
+      const name = [v.name, f.name].filter(Boolean).join(' – ') || `Spool #${spool.id}`;
+      const mat = f.material || '';
+      const rem = spool.remaining_weight != null ? `${Math.round(spool.remaining_weight)}g` : '—';
+      const imported = this._isSpoolmanImported(spool.id);
+      const selected = !imported && this._spoolmanSelectedId && parseInt(this._spoolmanSelectedId, 10) === parseInt(spool.id, 10);
+      const cls = [
+        'spool-import-row',
+        imported ? 'is-imported' : '',
+        selected ? 'is-selected' : ''
+      ].filter(Boolean).join(' ');
+      const badge = imported
+        ? `<span class="spool-import-badge ok">✓ importiert</span>`
+        : (selected ? `<span class="spool-import-badge sel">ausgewählt</span>` : `<span class="spool-import-badge">antippen</span>`);
+      return `<div class="${cls}" data-spool-id="${spool.id}">
+        <div style="width:14px;height:14px;border-radius:50%;background:#${color};flex-shrink:0;border:1px solid rgba(255,255,255,0.2);"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);">${mat} · Verbleibend: ${rem}</div>
+        </div>
+        <div class="spool-import-right">${badge}</div>
+      </div>`;
+    }).join('');
+  },
+
+  async importUserDataSettings(ev) {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const fakeEv = { target: { files: [{ text: () => Promise.resolve(text) }] } };
+    try {
+      const data = JSON.parse(text);
+      const loc = window.location;
+      const apiBase = `${loc.protocol}//${loc.host}/api`;
+      const resp = await Auth.fetch(`${apiBase}/user/import`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      if (resp.ok) {
+        this.showMobileToast('Backup wiederhergestellt!', 'success');
+        this.showStatus('backupSettingsStatus', 'success', '✅ Backup wiederhergestellt!');
+        if (data.spoolmanUrl) { this.spoolmanUrl = data.spoolmanUrl; this.updateSpoolmanLink(); }
+        if (data.theme) { document.documentElement.setAttribute('data-theme', data.theme); localStorage.setItem('theme', data.theme); this.loadTheme(); }
+        if (data.language && typeof I18n !== 'undefined' && I18n.setLanguage) I18n.setLanguage(data.language);
+      } else {
+        this.showStatus('backupSettingsStatus', 'error', 'Fehler beim Wiederherstellen');
+      }
+    } catch (e) {
+      this.showStatus('backupSettingsStatus', 'error', 'Ungültige JSON-Datei: ' + e.message);
+    }
+  },
+
+  async _loadBackupListSettings() {
+    const listEl = document.getElementById('backupListSettings');
+    if (!listEl) return;
+    if (!Auth || !Auth.isLoggedIn()) {
+      listEl.innerHTML = '<p style="color:var(--text-secondary);">Nicht angemeldet.</p>';
+      return;
+    }
+    listEl.innerHTML = '<p style="color:var(--text-secondary);">Lade Backups...</p>';
+    const loc = window.location;
+    const apiBase = `${loc.protocol}//${loc.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/user/backups`);
+      const data = await resp.json();
+      const backups = data.backups || [];
+      if (!backups.length) { listEl.innerHTML = '<p style="color:var(--text-secondary);">Keine Backups vorhanden.</p>'; return; }
+      listEl.innerHTML = backups.map(b => {
+        const d = new Date(b.createdAt + 'Z').toLocaleString('de-CH', { dateStyle: 'short', timeStyle: 'short' });
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--border);font-size:0.85rem;">
+          <span style="color:var(--text-secondary);">${d}</span>
+          <span class="badge badge-ok" style="font-size:0.72rem;">✓ Gespeichert</span>
+        </div>`;
+      }).join('');
+    } catch (e) {
+      listEl.innerHTML = `<p style="color:var(--error);">Fehler: ${e.message}</p>`;
+    }
+  },
+
+  // =====================
+  //  Profile dropdown
+  // =====================
+  _profileDropOpen: false,
+
+  _updateProfileUI() {
+    const user = this._user;
+    const wrap = document.getElementById('profileMenuWrap');
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (!user) {
+      if (wrap) wrap.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'inline-block';
+      return;
+    }
+    if (wrap) wrap.style.display = 'inline-flex';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+    const initials = document.getElementById('profileAvatarInitials');
+    if (initials) {
+      const fi = (user.firstName || '')[0] || '';
+      const li = (user.lastName || '')[0] || '';
+      initials.textContent = fi && li ? (fi + li).toUpperCase() : (user.email || '?')[0].toUpperCase();
+    }
+    const emailEl = document.getElementById('profileDropEmail');
+    if (emailEl) {
+      const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+      emailEl.innerHTML = fullName
+        ? `<strong style="display:block;color:var(--text-primary)">${fullName}</strong>${user.email || ''}`
+        : (user.email || '');
+    }
+    const adminBtn = document.getElementById('adminPanelBtn');
+    if (adminBtn) {
+      const perms = Array.isArray(user.permissions) ? user.permissions : [];
+      const canSeeAdmin = !!user.isAdmin || perms.some(p => String(p || '').startsWith('admin.'));
+      adminBtn.style.display = canSeeAdmin ? 'block' : 'none';
+    }
+  },
+
+  _toggleProfileDrop() {
+    const drop = document.getElementById('profileDropdown');
+    if (!drop) return;
+    this._profileDropOpen = !this._profileDropOpen;
+    drop.style.display = this._profileDropOpen ? 'block' : 'none';
+  },
+
+  _closeProfileDrop() {
+    const drop = document.getElementById('profileDropdown');
+    if (drop) drop.style.display = 'none';
+    this._profileDropOpen = false;
+  },
+
+  // =====================
+  //  Profile modal
+  // =====================
+  openProfileModal() {
+    this._closeProfileDrop();
+    const overlay = document.getElementById('profileModalOverlay');
+    if (!overlay) return;
+    const u = this._user || {};
+    document.getElementById('profileModalEmail').textContent = u.email || '';
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    set('profileFirstName', u.firstName);
+    set('profileLastName', u.lastName);
+    set('profileBirthDate', u.birthDate);
+    set('profileAddress', u.address);
+    set('profileCurrentPw', '');
+    set('profileNewEmail', '');
+    set('profileNewPw', '');
+    const st = document.getElementById('profileModalStatus');
+    if (st) { st.textContent = ''; st.className = 'status-message'; }
+    overlay.classList.remove('hidden');
+  },
+
+  closeProfileModal() {
+    const overlay = document.getElementById('profileModalOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  },
+
+  async submitProfileUpdate() {
+    const firstName = (document.getElementById('profileFirstName')?.value || '').trim();
+    const lastName = (document.getElementById('profileLastName')?.value || '').trim();
+    const birthDate = (document.getElementById('profileBirthDate')?.value || '').trim();
+    const address = (document.getElementById('profileAddress')?.value || '').trim();
+    const currentPw = document.getElementById('profileCurrentPw').value;
+    const newEmail = document.getElementById('profileNewEmail').value.trim();
+    const newPw = document.getElementById('profileNewPw').value;
+    const st = document.getElementById('profileModalStatus');
+
+    if ((newEmail || newPw) && !currentPw) {
+      st.textContent = '⚠️ Für E-Mail- oder Passwort-Änderung ist das aktuelle Passwort erforderlich.';
+      st.className = 'status-message error';
+      return;
+    }
+    st.textContent = '⏳ Wird gespeichert…';
+    st.className = 'status-message';
+
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const body = { firstName, lastName, birthDate, address };
+      if (currentPw) body.currentPassword = currentPw;
+      if (newEmail) body.email = newEmail;
+      if (newPw) body.password = newPw;
+
+      const resp = await Auth.fetch(`${apiBase}/user/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        st.textContent = '❌ ' + (data.message || 'Fehler beim Speichern');
+        st.className = 'status-message error';
+        return;
+      }
+      if (this._user) {
+        if (data.email) this._user.email = data.email;
+        if (data.firstName !== undefined) this._user.firstName = data.firstName;
+        if (data.lastName !== undefined) this._user.lastName = data.lastName;
+        if (data.birthDate !== undefined) this._user.birthDate = data.birthDate;
+        if (data.address !== undefined) this._user.address = data.address;
+      }
+      this._updateProfileUI();
+      st.textContent = '✅ Änderungen gespeichert!';
+      st.className = 'status-message success';
+      if (newPw) {
+        setTimeout(() => { Auth.clearToken(); location.reload(); }, 1500);
+      } else {
+        setTimeout(() => this.closeProfileModal(), 1500);
+      }
+    } catch (e) {
+      st.textContent = '❌ Netzwerkfehler';
+      st.className = 'status-message error';
+    }
+  },
+
+  // =====================
+  //  Admin Panel
+  // =====================
+  _adminTab: 'users',
+  _adminGroups: null,
+
+  _adminPerms() {
+    const u = this._user || {};
+    return Array.isArray(u.permissions) ? u.permissions : [];
+  },
+
+  _adminCan(tab) {
+    const u = this._user || {};
+    if (u.isAdmin) return true;
+    const need = {
+      users: 'admin.users',
+      status: 'admin.status',
+      backups: 'admin.backups',
+      errors: 'admin.errors',
+      groups: 'admin.groups'
+    }[tab];
+    if (!need) return false;
+    return this._adminPerms().includes(need);
+  },
+
+  _adminApplyTabVisibility() {
+    document.querySelectorAll('.admin-tab-btn').forEach(b => {
+      const tab = b.dataset.tab;
+      b.style.display = this._adminCan(tab) ? '' : 'none';
+    });
+  },
+
+  _adminFirstAllowedTab() {
+    const order = ['users', 'status', 'backups', 'errors', 'groups'];
+    for (const t of order) if (this._adminCan(t)) return t;
+    return null;
+  },
+
+  openAdminPanel() {
+    this._closeProfileDrop();
+    const overlay = document.getElementById('adminPanelOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    this._adminApplyTabVisibility();
+    const first = this._adminFirstAllowedTab();
+    if (!first) {
+      // Fallback: show users tab (will likely show forbidden message from API)
+      this.switchAdminTab('users');
+    } else {
+      this.switchAdminTab(first);
+    }
+  },
+
+  closeAdminPanel() {
+    const overlay = document.getElementById('adminPanelOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  },
+
+  switchAdminTab(tab) {
+    if (!this._adminCan(tab)) {
+      const first = this._adminFirstAllowedTab();
+      if (!first) return;
+      tab = first;
+    }
+    this._adminTab = tab;
+    document.querySelectorAll('.admin-tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    document.querySelectorAll('.admin-tab-panel').forEach(p => {
+      p.classList.toggle('active', p.id === `adminTab-${tab}`);
+    });
+    if (tab === 'users') this.adminLoadUsers();
+    else if (tab === 'status') this.adminLoadStatus();
+    else if (tab === 'backups') this.adminLoadBackups();
+    else if (tab === 'errors') this.adminLoadErrors();
+    else if (tab === 'groups') this.adminLoadGroups();
+  },
+
+  _adminFmt(ts) {
+    if (!ts) return '—';
+    return new Date(ts + 'Z').toLocaleString('de-CH', { dateStyle: 'short', timeStyle: 'short' });
+  },
+
+  async adminLoadUsers() {
+    const body = document.getElementById('adminUsersBody');
+    if (!body) return;
+    body.innerHTML = '<p style="color:var(--text-secondary)">Wird geladen…</p>';
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      await this.adminLoadGroupsCache();
+      const resp = await Auth.fetch(`${apiBase}/admin/users`);
+      const data = await resp.json();
+      if (!resp.ok) { body.innerHTML = `<p style="color:var(--error)">Fehler: ${data.message||resp.status}</p>`; return; }
+      const users = data.users || [];
+      if (!users.length) { body.innerHTML = '<p>Keine Benutzer.</p>'; return; }
+      let html = `<table class="admin-table"><thead><tr>
+        <th>ID</th><th>E-Mail</th><th>Erstellt</th><th>Rollen</th><th>Gruppe</th><th>Backups</th><th>Aktionen</th>
+      </tr></thead><tbody>`;
+      for (const u of users) {
+        const badges = [
+          u.is_admin ? '<span class="badge badge-admin">Admin</span>' : '',
+          u.is_locked ? '<span class="badge badge-locked">Gesperrt</span>' : ''
+        ].filter(Boolean).join(' ');
+        const groups = Array.isArray(this._adminGroups) ? this._adminGroups : [];
+        const groupOptions = [
+          `<option value="">—</option>`,
+          ...groups.map(g => `<option value="${g.id}" ${String(g.id)===String(u.group_id||'')?'selected':''}>${g.name}</option>`)
+        ].join('');
+        html += `<tr>
+          <td>${u.id}</td>
+          <td>${u.email}</td>
+          <td>${this._adminFmt(u.created_at)}</td>
+          <td>${badges || '<span style="color:var(--text-secondary);font-size:0.8rem;">—</span>'}</td>
+          <td>
+            <select style="padding:0.25rem 0.4rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:0.8rem;"
+                    onchange="app._adminSetUserGroup(${u.id}, this.value)">
+              ${groupOptions}
+            </select>
+          </td>
+          <td>${u.backup_count || 0}</td>
+          <td style="white-space:nowrap;display:flex;gap:0.35rem;flex-wrap:wrap;">
+            <button class="btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.5rem;"
+              onclick="app._adminToggleAdmin(${u.id},${u.is_admin?1:0},'${u.email}')"
+              title="${u.is_admin?'Admin entziehen':'Admin vergeben'}">
+              ${u.is_admin?'👑 Entziehen':'👑 Vergeben'}
+            </button>
+            <button class="btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.5rem;"
+              onclick="app._adminToggleLock(${u.id},${u.is_locked?1:0},'${u.email}')"
+              title="${u.is_locked?'Entsperren':'Sperren'}">
+              ${u.is_locked?'🔓 Freischalten':'🔒 Sperren'}
+            </button>
+            <button class="btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.5rem;color:var(--error);"
+              onclick="app._adminDeleteUser(${u.id},'${u.email}')">🗑️ Löschen</button>
+          </td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+      body.innerHTML = html;
+    } catch (e) {
+      body.innerHTML = `<p style="color:var(--error)">Netzwerkfehler: ${e.message}</p>`;
+    }
+  },
+
+  async adminLoadGroupsCache() {
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/groups`);
+      const data = await resp.json();
+      if (!resp.ok) return;
+      this._adminGroups = data.groups || [];
+    } catch {}
+  },
+
+  async _adminSetUserGroup(uid, groupId) {
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    const gid = groupId ? parseInt(groupId, 10) : null;
+    await Auth.fetch(`${apiBase}/admin/users/${uid}/group`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupId: gid })
+    });
+    // keep table up to date (also refreshes group names if changed)
+    this.adminLoadUsers();
+  },
+
+  async _adminToggleAdmin(uid, current, email) {
+    if (!confirm(`Admin-Rolle für „${email}" ${current ? 'entziehen' : 'vergeben'}?`)) return;
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    await Auth.fetch(`${apiBase}/admin/users/${uid}/admin`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isAdmin: !current })
+    });
+    this.adminLoadUsers();
+  },
+
+  async _adminToggleLock(uid, current, email) {
+    if (!confirm(`Benutzer „${email}" ${current ? 'entsperren' : 'sperren'}?`)) return;
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    await Auth.fetch(`${apiBase}/admin/users/${uid}/lock`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locked: !current })
+    });
+    this.adminLoadUsers();
+  },
+
+  async _adminDeleteUser(uid, email) {
+    if (!confirm(`Benutzer „${email}" wirklich LÖSCHEN? Alle Daten werden entfernt.`)) return;
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    await Auth.fetch(`${apiBase}/admin/users/${uid}`, { method: 'DELETE' });
+    this.adminLoadUsers();
+  },
+
+  async adminLoadStatus() {
+    const body = document.getElementById('adminStatusBody');
+    if (!body) return;
+    body.innerHTML = '<p style="color:var(--text-secondary)">Wird geladen…</p>';
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/status`);
+      const d = await resp.json();
+      if (!resp.ok) { body.innerHTML = `<p style="color:var(--error)">Fehler: ${d.message||resp.status}</p>`; return; }
+      const dbMB = d.dbSizeBytes ? (d.dbSizeBytes / 1024 / 1024).toFixed(2) : '—';
+      body.innerHTML = `
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-val">${d.version||'—'}</div><div class="stat-lbl">API-Version</div></div>
+          <div class="stat-card"><div class="stat-val">${dbMB} MB</div><div class="stat-lbl">DB-Größe</div></div>
+          <div class="stat-card"><div class="stat-val">${d.users?.total||0}</div><div class="stat-lbl">Benutzer</div></div>
+          <div class="stat-card"><div class="stat-val">${d.users?.admins||0}</div><div class="stat-lbl">Admins</div></div>
+          <div class="stat-card"><div class="stat-val">${d.users?.locked||0}</div><div class="stat-lbl">Gesperrt</div></div>
+          <div class="stat-card"><div class="stat-val">${d.backups||0}</div><div class="stat-lbl">Backups gesamt</div></div>
+          <div class="stat-card"><div class="stat-val">${d.errorReports||0}</div><div class="stat-lbl">Fehlerberichte</div></div>
+          <div class="stat-card"><div class="stat-val">${d.slicerProfiles||0}</div><div class="stat-lbl">Slicer-Profile</div></div>
+          <div class="stat-card"><div class="stat-val">${d.filaments||0}</div><div class="stat-lbl">Filamente (DB)</div></div>
+        </div>
+        <strong>Sync-Status</strong>
+        <table class="admin-table" style="margin-top:0.5rem;">
+          <thead><tr><th>Quelle</th><th>Letzter Sync</th><th>Einträge</th><th>Status</th></tr></thead>
+          <tbody>${(d.sync||[]).map(s=>`
+            <tr>
+              <td>${s.source}</td>
+              <td>${this._adminFmt(s.last_sync)}</td>
+              <td>${s.items_count||0}</td>
+              <td><span class="badge ${s.status==='ok'?'badge-ok':'badge-locked'}">${s.status}</span></td>
+            </tr>`).join('')||'<tr><td colspan="4" style="color:var(--text-secondary)">Keine Sync-Daten.</td></tr>'}
+          </tbody>
+        </table>`;
+    } catch (e) {
+      body.innerHTML = `<p style="color:var(--error)">Netzwerkfehler: ${e.message}</p>`;
+    }
+  },
+
+  async adminLoadBackups() {
+    const body = document.getElementById('adminBackupsBody');
+    if (!body) return;
+    body.innerHTML = '<p style="color:var(--text-secondary)">Wird geladen…</p>';
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/backups`);
+      const data = await resp.json();
+      if (!resp.ok) { body.innerHTML = `<p style="color:var(--error)">Fehler: ${data.message||resp.status}</p>`; return; }
+      const backups = data.backups || [];
+      if (!backups.length) { body.innerHTML = '<p>Keine Backups vorhanden.</p>'; return; }
+      let html = `<table class="admin-table"><thead><tr>
+        <th>ID</th><th>Benutzer</th><th>E-Mail</th><th>Erstellt</th>
+      </tr></thead><tbody>`;
+      for (const b of backups) {
+        html += `<tr>
+          <td>${b.id}</td>
+          <td>${b.user_id}</td>
+          <td>${b.email}</td>
+          <td>${this._adminFmt(b.created_at)}</td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+      body.innerHTML = html;
+    } catch (e) {
+      body.innerHTML = `<p style="color:var(--error)">Netzwerkfehler: ${e.message}</p>`;
+    }
+  },
+
+  async adminLoadErrors() {
+    const body = document.getElementById('adminErrorsBody');
+    if (!body) return;
+    body.innerHTML = '<p style="color:var(--text-secondary)">Wird geladen…</p>';
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/error-reports`);
+      const data = await resp.json();
+      if (!resp.ok) { body.innerHTML = `<p style="color:var(--error)">Fehler: ${data.message||resp.status}</p>`; return; }
+      const reports = data.reports || [];
+      if (!reports.length) { body.innerHTML = '<p>Keine Fehlerberichte.</p>'; return; }
+      let html = `<table class="admin-table"><thead><tr>
+        <th>ID</th><th>Meldung</th><th>Beschreibung</th><th>Screenshot</th><th>Erstellt</th>
+      </tr></thead><tbody>`;
+      for (const r of reports) {
+        const msg = (r.error_message||'').slice(0,80) || '(kein)';
+        const ub = (r.user_message||'').slice(0,60) || '—';
+        html += `<tr>
+          <td>${r.id}</td>
+          <td style="font-size:0.78rem;max-width:220px;word-break:break-word;">${msg}</td>
+          <td style="font-size:0.78rem;max-width:200px;">${ub}</td>
+          <td>${r.has_screenshot ? `<button class="btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.5rem;" onclick="app._adminShowScreenshot(${r.id})">📷 Ansehen</button>` : '—'}</td>
+          <td>${this._adminFmt(r.created_at)}</td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+      body.innerHTML = html;
+    } catch (e) {
+      body.innerHTML = `<p style="color:var(--error)">Netzwerkfehler: ${e.message}</p>`;
+    }
+  },
+
+  // =====================
+  //  Admin: Gruppen & Rechte
+  // =====================
+  _adminPermissionCatalog() {
+    return [
+      { key: 'admin.users', label: 'Benutzer verwalten (sperren/löschen/admin)' },
+      { key: 'admin.status', label: 'Systemstatus ansehen' },
+      { key: 'admin.backups', label: 'Backups ansehen' },
+      { key: 'admin.errors', label: 'Fehlerberichte ansehen' },
+      { key: 'admin.groups', label: 'Gruppen & Rechte verwalten' }
+    ];
+  },
+
+  async adminLoadGroups() {
+    const body = document.getElementById('adminGroupsBody');
+    if (!body) return;
+    body.innerHTML = '<p style="color:var(--text-secondary)">Wird geladen…</p>';
+    const apiBase = `${location.protocol}//${location.host}/api`;
+
+    // Icon + color per permission key
+    const PERM_META = {
+      'admin.users':  { icon: '👥', color: '#6c8ef7', bg: 'rgba(108,142,247,0.12)' },
+      'admin.status': { icon: '📊', color: '#4ecdc4', bg: 'rgba(78,205,196,0.12)' },
+      'admin.backups':{ icon: '💾', color: '#f7b731', bg: 'rgba(247,183,49,0.12)'  },
+      'admin.errors': { icon: '🐛', color: '#fc5c65', bg: 'rgba(252,92,101,0.12)'  },
+      'admin.groups': { icon: '🧩', color: '#a29bfe', bg: 'rgba(162,155,254,0.12)' },
+    };
+
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/groups`);
+      const data = await resp.json();
+      if (!resp.ok) { body.innerHTML = `<p style="color:var(--error)">Fehler: ${data.message||resp.status}</p>`; return; }
+      const groups = data.groups || [];
+      this._adminGroups = groups;
+      const perms = this._adminPermissionCatalog();
+
+      // Pill-chip style checkbox for a permission
+      const permChip = (p, cls, extra = '') => {
+        const m = PERM_META[p.key] || { icon: '🔑', color: 'var(--accent)', bg: 'rgba(0,200,200,0.1)' };
+        return `
+          <label style="display:flex;align-items:center;gap:0.45rem;padding:0.45rem 0.7rem;
+                        border-radius:999px;border:1.5px solid ${m.color}33;background:${m.bg};
+                        cursor:pointer;transition:border-color .15s,background .15s;user-select:none;"
+                 onmouseover="this.style.borderColor='${m.color}'" onmouseout="this.style.borderColor='${m.color}33'">
+            <input type="checkbox" class="${cls}" value="${p.key}" ${extra}
+                   style="width:15px;height:15px;accent-color:${m.color};cursor:pointer;flex-shrink:0;">
+            <span style="font-size:0.82rem;">${m.icon}</span>
+            <span style="font-size:0.82rem;font-weight:600;color:${m.color};">${p.key}</span>
+            <span style="font-size:0.75rem;color:var(--text-secondary);margin-left:0.1rem;">${p.label}</span>
+          </label>`;
+      };
+
+      const createPerms = `<div style="display:flex;flex-direction:column;gap:0.4rem;margin:0.75rem 0;">
+        ${perms.map(p => permChip(p, 'adm-perm-create')).join('')}
+      </div>`;
+
+      const renderGroup = (g) => {
+        const gp = Array.isArray(g.permissions) ? g.permissions : [];
+        const checks = `<div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.5rem;">
+          ${perms.map(p => permChip(p, 'adm-perm-edit', `data-gid="${g.id}" ${gp.includes(p.key) ? 'checked' : ''}`)).join('')}
+        </div>`;
+        const safeNameAttr = String(g.name || '').replace(/"/g, '&quot;');
+        const safeNameJs = String(g.name || '').replace(/'/g, '&#39;');
+        const initials = String(g.name || '?').slice(0, 2).toUpperCase();
+        return `
+          <div style="border:1px solid var(--border);background:var(--bg-tertiary);border-radius:14px;
+                      padding:1rem 1.1rem;margin-bottom:0.85rem;box-shadow:0 2px 8px rgba(0,0,0,.15);">
+            <!-- Header row -->
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.85rem;">
+              <div style="display:flex;align-items:center;gap:0.6rem;">
+                <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#6c8ef7);
+                            display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;color:#fff;flex-shrink:0;">
+                  ${initials}
+                </div>
+                <div>
+                  <div style="font-weight:700;font-size:0.95rem;">${g.name}</div>
+                  <div style="font-size:0.72rem;color:var(--text-secondary);">ID ${g.id} · ${gp.length} Recht${gp.length !== 1 ? 'e' : ''}</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <button class="btn-success" style="font-size:0.8rem;padding:0.3rem 0.75rem;width:auto;border-radius:8px;"
+                        onclick="app._adminSaveGroup(${g.id})">💾 Speichern</button>
+                <button class="btn-secondary" style="font-size:0.8rem;padding:0.3rem 0.75rem;width:auto;border-radius:8px;color:var(--error);border-color:var(--error)33;"
+                        onclick="app._adminDeleteGroup(${g.id},'${safeNameJs}')">🗑️ Löschen</button>
+              </div>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border);margin:0 0 0.75rem;">
+            <!-- Name field -->
+            <div style="margin-bottom:0.75rem;">
+              <label style="font-size:0.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em;font-weight:700;">Gruppenname</label>
+              <input type="text" id="admGroupName-${g.id}" value="${safeNameAttr}"
+                     style="width:100%;margin-top:0.3rem;padding:0.5rem 0.75rem;border-radius:10px;font-size:0.9rem;">
+            </div>
+            <!-- Permissions -->
+            <div>
+              <label style="font-size:0.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em;font-weight:700;">Rechte</label>
+              ${checks}
+            </div>
+          </div>`;
+      };
+
+      body.innerHTML = `
+        <!-- Create new group card -->
+        <div style="border:1.5px dashed var(--accent)55;background:var(--bg-secondary);border-radius:14px;
+                    padding:1.1rem;margin-bottom:1.25rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.85rem;">
+            <span style="font-size:1.1rem;">➕</span>
+            <strong style="font-size:0.95rem;">Neue Gruppe erstellen</strong>
+          </div>
+          <label style="font-size:0.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em;font-weight:700;">Name</label>
+          <input type="text" id="admGroupCreateName" placeholder="z.B. Support / Viewer / Manager"
+                 style="width:100%;margin-top:0.3rem;margin-bottom:0.75rem;padding:0.5rem 0.75rem;border-radius:10px;font-size:0.9rem;">
+          <label style="font-size:0.72rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.07em;font-weight:700;">Rechte</label>
+          ${createPerms}
+          <button class="btn-primary" style="width:auto;margin-top:0.25rem;border-radius:10px;padding:0.5rem 1.1rem;"
+                  onclick="app._adminCreateGroup()">➕ Gruppe erstellen</button>
+          <div id="admGroupCreateStatus" class="status-message" style="margin-top:0.6rem;"></div>
+        </div>
+        <!-- Existing groups -->
+        <div>
+          ${groups.length
+            ? groups.map(renderGroup).join('')
+            : '<p style="color:var(--text-secondary);text-align:center;padding:1.5rem 0;">Noch keine Gruppen vorhanden.</p>'}
+        </div>`;
+    } catch (e) {
+      body.innerHTML = `<p style="color:var(--error)">Netzwerkfehler: ${e.message}</p>`;
+    }
+  },
+
+  async _adminCreateGroup() {
+    const nameEl = document.getElementById('admGroupCreateName');
+    const st = document.getElementById('admGroupCreateStatus');
+    const name = (nameEl && nameEl.value ? nameEl.value : '').trim();
+    if (!name) { if (st) { st.textContent = 'Bitte Namen eingeben.'; st.className = 'status-message error'; } return; }
+    const perms = Array.from(document.querySelectorAll('.adm-perm-create:checked')).map(i => i.value);
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/groups`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, permissions: perms })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.message || resp.status);
+      if (st) { st.textContent = '✅ Gruppe erstellt'; st.className = 'status-message success'; }
+      this.adminLoadGroups();
+    } catch (e) {
+      if (st) { st.textContent = '❌ Fehler: ' + (e.message || 'Netzwerkfehler'); st.className = 'status-message error'; }
+    }
+  },
+
+  async _adminSaveGroup(gid) {
+    const nameEl = document.getElementById(`admGroupName-${gid}`);
+    const name = (nameEl && nameEl.value ? nameEl.value : '').trim();
+    const perms = Array.from(document.querySelectorAll(`.adm-perm-edit[data-gid="${gid}"]:checked`)).map(i => i.value);
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    await Auth.fetch(`${apiBase}/admin/groups/${gid}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, permissions: perms })
+    });
+    this.adminLoadGroups();
+  },
+
+  async _adminDeleteGroup(gid, name) {
+    if (!confirm(`Gruppe „${name}“ löschen?`)) return;
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    const resp = await Auth.fetch(`${apiBase}/admin/groups/${gid}`, { method: 'DELETE' });
+    if (!resp.ok) {
+      try {
+        const data = await resp.json();
+        alert('Löschen fehlgeschlagen: ' + (data.message || resp.status));
+      } catch {
+        alert('Löschen fehlgeschlagen.');
+      }
+    }
+    this.adminLoadGroups();
+  },
+
+  async _adminShowScreenshot(rid) {
+    const apiBase = `${location.protocol}//${location.host}/api`;
+    try {
+      const resp = await Auth.fetch(`${apiBase}/admin/error-reports/${rid}/screenshot`);
+      const data = await resp.json();
+      if (!resp.ok || !data.screenshot) { alert('Kein Screenshot verfügbar.'); return; }
+      const win = window.open('', '_blank');
+      win.document.write(`<img src="${data.screenshot}" style="max-width:100%;height:auto;">`);
+    } catch (e) {
+      alert('Fehler beim Laden: ' + e.message);
+    }
   }
 };
 
-// Initialize app
-app.init();
+// Global error handlers - capture for ErrorReporter
+window.addEventListener('error', (e) => {
+  ErrorReporter.capture(e.message, e.filename, e.lineno, e.colno, e.error);
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  ErrorReporter.capturePromise(e.reason);
+});
+
+// Initialize: load i18n, then app
+(async function() {
+  if (typeof I18n !== 'undefined' && I18n.init) {
+    await I18n.init();
+    if (I18n.refreshElements) I18n.refreshElements();
+  }
+  await app.init();
+})();

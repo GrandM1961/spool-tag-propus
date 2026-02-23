@@ -1,8 +1,10 @@
-const CACHE_NAME = 'spool-propus-v1.6.9-beta';
+const CACHE_NAME = 'spool-propus-v1.6.65';
 const ASSETS = [
   '/',
   '/index.html',
   '/app.js',
+  '/auth.js',
+  '/i18n.js',
   '/color.js',
   '/cbor.js',
   '/ndef.js',
@@ -13,7 +15,8 @@ const ASSETS = [
   '/profiledb.js',
   '/drying.js',
   '/qr.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/logo.svg'
 ];
 
 self.addEventListener('install', e => {
