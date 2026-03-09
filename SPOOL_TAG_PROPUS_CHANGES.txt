@@ -1,0 +1,219 @@
+================================================================================
+SPOOL-TAG-PROPUS MODIFICATIONS SUMMARY
+================================================================================
+Date: March 2026
+Purpose: Fix HTTPS/Mixed Content issues with Spoolman integration
+
+================================================================================
+OVERVIEW OF CHANGES
+================================================================================
+
+The changes enable spool-tag-propus to connect to external HTTPS Spoolman 
+instances (e.g., https://192.168.2.1:7912) without Mixed Content browser 
+errors by routing all Spoolman API requests through a backend proxy.
+
+================================================================================
+DETAILED CHANGES BY FILE
+================================================================================
+
+1. BACKEND/APP.PY
+================================================================================
+
+A. Added SSL warning suppression (Lines 18-21):
+   - Import urllib3
+   - Disable InsecureRequestWarning for internal HTTPS connections
+   - Allows self-signed certificates to work without verbose warnings
+
+B. Fixed email login to be case-insensitive (Line 373):
+   OLD: WHERE email = ?
+   NEW: WHERE lower(email) = ?
+   - Allows users to login with uppercase letters in email
+
+C. Updated /api/spoolman/proxy endpoint (Lines 1463-1464):
+   OLD: resp = requests.get(target, timeout=6)
+   NEW: resp = requests.get(target, timeout=6, verify=False)
+   - Disabled SSL certificate verification
+   - Supports both external HTTPS and internal HTTP URLs
+   - Removed automatic port 8000 detection for internal containers
+
+D. Updated /api/spoolman/spools endpoint (Lines 1494-1495):
+   OLD: resp = requests.get(f"{spoolman_url}/api/v1/spool", timeout=8)
+   NEW: resp = requests.get(f"{spoolman_url}/api/v1/spool", timeout=8, verify=False)
+   - Added verify=False to accept self-signed certificates
+   - Uses exact URL provided by user (no port 8000 auto-detection)
+
+E. Updated /api/spoolman/filaments endpoint (Lines 1523-1524):
+   OLD: resp = requests.get(f"{spoolman_url}/api/v1/filament", timeout=10)
+   NEW: resp = requests.get(f"{spoolman_url}/api/v1/filament", timeout=10, verify=False)
+   - Added verify=False to accept self-signed certificates
+   - Uses exact URL provided by user
+
+
+2. DOCKER-COMPOSE.YML
+================================================================================
+
+A. Added certificate volume mapping (Line 11):
+   NEW: - ./certs:/etc/nginx/ssl:ro
+   - Mounts SSL certificates for HTTPS support
+
+B. Simplified environment configuration (Lines 23-34):
+   OLD: Explicit environment variable definitions
+   NEW: env_file: .env
+   - Moved all environment variables to .env file
+   - Cleaner, more maintainable configuration
+
+C. Added Spoolman network connection (Lines 28-29):
+   NEW: networks:
+        - spool-net
+        - spoolman_default
+   - Connects API container to external spoolman_default network
+   - Allows communication with Spoolman container
+
+D. Added external network declaration (Lines 35-37):
+   NEW: spoolman_default:
+        external: true
+   - References existing Spoolman Docker network
+
+
+3. NGINX.CONF
+================================================================================
+
+A. HTTP to HTTPS redirect (Lines 1-4):
+   NEW: Redirect all HTTP traffic to HTTPS
+   return 301 https://$host$request_uri;
+   - Forces secure connections
+   - Maintains original host and path
+
+B. Simplified to focus on HTTPS only:
+   OLD: 47 lines with full HTTP configuration
+   NEW: 4 lines with redirect only
+   - Cleaner configuration, all real logic in HTTPS block
+
+
+4. PUBLIC/APP.JS (FRONTEND)
+================================================================================
+
+Multiple changes to route Spoolman API calls through backend proxy instead 
+of making direct browser requests (to avoid Mixed Content errors):
+
+A. Line 984 - testSpoolman() fallback:
+   OLD: fetch(`${url}/api/v1/spool`, ...)
+   NEW: Auth.fetch(`${location.protocol}//${location.host}/api/spoolman/spools`, ...)
+
+B. Line 1036 - loadSpoolmanSpools():
+   OLD: fetch(`${url}/api/v1/spool`, ...)
+   NEW: Auth.fetch(`${location.protocol}//${location.host}/api/spoolman/spools`, ...)
+
+C. Line 2805 - Pre-load Spoolman spools:
+   OLD: fetch(`${url}/api/v1/spool?allow_archived=false`, ...)
+   NEW: Auth.fetch(`${location.protocol}//${location.host}/api/spoolman/spools`, ...)
+
+D. Line 2857 - loadFilamentList() for Spoolman mode:
+   OLD: fetch(`${url}/api/v1/spool`, ...)
+   NEW: Auth.fetch(`${location.protocol}//${location.host}/api/spoolman/spools`, ...)
+
+E. Line 3478 - loadSpoolsForPicker():
+   OLD: fetch(`${url}/api/v1/spool?allow_archived=false`, ...)
+   NEW: Auth.fetch(`${location.protocol}//${location.host}/api/spoolman/spools`, ...)
+
+F. Line 3709 - loadSpoolmanSpoolsSettings():
+   OLD: fetch(`${url}/api/v1/spool?allow_archived=false`, ...)
+   NEW: Auth.fetch(`${location.protocol}//${location.host}/api/spoolman/spools`, ...)
+
+Impact: All browser requests now go through backend proxy, eliminating 
+Mixed Content errors when frontend is HTTPS and Spoolman is HTTP/HTTPS.
+
+
+================================================================================
+TECHNICAL REASONING
+================================================================================
+
+WHY THESE CHANGES WERE NEEDED:
+
+1. Mixed Content Issue:
+   - Frontend runs over HTTPS (secure)
+   - Original code tried to access Spoolman over HTTP directly from browser
+   - Modern browsers block this (Mixed Content policy)
+   - Solution: Route through backend proxy (server-to-server communication)
+
+2. SSL Certificate Issues:
+   - External Spoolman uses self-signed or non-standard certificates
+   - Browser cannot verify them (would fail)
+   - Backend proxy can ignore verification for internal communication
+   - verify=False in requests library allows this
+
+3. Network Isolation:
+   - Docker containers were on separate networks
+   - API container couldn't reach Spoolman container
+   - Solution: Connect API to both networks (internal and external)
+
+4. URL Flexibility:
+   - Support both internal URLs (docker container names)
+   - Support external URLs (IP addresses with custom ports)
+   - Removed hardcoded port 8000 logic
+   - Uses exact URL provided by user
+
+
+================================================================================
+CONFIGURATION REQUIRED
+================================================================================
+
+Users must now provide the FULL SPOOLMAN URL including:
+- Protocol: https:// or http://
+- IP or hostname
+- Port (if non-standard)
+
+Example: https://192.168.2.1:7912
+
+This works because:
+1. Frontend makes request to backend via HTTPS
+2. Backend receives this request securely
+3. Backend makes request to Spoolman (HTTP or HTTPS, doesn't matter)
+4. Backend returns response to frontend over HTTPS
+5. Browser sees only secure communication (HTTPS)
+
+
+================================================================================
+DATABASE LOCATION
+================================================================================
+
+Spool-tag-propus database is stored in Docker volume:
+  /var/lib/docker/volumes/spool-tag-propus_spool-data/_data/spool_propus.db
+
+To access:
+  docker exec spool-propus-api ls -lh /data/
+
+
+================================================================================
+FILES MODIFIED
+================================================================================
+
+1. backend/app.py          - Backend proxy endpoints + SSL handling
+2. docker-compose.yml      - Network + certificate configuration
+3. nginx.conf              - HTTPS redirect
+4. public/app.js           - Frontend proxy routing
+5. .env file (new)         - Centralized environment configuration
+
+
+================================================================================
+TESTING THE CHANGES
+================================================================================
+
+1. Configure Spoolman URL in app settings
+2. Use full URL: https://192.168.2.1:7912
+3. Click "Test Spoolman" - should succeed
+4. Load spools/filaments - should work via backend proxy
+5. No Mixed Content warnings in browser console
+
+
+================================================================================
+ROLLBACK INSTRUCTIONS
+================================================================================
+
+If you need to revert these changes:
+
+  cd ./spool-tag-propus
+  git checkout backend/app.py docker-compose.yml nginx.conf public/app.js
+  docker compose build
+  docker compose down && docker compose up -d
+
