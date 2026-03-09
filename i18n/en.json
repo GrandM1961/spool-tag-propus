@@ -1,0 +1,682 @@
+{
+  "nav": {
+    "features": "Features",
+    "how": "This is how it works",
+    "compat": "Compatibility",
+    "faq": "FAQ",
+    "settings": "Settings",
+    "discord": "Discord",
+    "about": "About",
+    "open app": "Open App →"
+  },
+  "hero": {
+    "badge": "✨ Free in beta · Open source",
+    "title": "The smart",
+    "titleHighlight": "Filament-Manager",
+    "subtitle": "for your 3D printer",
+    "description": "Label filament spools with NFC tags or QR codes, connect Spoolman, and access thousands of slicer profiles—all in one app.",
+    "ctaPrimary": "🚀 Launch app",
+    "ctaSecondary": "Discover features ↓"
+  },
+  "mockup": {
+    "url": "🔒 spool-propus.pages.dev",
+    "version": "v1.6.66",
+    "title": "🧵 Spool Tag Propus",
+    "nfcReady": "✅ NFC ready",
+    "spoolman": "⚡ Spoolman",
+    "cards": {
+        "material": {
+            "label": "Material",
+            "value": "PLA+ Matt"
+        },
+        "color": {
+            "label": "Color",
+            "value": "🟢 Bambus Green"
+        },
+        "manufacturer": {
+            "label": "Manufacturer",
+            "value": "Bambu Lab"
+        },
+        "nozzle": {
+            "label": "Nozzle",
+            "value": "220 – 240°C"
+        },
+        "nfc": {
+            "label": "NFC tag Action",
+            "value": "OpenSpool format · Describe tag",
+            "action": "Writing →"
+        }
+    }
+},
+  "nfc": {
+    "badge": "NFC & QR",
+    "title": "Write tags – in seconds",
+    "intro": "Whether NFC chip or printed QR code, Spool Tag Propus supports both methods. All relevant filament data is securely stored in standardized formats.",
+    "features": [
+      {
+        "icon": "📡",
+        "title": "OpenSpool-Format",
+        "description": "The open NDEF standard format for Filament NFC tags. Compatible with Bambu Lab and others."
+      },
+      {
+        "icon": "🏷️",
+        "title": "OpenPrintTag-Format",
+        "description": "Extended format with even more data points – for maximum compatibility with all slicers."
+      },
+      {
+        "icon": "📷",
+        "title": "QR-Code-Fallback",
+        "description": "No NFC? No problem. Print out a QR code and attach it directly to the spool."
+      },
+      {
+        "icon": "📖",
+        "title": "Read tags & import files",
+        "description": "Read existing tags or upload and process spool JSON files directly."
+      }
+    ]
+  },
+  "stats": {
+    "profiles": {
+      "num": "10.000+",
+      "label": "Filament profiles in the database"
+    },
+    "formats": {
+      "num": "3",
+      "label": "Tag formats (OpenSpool, OpenPrintTag, QR)"
+    },
+    "free": {
+      "num": "100%",
+      "label": "Free during the beta phase"
+    },
+    "languages": {
+      "num": "DE / EN / NL",
+      "label": "Multilingual interface"
+    }
+  },
+  "features": {
+    "badge": "Functions",
+    "title": "Everything you need for smart filament management",
+    "cards": {
+      "slicer": {
+        "title": "Download slicer profiles",
+        "description": "Download slicer profiles for Bambu Studio, PrusaSlicer, and OrcaSlicer directly from the app. Filter by material, printer, or manufacturer—one click is all it takes.",
+        "tags": {
+          "bambu": "Bambu Studio",
+          "orca": "OrcaSlicer",
+          "prusa": "PrusaSlicer"
+        }
+      },
+      "drying": {
+        "title": "Drying profiles",
+        "description": "Allow your filament to dry properly. The integrated drying profiles show you the optimal temperature and duration for each material.",
+        "tags": {
+          "pla": "PLA / PETG / ABS",
+          "spezial": "PA / PC / TPU",
+          "alle": "All Materials"
+        }
+      },
+      "backup": {
+        "title": "Backup & Recovery",
+        "description": "Export your settings as a JSON file and import them on another device. Automatic server backups keep your data safe.",
+        "tags": {
+          "json": "JSON-Export",
+          "backup": "Auto-Backup",
+          "multi": "Multi-Device"
+        }
+      },
+      "admin": {
+        "title": "Multi-user with admin panel",
+        "description": "Assign/revoke multiple user accounts, admin rights, lock accounts, and monitor system status—all via the built-in admin panel.",
+        "tags": {
+          "auth": "JWT-Auth",
+          "admin": "Admin panel",
+          "user": "Users management"
+        }
+      },
+      "sprache": {
+        "title": "Multilingual & PWA",
+        "description": "The interface is available in German, English, and Dutch. As a progressive web app, you can install Spool Tag Propus like a native app.",
+        "tags": {
+          "sprache": "German / English / Dutch",
+          "pwa": "PWA",
+          "offline": "Offline-capable"
+        }
+      }
+    }
+  },
+  "how": {
+    "badge": "How it works",
+    "title": "4 steps to smart filament management",
+    "subtitle": "Simply open it in your browser and get started—no installation required.",
+    "steps": [
+      {
+        "number": 1,
+        "title": "Open & get started",
+        "description": "Open Spool Tag Propus in your browser and optionally install it as an app (PWA) – no app store required. If you want to host it yourself: Docker Compose in just a few minutes."
+      },
+      {
+        "number": 2,
+        "title": "Login & connect",
+        "description": "Create your account, optionally enter your Spoolman URL, and all your spools will be automatically synchronized."
+      },
+      {
+        "number": 3,
+        "title": "Select filament & create tag",
+        "description": "Search the database for your filament, adjust the color and temperatures, and write the data to an NFC tag or QR code."
+      },
+      {
+        "number": 4,
+        "title": "Scan & print",
+        "description": "Hold your smartphone up to the Tag – your printer will automatically recognize the filament. Download slicer profiles directly and get started."
+      }
+    ]
+  },
+  "visualization": {
+    "label": "Admin Panel · Users",
+    "tabs": [
+      {
+        "icon": "👥",
+        "label": "User",
+        "active": true
+      },
+      {
+        "icon": "📊",
+        "label": "Status",
+        "active": false
+      },
+      {
+        "icon": "💾",
+        "label": "Backups",
+        "active": false
+      },
+      {
+        "icon": "🐛",
+        "label": "Error",
+        "active": false
+      }
+    ]
+  },
+  "nfc": {
+  "nfc_badge": "NFC & QR",
+  "nfc_title": "Write tags – in seconds",
+  "nfc_intro": "Whether NFC chip or printed QR code, Spool Tag Propus supports both methods. All relevant filament data is securely stored in standardized formats.",
+
+  "nfc_feature1_title": "OpenSpool-Format",
+  "nfc_feature1_desc": "The open NDEF standard format for Filament NFC tags. Compatible with Bambu Lab and others.",
+
+  "nfc_feature2_title": "OpenPrintTag-Format",
+  "nfc_feature2_desc": "Extended format with even more data points – for maximum compatibility with all slicers.",
+
+  "nfc_feature3_title": "QR-Code-Fallback",
+  "nfc_feature3_desc": "No NFC? No problem. Print out a QR code and attach it directly to the spool.",
+
+  "nfc_feature4_title": "Read tags & import files",
+  "nfc_feature4_desc": "Read existing tags or upload and process spool JSON files directly.",
+
+  "nfc_vis_label1": "Choose Tag-Format",
+  "nfc_vis_pill1": "📡 OpenSpool",
+  "nfc_vis_pill1_sub": "for Bambu Lab & Co.",
+  "nfc_vis_pill2": "🏷️ OpenPrintTag",
+  "nfc_vis_pill2_sub": "Extended format",
+
+  "nfc_vis_label2": "Filament data",
+  "nfc_vis_filament": "🟢 PLA+ Bambus Green",
+  "nfc_vis_brand": "BAMBU LAB",
+
+  "nfc_vis_nozzle_lbl": "Nozzle temp.",
+  "nfc_vis_nozzle_val": "220–240°C",
+  "nfc_vis_bed_lbl": "Bed temp.",
+  "nfc_vis_bed_val": "35–45°C",
+  "nfc_vis_density_lbl": "Density",
+  "nfc_vis_density_val": "1.24 g/cm³",
+
+  "nfc_vis_btn": "📡 Write to NFC tag"
+  },
+  "suchen": {
+    "search": "🔍 &nbsp;PETG black …",
+    "search_btn": "Search",
+
+    "db_vis_result1_name": "PETG Black",
+    "db_vis_result1_brand": "Bambu Lab · PETG",
+    "db_vis_result1_temp": "240°C",
+
+    "db_vis_result2_name": "PETG HF Black",
+    "db_vis_result2_brand": "Bambu Lab · PETG",
+    "db_vis_result2_temp": "250°C",
+
+    "db_vis_result3_name": "PETG Black",
+    "db_vis_result3_brand": "eSUN · PETG",
+    "db_vis_result3_temp": "235°C",
+
+    "db_vis_result4_name": "PETG Black",
+    "db_vis_result4_brand": "Polymaker · PETG",
+    "db_vis_result4_temp": "230°C",
+
+    "db_vis_more": "… and 10,000+ more profiles"
+  },
+  "database": {
+    "badge": "Filament Database",
+    "title": "10,000+ profiles – instantly searchable",
+    "intro": "The built-in filament database contains profiles from all major manufacturers. All data is updated daily and available offline.",
+    "features": [
+      {
+        "icon": "🔍",
+        "title": "Full-text search",
+        "description": "Search by manufacturer, material, color, or temperature range—results appear immediately."
+      },
+      {
+        "icon": "⬇️",
+        "title": "Download Slicer Profiles",
+        "description": "One click is all it takes: download ready-made profiles for Bambu Studio, OrcaSlicer, or PrusaSlicer directly."
+      },
+      {
+        "icon": "🔄",
+        "title": "Automatic synchronization",
+        "description": "The database synchronizes daily in the background with the official sources."
+      }
+    ]
+  },
+  "compatibility": {
+    "badge": "Compatibility",
+    "title": "Works with your setup",
+    "intro": "Spool Tag Propus integrates seamlessly into existing 3D printing workflows and supports all common standards.",
+    "cards": [
+      {
+        "icon": "🐑",
+        "name": "Spoolman",
+        "subtitle": "Direct API integration"
+      },
+      {
+        "icon": "🟩",
+        "name": "Bambu Lab",
+        "subtitle": "OpenSpool compatibel"
+      },
+      {
+        "icon": "🔷",
+        "name": "OrcaSlicer",
+        "subtitle": "Profile Download"
+      },
+      {
+        "icon": "🟧",
+        "name": "PrusaSlicer",
+        "subtitle": "Profile Download"
+      },
+      {
+        "icon": "🐳",
+        "name": "Docker",
+        "subtitle": "NAS · Server · RPi"
+      },
+      {
+        "icon": "📱",
+        "name": "Android / iOS",
+        "subtitle": "PWA installable"
+      },
+      {
+        "icon": "📡",
+        "name": "OpenSpool",
+        "subtitle": "NDEF Standard"
+      },
+      {
+        "icon": "🏷️",
+        "name": "OpenPrintTag",
+        "subtitle": "Extended Format"
+      }
+    ]
+  },
+  "admin": {
+    "badge": "Multi-User & Admin",
+    "title": "For the entire Makerspace",
+    "intro": "Spool Tag Propus supports multiple user accounts—ideal for makerspaces, schools, or teams. Admins retain full control.",
+    "features": [
+      {
+        "icon": "👥",
+        "title": "Account Management",
+        "description": "All accounts in one overview. Block, delete, or assign admin rights—directly in your browser."
+      },
+      {
+        "icon": "📊",
+        "title": "System status",
+        "description": "API version, DB size, number of profiles, and sync status at a glance."
+      },
+      {
+        "icon": "💾",
+        "title": "Backup overview",
+        "description": "All user backups in one place – with timestamp and user assignment."
+      },
+      {
+        "icon": "🐛",
+        "title": "Error reports with screenshots",
+        "description": "Users can report bugs directly from the app—including screenshot attachments."
+      }
+    ]
+  },
+  "usersHeader": "Users (3)",
+  "nav_users": "User",
+  "nav_status": "Status",
+  "nav_backups": "Backups",
+  "nav_errors": "Error",
+  "users": [
+    {
+      "email": "janez@janez.ch",
+      "badge": "Admin",
+      "badgeColor": "purple"
+    },
+    {
+      "email": "max@maker.ch",
+      "badge": null
+    },
+    {
+      "email": "max@maker.ch",
+      "badge": null
+    },
+    {
+      "email": "old@user.ch",
+      "badge": "Blocked",
+      "badgeColor": "orange",
+      "disabled": true
+    }
+  ],
+  "actions": [
+    {
+      "icon": "👑",
+      "label": "Admin assigned"
+    },
+    {
+      "icon": "🔒",
+      "label": "Block"
+    },
+    {
+      "icon": "🗑️",
+      "label": "Delete",
+      "dangerous": true
+    }
+  ],
+  "faq": {
+    "badge": "FAQ",
+    "title": "Frequently asked questions",
+    "items": [
+      {
+        "question": "Is Spool Tag Propus free?",
+        "answer": "Yes, Spool Tag Propus is completely free and open source. You can use it directly in your browser—or optionally host it yourself on your server, NAS, or Raspberry Pi."
+      },
+      {
+        "question": "Which NFC tags are supported?",
+        "answer": "Standard NDEF-compatible NFC tags are required (NTAG213/215/216). These are available at low cost from Amazon or AliExpress. NFC writing and reading only works on Android devices with the Chrome browser, as iOS does not support the NFC Web API."
+      },
+      {
+        "question": "How do I install Spool Tag Propus?",
+        "answer": "Simply open the URL in your browser – done. If you want to host it yourself: installation via Docker Compose. You can find a ready-made `docker-compose.yml` in the repository. With a single command, the frontend (Nginx) and backend (Python/Flask) are ready to use – even on Synology NAS, UGREEN NAS, or a Raspberry Pi."
+      },
+      {
+        "question": "Does the app work without internet access?",
+        "answer": "Yes! As a Progressive Web App (PWA) with Service Worker, all core functions—including the Filament database—can be used offline. Only database updates and Spoolman sync require a network connection."
+      },
+      {
+        "question": "Can I use Spool Tag Propus on my cell phone?",
+        "answer": "Yes! The app is fully mobile-optimized and can be installed as a PWA on Android and iOS. NFC tag writing/reading is available on Android with Chrome. QR code scanning works on all devices with a camera."
+      },
+      {
+        "question": "How is my data stored?",
+        "answer": "All data is stored locally in an SQLite database on your own server. No data is transferred to external services (unless you enable GitHub issue creation for bug reports)."
+      },
+      {
+        "question": "Is there a difference between OpenSpool and OpenPrintTag?",
+        "answer": "Both are open NFC standards for filament tags. OpenSpool is simpler and focuses on basic material data (manufacturer, material, color, temperatures). OpenPrintTag is an extended format with additional parameters such as flow ratio, maximum volumetric speed, and more—ideal for advanced setups."
+      }
+    ]
+  },
+  "cta": {
+    "title": "Ready to get started?",
+    "subtitle": "Get started now — free, open source, and usable directly in your browser.",
+    "buttons": [
+      {
+        "label": "🚀 Launch app",
+        "href": "index.html",
+        "type": "primary",
+        "icon": null
+      },
+      {
+        "label": "Discord Community",
+        "href": "https://discord.gg/bv5MzXUSdP",
+        "type": "secondary",
+        "icon": "discord",
+        "target": "_blank",
+        "rel": "noopener"
+      },
+      {
+        "label": "☕ Support",
+        "href": "https://buymeacoffee.com/propuscode",
+        "type": "secondary",
+        "style": {
+          "background": "#FFDD00",
+          "color": "#000",
+          "borderColor": "#FFDD00",
+          "target": "_blank",
+          "rel": "noopener"
+        }
+      }
+    ]
+  },
+  "footer": {
+    "copyright": "© 2026 Spool Tag Propus · v1.6.66 · With ❤️ for the 3D printing community",
+    "linkApp": "Open app",
+    "linkDiscord": "Discord",
+    "linkSupport": "☕ Support",
+    "linkBug": "🐛 Bug report"
+  },
+  "auth": {
+    "login": "Sign in",
+    "register": "Register",
+    "email": "Email",
+    "identifier": "Email or username",
+    "identifierPlaceholder": "Email or username",
+    "username": "Username",
+    "usernamePlaceholder": "e.g. janez",
+    "password": "Password",
+    "passwordConfirm": "Confirm password",
+    "rememberMe": "Stay signed in (30 days)",
+    "loginBtn": "Sign in",
+    "registerBtn": "Register",
+    "noAccount": "No account yet? Register",
+    "backToLogin": "Back to sign in",
+    "logout": "Sign out",
+    "passwordHint": "min. 8 characters",
+    "errorEmailRequired": "Please enter email and password.",
+    "errorPasswordShort": "Password must be at least 8 characters.",
+    "errorPasswordMismatch": "Passwords do not match.",
+    "errorNetwork": "Network error. Please try again later.",
+    "errorLoginFailed": "Sign in failed.",
+    "errorRegisterFailed": "Registration failed."
+  },
+  "mode": {
+    "title": "What would you like to do?",
+    "readTag": "Read Tag",
+    "readTagDesc": "Read & update NFC",
+    "newTag": "New Tag",
+    "newTagDesc": "Create tag manually",
+    "databases": "Databases",
+    "filamentDb": "Filament DB",
+    "filamentDbDesc": "13,000+ color variants",
+    "slicerProfile": "Slicer Profiles",
+    "slicerProfileDesc": "Orca & Bambu Studio",
+    "allFilaments": "All Filaments",
+    "allFilamentsDesc": "Complete database",
+    "mySpoolman": "My Spoolman",
+    "mySpoolmanDesc": "Manage my filaments",
+    "spoolman": "Spoolman",
+    "spoolmanDesc": "Import spools",
+    "tools": "Tools",
+    "drying": "Drying",
+    "dryingDesc": "Drying profiles",
+    "qrScanner": "QR Scanner",
+    "qrScannerDesc": "Scan QR code",
+    "settings": "Settings",
+    "settingsDesc": "Spoolman, Backup & more",
+    "about": "About",
+    "nfcChecking": "Checking NFC..."
+  },
+  "common": {
+    "back": "Back",
+    "backToMenu": "← Back to menu",
+    "save": "Save",
+    "test": "Test",
+    "close": "Close",
+    "export": "Export",
+    "import": "Import",
+    "restore": "Restore",
+    "loading": "Loading...",
+    "search": "Search",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "apply": "Apply",
+    "refresh": "Refresh"
+  },
+  "spoolman": {
+    "title": "⚙️ Spoolman Connection",
+    "urlLabel": "Spoolman Server URL",
+    "urlPlaceholder": "http://your-server:7912",
+    "urlHint": "e.g. http://192.168.1.4:7912 or 192.168.1.4:7912 – both work",
+    "saveSuccess": "Spoolman URL saved",
+    "spoolsTitle": "Spoolman Spools",
+    "searchPlaceholder": "Search by name, material, brand...",
+    "noSpools": "No spools found in Spoolman.",
+    "loading": "Connecting to Spoolman...",
+    "importSpools": "Import Spools",
+    "importHint": "Select a spool, then click \"Import now\".",
+    "importNow": "⬇️ Import now",
+    "clearSelection": "✕ Clear",
+    "importAll": "📦 Import all",
+    "loadSpools": "🔄 Load spools",
+    "connection": "Connection",
+    "connecting": "Connecting...",
+    "connected": "Connected!",
+    "errorNoUrl": "Please enter a URL",
+    "errorConnectionRefused": "Cannot reach Spoolman – check IP/port",
+    "errorTimeout": "Timeout – server not responding",
+    "mixedContentWarning": "⚠️ The app runs over HTTPS but Spoolman uses HTTP. The browser blocks this connection. Solution: make Spoolman accessible via HTTPS (e.g. Cloudflare Tunnel) or open the app locally over http://."
+  },
+  "mySpoolman": {
+    "title": "🧵 My Spoolman",
+    "searchPlaceholder": "Search by name, material, brand, color…",
+    "noSpoolmanUrl": "No Spoolman URL configured.",
+    "goToSettings": "Open Settings",
+    "noSpools": "No spools found.",
+    "remaining": "remaining",
+    "editSpool": "Edit spool",
+    "remainingWeight": "Remaining weight (g)",
+    "lotNumber": "Lot number",
+    "comment": "Comment",
+    "saveSpool": "💾 Save",
+    "cancelEdit": "Cancel",
+    "createTag": "→ Create Tag",
+    "allMaterials": "All materials",
+    "filterSpoolman": "🧵 In Spoolman"
+  },
+  "settings": {
+    "title": "⚙️ Settings",
+    "spoolmanTab": "Spoolman",
+    "backupTab": "Backup",
+    "connectionSection": "Connection"
+  },
+  "filamentDb": {
+    "title": "🔍 Filament Database",
+    "subtitle": "126 brands & 13,000+ color variants from the Open Filament Database",
+    "applyBtn": "✅ Apply & create tag",
+    "allBrands": "-- Select brand --",
+    "allMaterials": "-- Select material --",
+    "allFilaments": "-- Select filament --",
+    "colorVariant": "Color variant"
+  },
+  "allFilaments": {
+    "title": "🗄️ Filament Database",
+    "subtitle": "All filaments from the Open Filament Database – updated daily.",
+    "allBrands": "All brands",
+    "allMaterials": "All materials",
+    "allSources": "All sources",
+    "searchPlaceholder": "Search by name, color...",
+    "inSpoolman": "🧵 In Spoolman"
+  },
+  "slicerProfiles": {
+    "title": "⬇️ Slicer Profiles",
+    "subtitle": "Filament profiles for Orca Slicer and Bambu Studio – synced from GitHub.",
+    "allBrands": "All brands",
+    "allMaterials": "All materials",
+    "searchPlaceholder": "Search by name..."
+  },
+  "drying": {
+    "title": "🌡️ Drying Profiles",
+    "subtitle": "Recommended drying temperatures and times for all common filaments."
+  },
+  "backup": {
+    "title": "💾 Backup & Restore",
+    "description": "Save your settings (Spoolman URL, theme, language). No data is lost during updates.",
+    "exportData": "Export my data",
+    "importData": "Restore data",
+    "exportSuccess": "Data exported",
+    "importSuccess": "Data restored",
+    "serverBackups": "Server backups (automatic)",
+    "loading": "Loading backups...",
+    "noBackups": "No server backups available."
+  },
+  "errorReport": {
+    "title": "Report bug",
+    "description": "Help us find bugs.",
+    "userMessagePlaceholder": "What were you doing when the error occurred?",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "success": "Thanks! The error report was sent.",
+    "failed": "Send failed"
+  },
+  "about": {
+    "title": "ℹ️ About Spool Tag Propus",
+    "beta": "⚠️ BETA — This project is under active development",
+    "description": "is an open-source filament tag manager for 3D printers. Create, read and manage NFC tags and QR codes for your filament spools — compatible with",
+    "featuresTitle": "Features",
+    "feature1Title": "Read & Write NFC Tags",
+    "feature1Desc": "Write NFC tags directly from your phone (Android Chrome) with filament data in OpenSpool (JSON) or OpenPrintTag (CBOR) format. Compatible with Bambu Lab, OrcaSlicer and all OpenSpool-capable printers.",
+    "feature2Title": "QR Code Generator & Scanner",
+    "feature2Desc": "Generate QR codes with your filament data for printing and sticking on spools. Scan QR codes with the camera to load data instantly — works on all devices.",
+    "feature3Title": "Filament Database",
+    "feature3Desc": "Browse over 13,000 color variants from 126+ brands from the Open Filament Database. Select a filament and create a tag directly.",
+    "feature4Title": "Slicer Profiles",
+    "feature4Desc": "4,000+ filament profiles for OrcaSlicer and Bambu Studio — automatically synced from GitHub. Download profiles directly, filtered by brand, material and printer.",
+    "feature5Title": "Spoolman Integration",
+    "feature5Desc": "Connect to your Spoolman instance, browse your spool inventory and import filament data directly into a tag.",
+    "feature6Title": "Drying Profiles",
+    "feature6Desc": "Recommended drying temperatures and times for 20+ materials — from PLA to PEEK. With moisture sensitivity and notes.",
+    "feature7Title": "Color Palette & Brand Filter",
+    "feature7Desc": "45 predefined filament colors. Materials and variants are automatically filtered to the selected brand (e.g. Bambu Lab shows only their materials).",
+    "feature8Title": "Progressive Web App (PWA)",
+    "feature8Desc": "Installable on your phone's home screen. Works offline for tag creation and drying profiles.",
+    "feature9Title": "Light & Dark Mode",
+    "feature9Desc": "Toggle via the button in the top right. Your setting is saved.",
+    "platformTitle": "Platform Support",
+    "platformNfc": "NFC Writing:",
+    "platformNfcVal": "Android Chrome (HTTPS required)",
+    "platformQr": "QR Code Scanner:",
+    "platformQrVal": "Chrome 83+, Safari 17.2+, Edge 83+",
+    "platformDownload": "File Download:",
+    "platformDownloadVal": "All browsers — write file to tag with NFC Tools app (iOS & Android)",
+    "platformShare": "Web Share:",
+    "platformShareVal": "Mobile browsers with Web Share API",
+    "releaseTitle": "Release Notes",
+    "releaseLoading": "⏳ Loading…",
+    "releaseMoreBtn": "▼ Show older versions",
+    "releaseCurrent": "Current",
+    "supportTitle": "Like Spool Tag Propus? Support the development!",
+    "supportHint": "Every contribution helps keep Spool Tag Propus growing.",
+    "supportBtn": "Support"
+  },
+  "nfcWrite": {
+    "saveFile": "💾 Save file",
+    "share": "📤 Share",
+    "qrCode": "📱 QR Code",
+    "nfcWrite": "📝 Write NFC",
+    "nfcInstructions": "Write NFC tag without Chrome:",
+    "nfcStep1": "Download <strong>«NFC Tools»</strong> (iOS / Android)",
+    "nfcStep2": "Click <strong>«💾 Save file»</strong> or <strong>«📤 Share»</strong>",
+    "nfcStep3": "Open file in NFC Tools → Write → Add record → File",
+    "nfcStep4": "Hold NFC tag to your phone"
+  }
+}

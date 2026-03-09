@@ -1,0 +1,682 @@
+{
+  "nav": {
+    "features": "Functies",
+    "how": "Zo werkt het",
+    "compat": "Compatibiliteit",
+    "faq": "FAQ",
+    "settings": "Instellingen",
+    "discord": "Discord",
+    "about": "Over",
+    "open app": "App openen →"
+  },
+  "hero": {
+    "badge": "✨ Gratis in bèta · Open source",
+    "title": "De slimme",
+    "titleHighlight": "Filament-Manager",
+    "subtitle": "voor je 3D-printer",
+    "description": "Voorzie filamentspoelen van NFC-tags of QR-codes, sluit Spoolman aan en krijg toegang tot duizenden slicerprofielen – allemaal in één app.",
+    "ctaPrimary": "🚀 App starten",
+    "ctaSecondary": "Ontdek functies ↓"
+  },
+  "mockup": {
+    "url": "🔒 spool-propus.pages.dev",
+    "version": "v1.6.66",
+    "title": "🧵 Spool Tag Propus",
+    "nfcReady": "✅ Geschikt voor NFC",
+    "spoolman": "⚡ Spoolman",
+    "cards": {
+        "material": {
+            "label": "Materiaal",
+            "value": "PLA+ Mat"
+        },
+        "color": {
+            "label": "Color",
+            "value": "🟢 Bambus Groen"
+        },
+        "manufacturer": {
+            "label": "Fabrikant",
+            "value": "Bambu Lab"
+        },
+        "nozzle": {
+            "label": "Nozzle",
+            "value": "220 – 240°C"
+        },
+        "nfc": {
+            "label": "NFC-tag Actie",
+            "value": "OpenSpool formaat · Tag beschrijven",
+            "action": "Schrijven →"
+        }
+    }
+},
+  "nfc": {
+    "badge": "NFC & QR",
+    "title": "Tags schrijven – in enkele seconden",
+    "intro": "Of het nu gaat om een NFC-chip of een gedrukte QR-code, Spool Tag Propus ondersteunt beide methoden. Alle relevante filamentgegevens worden veilig opgeslagen in gestandaardiseerde formaten.",
+    "features": [
+      {
+        "icon": "📡",
+        "title": "OpenSpool-Formaat",
+        "description": "Het open NDEF-standaardformaat voor Filament NFC-tags. Compatibel met Bambu Lab en andere."
+      },
+      {
+        "icon": "🏷️",
+        "title": "OpenPrintTag-Formaat",
+        "description": "Uitgebreid formaat met nog meer gegevenspunten – voor maximale compatibiliteit met alle slicers."
+      },
+      {
+        "icon": "📷",
+        "title": "QR-Code-fallback",
+        "description": "Geen NFC? Geen probleem. Print een QR-code uit en plak deze direct op de spoel."
+      },
+      {
+        "icon": "📖",
+        "title": "Tags lezen & bestanden importeren",
+        "description": "Lees bestaande tags of upload en verwerk spool JSON bestanden rechtstreeks."
+      }
+    ]
+  },
+  "stats": {
+    "profiles": {
+      "num": "10.000+",
+      "label": "Filamentprofielen in de database"
+    },
+    "formats": {
+      "num": "3",
+      "label": "Tagformaten (OpenSpool, OpenPrintTag, QR)"
+    },
+    "free": {
+      "num": "100%",
+      "label": "Gratis tijdens de bètafase"
+    },
+    "languages": {
+      "num": "DE / EN / NL",
+      "label": "Meertalige interface"
+    }
+  },
+  "features": {
+    "badge": "Functies",
+    "title": "Alles wat u nodig hebt voor slim filamentbeheer",
+    "cards": {
+      "slicer": {
+        "title": "Download slicerprofielen",
+        "description": "Download slicerprofielen voor Bambu Studio, PrusaSlicer en OrcaSlicer rechtstreeks vanuit de app. Filter op materiaal, printer of fabrikant – één klik is voldoende.",
+        "tags": {
+          "bambu": "Bambu Studio",
+          "orca": "OrcaSlicer",
+          "prusa": "PrusaSlicer"
+        }
+      },
+      "drying": {
+        "title": "Droog Profielen",
+        "description": "Laat uw filament goed drogen. De geïntegreerde droogprofielen tonen u de optimale temperatuur en duur voor elk materiaal.",
+        "tags": {
+          "pla": "PLA / PETG / ABS",
+          "spezial": "PA / PC / TPU",
+          "alle": "Alle Materialen"
+        }
+      },
+      "backup": {
+        "title": "Backup & Herstel",
+        "description": "Exporteer uw instellingen als een JSON-bestand en importeer ze op een ander apparaat. Automatische serverback-ups houden uw gegevens veilig.",
+        "tags": {
+          "json": "JSON-Export",
+          "backup": "Auto-Backup",
+          "multi": "Meerdere Apparaten"
+        }
+      },
+      "admin": {
+        "title": "Meerdere gebruikers met beheerderspaneel",
+        "description": "Wijs meerdere gebruikersaccounts toe/trek deze in, beheer beheerdersrechten, vergrendel accounts en controleer de systeemstatus – allemaal via het ingebouwde beheerderspaneel.",
+        "tags": {
+          "auth": "JWT-Auth",
+          "admin": "Beheer Paneel",
+          "user": "Gebruikersbeheer"
+        }
+      },
+      "sprache": {
+        "title": "Meertalig & PWA",
+        "description": "TDe interface is beschikbaar in het Duits, Engels en Nederlands. Als progressieve webapp kun je Spool Tag Propus installeren als een native app.",
+        "tags": {
+          "sprache": "Duits / Engels / Nederlands",
+          "pwa": "PWA",
+          "offline": "Offline-compatibel"
+        }
+      }
+    }
+  },
+  "how": {
+    "badge": "Hoe het werkt",
+    "title": "4 stappen naar slim filamentbeheer",
+    "subtitle": "Open het gewoon in uw browser en ga aan de slag — geen installatie nodig.",
+    "steps": [
+      {
+        "number": 1,
+        "title": "Openen en aan de slag gaan",
+        "description": "Open Spool Tag Propus in uw browser en installeer het optioneel als app (PWA) – geen app store nodig. Als u het zelf wilt hosten: Docker Compose in slechts enkele minuten."
+      },
+      {
+        "number": 2,
+        "title": "Inloggen en verbinden",
+        "description": "Maken een account aan, voer eventueel uw Spoolman-URL in en al uw spools worden automatisch gesynchroniseerd."
+      },
+      {
+        "number": 3,
+        "title": "Filament selecteren & tag aanmaken",
+        "description": "Doorzoek de database naar de juiste filament, pas de kleur en temperaturen aan en schrijf de gegevens naar een NFC-tag of QR-code."
+      },
+      {
+        "number": 4,
+        "title": "Scannen & afdrukken",
+        "description": "Houd je smartphone bij de tag – je printer herkent het filament automatisch. Download direct slicerprofielen en ga aan de slag."
+      }
+    ]
+  },
+  "visualization": {
+    "label": "Beheerderspaneel · Gebruikers",
+    "tabs": [
+      {
+        "icon": "👥",
+        "label": "Gebruiker",
+        "active": true
+      },
+      {
+        "icon": "📊",
+        "label": "Status",
+        "active": false
+      },
+      {
+        "icon": "💾",
+        "label": "Backups",
+        "active": false
+      },
+      {
+        "icon": "🐛",
+        "label": "Fout",
+        "active": false
+      }
+    ]
+  },
+  "nfc": {
+  "nfc_badge": "NFC & QR",
+  "nfc_title": "Tags schrijven – in enkele seconden",
+  "nfc_intro": "Of het nu gaat om een NFC-chip of een gedrukte QR-code, Spool Tag Propus ondersteunt beide methoden. Alle relevante filamentgegevens worden veilig opgeslagen in gestandaardiseerde formaten.",
+
+  "nfc_feature1_title": "OpenSpool-Formaat",
+  "nfc_feature1_desc": "Het open NDEF-standaardformaat voor Filament NFC-tags. Compatibel met Bambu Lab en andere.",
+
+  "nfc_feature2_title": "OpenPrintTag-Formaat",
+  "nfc_feature2_desc": "Uitgebreid formaat met nog meer gegevenspunten – voor maximale compatibiliteit met alle slicers.",
+
+  "nfc_feature3_title": "QR-Code-Fallback",
+  "nfc_feature3_desc": "Geen NFC? Geen probleem. Print een QR-code uit en plak deze direct op de spoel.",
+
+  "nfc_feature4_title": "Tags lezen & bestanden importeren",
+  "nfc_feature4_desc": "Lees bestaande tags of upload en verwerk spoel JSON-bestanden rechtstreeks.",
+
+  "nfc_vis_label1": "Kies Tag-formaat",
+  "nfc_vis_pill1": "📡 OpenSpool",
+  "nfc_vis_pill1_sub": "voor Bambu Lab & anderen.",
+  "nfc_vis_pill2": "🏷️ OpenPrintTag",
+  "nfc_vis_pill2_sub": "Uitgebreid formaat",
+
+  "nfc_vis_label2": "Filamentgegevens",
+  "nfc_vis_filament": "🟢 PLA+ Bambus Groen",
+  "nfc_vis_brand": "BAMBU LAB",
+
+  "nfc_vis_nozzle_lbl": "Nozzle temp.",
+  "nfc_vis_nozzle_val": "220–240°C",
+  "nfc_vis_bed_lbl": "Bed temp.",
+  "nfc_vis_bed_val": "35–45°C",
+  "nfc_vis_density_lbl": "Dichtheid",
+  "nfc_vis_density_val": "1.24 g/cm³",
+
+  "nfc_vis_btn": "📡 Schrijf naar NFC-tag"
+  },
+  "suchen": {
+    "search": "🔍 &nbsp;PETG black …",
+    "search_btn": "Zoeken",
+
+    "db_vis_result1_name": "PETG Black",
+    "db_vis_result1_brand": "Bambu Lab · PETG",
+    "db_vis_result1_temp": "240°C",
+
+    "db_vis_result2_name": "PETG HF Black",
+    "db_vis_result2_brand": "Bambu Lab · PETG",
+    "db_vis_result2_temp": "250°C",
+
+    "db_vis_result3_name": "PETG Black",
+    "db_vis_result3_brand": "eSUN · PETG",
+    "db_vis_result3_temp": "235°C",
+
+    "db_vis_result4_name": "PETG Black",
+    "db_vis_result4_brand": "Polymaker · PETG",
+    "db_vis_result4_temp": "230°C",
+
+    "db_vis_more": "… en meer dan 10.000 profielen"
+  },
+  "database": {
+    "badge": "Filament Database",
+    "title": "Meer dan 10.000 profielen – direct doorzoekbaar",
+    "intro": "De ingebouwde filamentdatabase bevat profielen van alle grote fabrikanten. Alle gegevens worden dagelijks bijgewerkt en zijn offline beschikbaar.",
+    "features": [
+      {
+        "icon": "🔍",
+        "title": "Volledige tekst zoeken",
+        "description": "Zoek op fabrikant, materiaal, kleur of temperatuurbereik – de resultaten worden onmiddellijk weergegeven."
+      },
+      {
+        "icon": "⬇️",
+        "title": "Download Slicer Profielen",
+        "description": "Eén klik is voldoende: download direct kant-en-klare profielen voor Bambu Studio, OrcaSlicer of PrusaSlicer."
+      },
+      {
+        "icon": "🔄",
+        "title": "Automatische synchronisatie",
+        "description": "De database wordt dagelijks op de achtergrond gesynchroniseerd met de officiële bronnen."
+      }
+    ]
+  },
+  "compatibility": {
+    "badge": "Compatibiliteit",
+    "title": "Werkt met uw installatie",
+    "intro": "Spool Tag Propus kan makkelijk in bestaande 3D-printprocessen worden gebruikt en werkt met alle gangbare standaarden.",
+    "cards": [
+      {
+        "icon": "🐑",
+        "name": "Spoolman",
+        "subtitle": "Volledige API-integratie"
+      },
+      {
+        "icon": "🟩",
+        "name": "Bambu Lab",
+        "subtitle": "OpenSpool kompatibel"
+      },
+      {
+        "icon": "🔷",
+        "name": "OrcaSlicer",
+        "subtitle": "Profiel Download"
+      },
+      {
+        "icon": "🟧",
+        "name": "PrusaSlicer",
+        "subtitle": "Profiel Download"
+      },
+      {
+        "icon": "🐳",
+        "name": "Docker",
+        "subtitle": "NAS · Server · RPi"
+      },
+      {
+        "icon": "📱",
+        "name": "Android / iOS",
+        "subtitle": "PWA installeerbaar"
+      },
+      {
+        "icon": "📡",
+        "name": "OpenSpool",
+        "subtitle": "NDEF Standaard"
+      },
+      {
+        "icon": "🏷️",
+        "name": "OpenPrintTag",
+        "subtitle": "Uitgebreid Formaat"
+      }
+    ]
+  },
+  "admin": {
+    "badge": "Meerdere gebruikers & Beheerder",
+    "title": "Voor de hele Makerspace",
+    "intro": "Spool Tag Propus ondersteunt meerdere gebruikersaccounts, ideaal voor makerspaces, scholen of teams. Beheerders behouden de volledige controle.",
+    "features": [
+      {
+        "icon": "👥",
+        "title": "Account Beheer",
+        "description": "Alle accounts in één overzicht. Blokkeer, verwijder of wijs beheerdersrechten toe – rechtstreeks in uw browser."
+      },
+      {
+        "icon": "📊",
+        "title": "Systeem status",
+        "description": "API-versie, DB-grootte, aantal profielen en synchronisatiestatus in één oogopslag."
+      },
+      {
+        "icon": "💾",
+        "title": "Backup overzicht",
+        "description": "Alle gebruikersback-ups op één plek – met tijdstempel en gebruikerstoewijzing."
+      },
+      {
+        "icon": "🐛",
+        "title": "Foutmeldingen met schermafbeeldingen",
+        "description": "Gebruikers kunnen bugs rechtstreeks vanuit de app melden, inclusief bijlagen met schermafbeeldingen."
+      }
+    ]
+  },
+  "usersHeader": "Gebruikers (3)",
+  "nav_users": "Gebruiker",
+  "nav_status": "Status",
+  "nav_backups": "Backups",
+  "nav_errors": "Fout",
+  "users": [
+    {
+      "email": "janez@janez.ch",
+      "badge": "Beheerder",
+      "badgeColor": "purple"
+    },
+    {
+      "email": "max@maker.ch",
+      "badge": null
+    },
+    {
+      "email": "max@maker.ch",
+      "badge": null
+    },
+    {
+      "email": "old@user.ch",
+      "badge": "Geblokkeerd",
+      "badgeColor": "orange",
+      "disabled": true
+    }
+  ],
+  "actions": [
+    {
+      "icon": "👑",
+      "label": "Beheerder toegewezen"
+    },
+    {
+      "icon": "🔒",
+      "label": "Vergrendel"
+    },
+    {
+      "icon": "🗑️",
+      "label": "Verwijder",
+      "dangerous": true
+    }
+  ],
+  "faq": {
+    "badge": "FAQ",
+    "title": "Veelgestelde vragen",
+    "items": [
+      {
+        "question": "Is Spool Tag Propus gratis?",
+        "answer": "Ja, Spool Tag Propus is volledig gratis en open source. Je kunt het rechtstreeks in je browser gebruiken of het optioneel zelf hosten op je server, NAS of Raspberry Pi."
+      },
+      {
+        "question": "Welke NFC-tags worden ondersteund?",
+        "answer": "Er zijn standaard NDEF-compatibele NFC-tags nodig (NTAG213/215/216). Deze zijn tegen een lage prijs verkrijgbaar bij Amazon of AliExpress. NFC-schrijven en -lezen werkt alleen op Android-apparaten met de Chrome-browser, aangezien iOS de NFC Web API niet ondersteunt."
+      },
+      {
+        "question": "Hoe installeer ik Spool Tag Propus?",
+        "answer": "Open gewoon de URL in je browser – klaar. Als je het zelf wilt hosten: installatie via Docker Compose. Je vindt een kant-en-klaar `docker-compose.yml` in de repository. Met één enkele opdracht zijn de frontend (Nginx) en backend (Python/Flask) klaar voor gebruik – zelfs op Synology NAS, UGREEN NAS of een Raspberry Pi."
+      },
+      {
+        "question": "Werkt de app zonder internetverbinding?",
+        "answer": "Ja! Als Progressive Web App (PWA) met Service Worker kunnen alle kernfuncties, inclusief de Filament-database, offline worden gebruikt. Alleen database-updates en Spoolman-synchronisatie vereisen een netwerkverbinding."
+      },
+      {
+        "question": "Kan ik Spool Tag Propus op mijn mobiele telefoon gebruiken?",
+        "answer": "Ja! De app is volledig geoptimaliseerd voor mobiele apparaten en kan als PWA worden geïnstalleerd op Android en iOS. NFC-tags schrijven/lezen is beschikbaar op Android met Chrome. QR-codes scannen werkt op alle apparaten met een camera."
+      },
+      {
+        "question": "Hoe worden mijn gegevens opgeslagen?",
+        "answer": "Alle gegevens worden lokaal opgeslagen in een SQLite-database op uw eigen server. Er worden geen gegevens overgedragen naar externe diensten (tenzij u GitHub-issue-aanmaak voor bugrapporten inschakelt)."
+      },
+      {
+        "question": "Is er een verschil tussen OpenSpool en OpenPrintTag?",
+        "answer": "Beide zijn open NFC-standaarden voor filamenttags. OpenSpool is eenvoudiger en richt zich op basisgegevens over het materiaal (fabrikant, materiaal, kleur, temperaturen). OpenPrintTag is een uitgebreid formaat met extra parameters zoals stroomsnelheid, maximale volumetrische snelheid en meer – ideaal voor geavanceerde opstellingen."
+      }
+    ]
+  },
+  "cta": {
+    "title": "Klaar om te beginnen?",
+    "subtitle": "Ga nu aan de slag — gratis, open source en direct bruikbaar in uw browser.",
+    "buttons": [
+      {
+        "label": "🚀 App starten",
+        "href": "index.html",
+        "type": "primary",
+        "icon": null
+      },
+      {
+        "label": "Discord Community",
+        "href": "https://discord.gg/bv5MzXUSdP",
+        "type": "secondary",
+        "icon": "discord",
+        "target": "_blank",
+        "rel": "noopener"
+      },
+      {
+        "label": "☕ Ondersteunen",
+        "href": "https://buymeacoffee.com/propuscode",
+        "type": "secondary",
+        "style": {
+          "background": "#FFDD00",
+          "color": "#000",
+          "borderColor": "#FFDD00",
+          "target": "_blank",
+          "rel": "noopener"
+        }
+      }
+    ]
+  },
+  "footer": {
+    "copyright": "© 2026 Spool Tag Propus · v1.6.66 · Met ❤️ voor de 3D-print Community",
+    "linkApp": "Open app",
+    "linkDiscord": "Discord",
+    "linkSupport": "☕ Ondersteuning",
+    "linkBug": "🐛 Bugrapport"
+  },
+  "auth": {
+    "login": "Aanmelden",
+    "register": "Registreren",
+    "email": "E-mail",
+    "identifier": "E-mailadres of gebruikersnaam",
+    "identifierPlaceholder": "E-mailadres of gebruikersnaam",
+    "username": "Gebruikersnaam",
+    "usernamePlaceholder": "bv. janez",
+    "password": "Wachtwoord",
+    "passwordConfirm": "Bevestig wachtwoord",
+    "rememberMe": "Ingelogd blijven (30 dagen)",
+    "loginBtn": "Aanmelden",
+    "registerBtn": "Registreren",
+    "noAccount": "Nog geen account? Registreer",
+    "backToLogin": "Terug naar aanmelden",
+    "logout": "Uitloggen",
+    "passwordHint": "min. 8 tekens",
+    "errorEmailRequired": "Vul uw e-mailadres en wachtwoord in.",
+    "errorPasswordShort": "Wachtwoord moet minimaal 8 tekens bevatten.",
+    "errorPasswordMismatch": "Wachtwoorden komen niet overeen.",
+    "errorNetwork": "Netwerkfout. Probeer het later opnieuw.",
+    "errorLoginFailed": "Aanmelden mislukt.",
+    "errorRegisterFailed": "Registratie mislukt."
+  },
+  "mode": {
+    "title": "Wat wil je doen?",
+    "readTag": "Tag lezen",
+    "readTagDesc": "NFC lezen en bijwerken",
+    "newTag": "Nieuwe Tag",
+    "newTagDesc": "Tag handmatig aanmaken",
+    "databases": "Databases",
+    "filamentDb": "Filament DB",
+    "filamentDbDesc": "Meer dan 13.000 kleurvarianten",
+    "slicerProfile": "Slicer Profielen",
+    "slicerProfileDesc": "Orca & Bambu Studio",
+    "allFilaments": "Alle Filamenten",
+    "allFilamentsDesc": "Complete database",
+    "mySpoolman": "Mijn Spoolman",
+    "mySpoolmanDesc": "Beheer mijn filamenten",
+    "spoolman": "Spoolman",
+    "spoolmanDesc": "Importeer spoelen",
+    "tools": "Gereedschap",
+    "drying": "Drogen",
+    "dryingDesc": "Droog Profielen",
+    "qrScanner": "QR Scanner",
+    "qrScannerDesc": "Scan QR code",
+    "settings": "Instellingen",
+    "settingsDesc": "Spoolman, Back-up & meer",
+    "about": "Over",
+    "nfcChecking": "NFC controleren..."
+  },
+  "common": {
+    "back": "Terug",
+    "backToMenu": "← Terug naar menu",
+    "save": "Opslaan",
+    "test": "Test",
+    "close": "Sluiten",
+    "export": "Exporteer",
+    "import": "Importeer",
+    "restore": "Herstel",
+    "loading": "Laden...",
+    "search": "Zoeken",
+    "cancel": "Annuleer",
+    "delete": "Verwijder",
+    "edit": "Bewerken",
+    "apply": "Toepassen",
+    "refresh": "Verversen"
+    },
+    "spoolman": {
+    "title": "⚙️ Spoolman Verbinding",
+    "urlLabel": "Spoolman Server URL",
+    "urlPlaceholder": "http://your-server:7912",
+    "urlHint": "e.g. http://192.168.1.4:7912 of 192.168.1.4:7912 – beide werken",
+    "saveSuccess": "Spoolman URL saved",
+    "spoolsTitle": "Spoolman Spoelen",
+    "searchPlaceholder": "Zoeken op naam, materiaal, merk...",
+    "noSpools": "Geen spoelen gevonden in Spoolman.",
+    "loading": "Verbinden met Spoolman...",
+    "importSpools": "Importeer Spoelen",
+    "importHint": "Selecteer een spoel, klik vervolgens op \"Importeer nu\".",
+    "importNow": "⬇️ Importeer nu",
+    "clearSelection": "✕ Wissen",
+    "importAll": "📦 Importeer alles",
+    "loadSpools": "🔄 Laad spoelen",
+    "connection": "Verbinding",
+    "connecting": "Verbinden...",
+    "connected": "Verbonden!",
+    "errorNoUrl": "Voer een URL in",
+    "errorConnectionRefused": "Kan Spoolman niet bereiken – controleer IP/poort",
+    "errorTimeout": "Time-out – server reageert niet",
+    "mixedContentWarning": "⚠️ De app draait via HTTPS, maar Spoolman gebruikt HTTP. De browser blokkeert deze verbinding. Oplossing: maak Spoolman toegankelijk via HTTPS (bijvoorbeeld Cloudflare Tunnel) of open de app lokaal via http://."
+  },
+  "mySpoolman": {
+    "title": "🧵 Mijn Spoolman",
+    "searchPlaceholder": "Zoeken op naam, materiaal, merk, kleur…",
+    "noSpoolmanUrl": "Geen Spoolman-URL geconfigureerd.",
+    "goToSettings": "Instellingen openen",
+    "noSpools": "Geen spoelen gevonden.",
+    "remaining": "resterend",
+    "editSpool": "Spoel bewerken",
+    "remainingWeight": "Resterend gewicht (g)",
+    "lotNumber": "Partij nummer",
+    "comment": "Opmerking",
+    "saveSpool": "💾 Opslaan",
+    "cancelEdit": "Annuleer",
+    "createTag": "→ Tag aanmaken",
+    "allMaterials": "Alle materialen",
+    "filterSpoolman": "🧵 In Spoolman"
+  },
+  "settings": {
+    "title": "⚙️ Instellingen",
+    "spoolmanTab": "Spoolman",
+    "backupTab": "Backup",
+    "connectionSection": "Verbinding"
+  },
+  "filamentDb": {
+    "title": "🔍 Filament Database",
+    "subtitle": "126 merken en meer dan 13.000 kleurvarianten uit de Open Filament Database",
+    "applyBtn": "✅ Toepassen & tag aanmaken",
+    "allBrands": "-- Selecteer merk --",
+    "allMaterials": "-- Selecteer materiaal --",
+    "allFilaments": "-- Selecteer filament --",
+    "colorVariant": "Kleur variant"
+  },
+  "allFilaments": {
+    "title": "🗄️ Filament Database",
+    "subtitle": "Alle filamenten uit de Open Filament Database – dagelijks bijgewerkt.",
+    "allBrands": "Alle merken",
+    "allMaterials": "Alle materialen",
+    "allSources": "Alle bronnen",
+    "searchPlaceholder": "Zoeken op naam, kleur...",
+    "inSpoolman": "🧵 In Spoolman"
+  },
+  "slicerProfiles": {
+    "title": "⬇️ Slicer Profielen",
+    "subtitle": "Filament profielen voor Orca Slicer en Bambu Studio – gesynchroniseerd vanuit GitHub.",
+    "allBrands": "Alle merken",
+    "allMaterials": "Alle materialen",
+    "searchPlaceholder": "Zoeken op naam..."
+  },
+  "drying": {
+    "title": "🌡️ Droog Profielen",
+    "subtitle": "Aanbevolen droogtemperaturen en -tijden voor alle gangbare filamenten."
+  },
+  "backup": {
+    "title": "💾 Backup & Herstel",
+    "description": "Instellingen opslaan (Spoolman URL, thema, taal). Tijdens updates gaan geen gegevens verloren.",
+    "exportData": "Mijn gegevens exporteren",
+    "importData": "Gegevens Herstellen",
+    "exportSuccess": "Gegevens geëxporteerd",
+    "importSuccess": "Gegevens hersteld",
+    "serverBackups": "Server backups (automatisch)",
+    "loading": "Backups laden...",
+    "noBackups": "Geen serverback-ups beschikbaar."
+  },
+  "errorReport": {
+    "title": "Bug melden",
+    "description": "Help ons bugs te vinden.",
+    "userMessagePlaceholder": "Wat deed je toen de fout optrad?",
+    "submit": "Verzenden",
+    "cancel": "Annuleer",
+    "success": "Bedankt! Het foutrapport is verzonden.",
+    "failed": "Verzenden mislukt"
+  },
+  "about": {
+    "title": "ℹ️ Over Spool Tag Propus",
+    "beta": "⚠️ BETA — Dit project is in actieve ontwikkeling.",
+    "description": "is een open-source filament tag manager voor 3D-printers. Maak, lees en beheer NFC-tags en QR-codes voor uw filamentrollen — compatibel met",
+    "featuresTitle": "Functies",
+    "feature1Title": "NFC-tags lezen & schrijven",
+    "feature1Desc": "Schrijf NFC-tags rechtstreeks vanaf je telefoon (Android Chrome) met filamentgegevens in OpenSpool- (JSON) of OpenPrintTag-formaat (CBOR). Compatibel met Bambu Lab, OrcaSlicer en alle printers die OpenSpool ondersteunen.",
+    "feature2Title": "QR-codegenerator en -scanner",
+    "feature2Desc": "Genereer QR-codes met uw filamentgegevens om af te drukken en op spoelen te plakken. Scan QR-codes met de camera om gegevens direct te laden — werkt op alle apparaten.",
+    "feature3Title": "Filament Database",
+    "feature3Desc": "Blader door meer dan 13.000 kleurvarianten van meer dan 126 merken uit de Open Filament Database. Selecteer een filament en maak direct een tag aan.",
+    "feature4Title": "Slicer Profielen",
+    "feature4Desc": "Meer dan 4.000 filamentprofielen voor OrcaSlicer en Bambu Studio — automatisch gesynchroniseerd vanuit GitHub. Download profielen direct, gefilterd op merk, materiaal en printer.",
+    "feature5Title": "Spoolman Integratie",
+    "feature5Desc": "Maak verbinding met je Spoolman-instantie, blader door je spoelvoorraad en importeer filamentgegevens rechtstreeks in een tag.",
+    "feature6Title": "Droog Profielen",
+    "feature6Desc": "Aanbevolen droogtemperaturen en -tijden voor meer dan 20 materialen — van PLA tot PEEK. Met vochtgevoeligheid en opmerkingen.",
+    "feature7Title": "Kleurenpalet & Merk filter",
+    "feature7Desc": "45 vooraf gedefinieerde filamentkleuren. Materialen en varianten worden automatisch gefilterd op het geselecteerde merk (bijvoorbeeld Bambu Lab toont alleen hun materialen).",
+    "feature8Title": "Progressieve Web App (PWA)",
+    "feature8Desc": "Kan op het startscherm van uw telefoon worden geïnstalleerd. Werkt offline voor het aanmaken van tags en droogprofielen.",
+    "feature9Title": "Lichte & Donkere Modus",
+    "feature9Desc": "Schakel via de knop rechtsboven. Uw instelling wordt opgeslagen.",
+    "platformTitle": "Platform Ondersteuning",
+    "platformNfc": "NFC Schrijven:",
+    "platformNfcVal": "Android Chrome (HTTPS vereist)",
+    "platformQr": "QR Code Scanner:",
+    "platformQrVal": "Chrome 83+, Safari 17.2+, Edge 83+",
+    "platformDownload": "Bestand downloaden:",
+    "platformDownloadVal": "Alle browsers — schrijf bestand naar tag met NFC Tools app (iOS en Android)",
+    "platformShare": "Web Delen:",
+    "platformShareVal": "Mobiele browsers met Web Share API",
+    "releaseTitle": "Release Opmerkingen",
+    "releaseLoading": "⏳ Laden…",
+    "releaseMoreBtn": "▼ Toon oudere versies",
+    "releaseCurrent": "Huidige",
+    "supportTitle": "Vind je Spool Tag Propus leuk? Steun dan de ontwikkeling ervan!",
+    "supportHint": "Elke bijdrage helpt Spool Tag Propus te blijven groeien.",
+    "supportBtn": "Ondersteun"
+  },
+  "nfcWrite": {
+    "saveFile": "💾 Bestand opslaan",
+    "share": "📤 Deel",
+    "qrCode": "📱 QR Code",
+    "nfcWrite": "📝 Schrijf NFC",
+    "nfcInstructions": "NFC-tag schrijven zonder Chrome:",
+    "nfcStep1": "Download <strong>«NFC Tools»</strong> (iOS / Android)",
+    "nfcStep2": "Klik op <strong>«💾 Bestand opslaan»</strong> of <strong>«📤 Delen»</strong>",
+    "nfcStep3": "Open bestand in NFC Tools → Schrijven → Record toevoegen → Bestand",
+    "nfcStep4": "Houd de NFC-tag tegen uw telefoon"
+  }
+}
