@@ -6,6 +6,7 @@
   <title>Spool Tag Propus – Der smarte Filament-Manager</title>
   <meta name="description" content="Verwalte deine Filamente mit NFC-Tags, QR-Codes und Spoolman-Integration. Kostenlos, Open Source, optional selbst gehostet.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -40,6 +41,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 0.9rem 2rem;
+      overflow: hidden;
       background: rgba(13,17,23,0.8);
       backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
@@ -54,6 +56,38 @@
       text-decoration: none;
     }
     .nav-logo span { color: var(--accent); }
+
+    /* ===== LANGUAGE SELECTOR ===== */
+    .lang-selector {
+      display: flex;
+      gap: 0.5rem;
+      margin-left: auto;
+    }
+
+    .lang-btn {
+      background: transparent;
+      color: var(--text2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .lang-btn:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .lang-btn.active {
+      background: var(--accent);
+      color: #0d1117;
+      border-color: var(--accent);
+    }
+
+
     .nav-links {
       display: flex;
       gap: 1.5rem;
@@ -61,11 +95,108 @@
     }
     .nav-links a {
       color: var(--text2);
+      border: 1px solid var(--border);
       text-decoration: none;
       font-size: 0.9rem;
       transition: color 0.2s;
     }
-    .nav-links a:hover { color: var(--text); }
+    .nav-links a:hover { color: var(--text2); border-color: var(--accent); border-radius: 6px; }
+
+    @media (max-width: 1025px) {
+      .nav-links { display: none; }
+      .stats { gap: 1.5rem; }
+      .stat-num { font-size: 1.5rem; }
+      footer { flex-direction: column; text-align: center; }
+      .footer-right { justify-content: center; }
+    }
+    .nav-toggle {
+      display: none;
+    }
+
+    /* ===== HAMBURGER MENU ===== */
+.nav-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 0.5rem;
+}
+
+.nav-toggle:hover {
+  color: var(--accent2);
+}
+
+/* Mobile Menu */
+.nav-mobile {
+  display: none;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-direction: column;
+  padding: 1rem 0;
+  z-index: 99;
+  transition: transform 0.3s ease-in-out;
+  transform: translateY(-100%);
+}
+
+.nav-mobile.active {
+  display: flex;
+  transform: translateY(0);
+}
+
+.nav-mobile a {
+  padding: 0.8rem 2rem;
+  color: var(--text2);
+  text-decoration: none;
+  border: none;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.nav-mobile a:hover {
+  background: var(--bg3);
+  color: var(--accent);
+}
+
+.nav-mobile a.btn-cta {
+  margin: 0.5rem 2rem;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--radius);
+  padding: 0.7rem 1.5rem;
+  font-weight: 600;
+}
+
+.nav-mobile a.btn-cta:hover {
+  background: var(--accent2);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1025px) {
+  .nav-links { display: none; }
+  .nav-toggle { display: block; }
+  .stats { gap: 1.5rem; }
+  .stat-num { font-size: 1.5rem; }
+  footer { flex-direction: column; text-align: center; }
+  .footer-right { justify-content: center; }
+}
+
     .btn-cta {
       background: var(--accent);
       color: #0d1117;
@@ -81,7 +212,12 @@
       align-items: center;
       gap: 0.35rem;
     }
-    .btn-cta:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .btn-cta:hover {
+      opacity: 0.88;
+      transform: translateY(-1px);
+    }
+
     .btn-outline {
       background: transparent;
       color: var(--text);
@@ -97,7 +233,12 @@
       align-items: center;
       gap: 0.35rem;
     }
-    .btn-outline:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1px);
+    }
 
     /* ===== HERO ===== */
     .hero {
@@ -621,50 +762,68 @@
       font-size: 0.75rem;
       font-weight: 600;
     }
-
-    @media (max-width: 640px) {
-      .nav-links { display: none; }
-      .stats { gap: 1.5rem; }
-      .stat-num { font-size: 1.5rem; }
-      footer { flex-direction: column; text-align: center; }
-      .footer-right { justify-content: center; }
-    }
-
     /* scroll reveal */
     .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.55s ease, transform 0.55s ease; }
     .reveal.visible { opacity: 1; transform: none; }
+    /* ===== LANGUAGE SELECTOR ===== */
+
   </style>
+<script src="i18n.js"></script>
 </head>
 <body>
 
-<!-- ===== NAV ===== -->
-<nav>
-  <a href="#" class="nav-logo">🧵 Spool Tag <span>Propus</span></a>
-  <div class="nav-links">
-    <a href="#features">Features</a>
-    <a href="#how">So funktionierts</a>
-    <a href="#compat">Kompatibilität</a>
-    <a href="#faq">FAQ</a>
+
+  <!-- ===== NAV ===== -->
+  <nav>
+    <a href="#" class="nav-logo">🧵 Spool Tag <span>Propus</span></a>
+
+    <!-- Language Selector -->
+    <span id="langSwitcher" style="display:inline-flex;gap:0.25rem;margin-left:0.5rem;">
+        <button class="btn-secondary lang-btn" id="langBtnDe" data-lang="de" style="padding:0.25rem 0.5rem;font-size:0.8rem;">DE</button>
+        <button class="btn-secondary lang-btn" id="langBtnEn" data-lang="en" style="padding:0.25rem 0.5rem;font-size:0.8rem;">EN</button>
+        <button class="btn-secondary lang-btn" id="langBtnNl" data-lang="nl" style="padding:0.25rem 0.5rem;font-size:0.8rem;">NL</button>
+    </span>
+
+    <div class="nav-links">
+      <a href="#features" data-i18n="nav.features">Features</a>
+      <a href="#how"  data-i18n="nav.how">So funktionierts</a>
+      <a href="#compat" data-i18n="nav.compat">Kompatibilität</a>
+      <a href="#faq" data-i18n="nav.faq">FAQ</a>
+      <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener">Discord</a>
+      <a href="index.html" class="btn-cta" style="margin-left:0.5rem;" data-i18n="nav.open app">App öffnen →</a>
+    </div>
+
+    <!-- Hamburger Menu -->
+    <button class="nav-toggle" id="navToggle">
+      <i class="fas fa-bars"></i>
+    </button>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="nav-mobile" id="navMobile">
+    <a href="#features" data-i18n="nav.features">Features</a>
+    <a href="#how"  data-i18n="nav.how">So funktionierts</a>
+    <a href="#compat" data-i18n="nav.compat">Kompatibilität</a>
+    <a href="#faq" data-i18n="nav.faq">FAQ</a>
     <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener">Discord</a>
-    <a href="index.html" class="btn-cta" style="margin-left:0.5rem;">App öffnen →</a>
+    <a href="index.html" class="btn-cta" data-i18n="nav.open app">App öffnen →</a>
   </div>
-</nav>
 
 <!-- ===== HERO ===== -->
 <section class="hero">
   <div class="hero-glow hero-glow-1"></div>
   <div class="hero-glow hero-glow-2"></div>
 
-  <div class="hero-badge">✨ Kostenlos in der Beta · Open Source</div>
+  <div class="hero-badge" data-i18n="hero.badge">✨ Kostenlos in der Beta · Open Source</div>
 
-  <h1>Der smarte<br><span class="grad">Filament-Manager</span><br>für deinen 3D-Drucker</h1>
-  <p class="hero-sub">
+  <h1 data-i18n="hero.title">Der smarte<br><span class="grad">Filament-Manager</span><br>für deinen 3D-Drucker</h1>
+  <p class="hero-sub" data-i18n="hero.description">
     Beschrifte Filament-Spulen mit NFC-Tags oder QR-Codes, verbinde Spoolman und greife auf tausende Slicer-Profile zu – alles in einer App.
   </p>
 
   <div class="hero-ctas">
-    <a href="index.html" class="btn-cta-lg">🚀 App starten</a>
-    <a href="#features" class="btn-outline-lg">Features entdecken ↓</a>
+    <a href="index.html" class="btn-cta-lg"  data-i18n="hero.ctaPrimary">🚀 App starten</a>
+    <a href="#features" class="btn-outline-lg" data-i18n="hero.ctaSecondary">Features entdecken ↓</a>
   </div>
 
   <!-- App Mockup -->
@@ -678,162 +837,122 @@
     </div>
     <div class="mockup-body">
       <div class="mockup-header">
-        <div class="mockup-title">🧵 Spool Tag Propus</div>
+        <div class="mockup-title" data-i18n="mockup.title">🧵 Spool Tag Propus</div>
         <div class="mockup-chips">
-          <span class="mockup-chip">✅ NFC bereit</span>
-          <span class="mockup-chip purple">⚡ Spoolman</span>
+          <span class="mockup-chip" data-i18n="mockup.nfcReady">✅ NFC bereit</span>
+          <span class="mockup-chip purple" data-i18n="mockup.spoolman">⚡ Spoolman</span>
         </div>
       </div>
       <div class="mockup-grid">
         <div class="mockup-card">
-          <div class="mockup-card-label">Material</div>
-          <div class="mockup-card-val">PLA+ Matt</div>
+          <div class="mockup-card-label" data-i18n="mockup.cards.material.label">Material</div>
+          <div class="mockup-card-val" data-i18n="mockup.cards.material.value">PLA+ Matt</div>
           <div class="mockup-card-bar" style="background:linear-gradient(90deg,#00d4aa,#00b8ff);"></div>
         </div>
         <div class="mockup-card">
-          <div class="mockup-card-label">Farbe</div>
-          <div class="mockup-card-val">🟢 Bambus Grün</div>
+          <div class="mockup-card-label" data-i18n="mockup.cards.color.label">Farbe</div>
+          <div class="mockup-card-val" data-i18n="mockup.cards.color.value">🟢 Bambus Grün</div>
           <div class="mockup-card-bar" style="background:#4ade80;"></div>
         </div>
         <div class="mockup-card">
-          <div class="mockup-card-label">Hersteller</div>
-          <div class="mockup-card-val">Bambu Lab</div>
+          <div class="mockup-card-label" data-i18n="mockup.cards.manufacturer.label" >Hersteller</div>
+          <div class="mockup-card-val" data-i18n="mockup.cards.manufacturer.value">Bambu Lab</div>
           <div class="mockup-card-bar" style="background:#a78bfa;"></div>
         </div>
         <div class="mockup-card">
-          <div class="mockup-card-label">Düse</div>
-          <div class="mockup-card-val">220 – 240°C</div>
+          <div class="mockup-card-label" data-i18n="mockup.cards.nozzle.label">Düse</div>
+          <div class="mockup-card-val" data-i18n="mockup.cards.nozzle.value">220 – 240°C</div>
           <div class="mockup-card-bar" style="background:#fb923c;"></div>
         </div>
       </div>
       <div class="mockup-nfc">
         <div class="nfc-icon">📡</div>
         <div>
-          <div class="nfc-lbl">NFC-Tag Aktion</div>
-          <div class="nfc-val">OpenSpool-Format · Tag beschreiben</div>
+          <div class="nfc-lbl" data-i18n="mockup.cards.nfc.label">NFC-Tag Aktion</div>
+          <div class="nfc-val" data-i18n="mockup.cards.nfc.value">OpenSpool-Format · Tag beschreiben</div>
         </div>
-        <div style="margin-left:auto;background:rgba(0,212,170,0.2);color:var(--accent);border-radius:7px;padding:0.35rem 0.75rem;font-size:0.78rem;font-weight:700;">Schreiben →</div>
+        <div style="margin-left:auto;background:rgba(0,212,170,0.2);color:var(--accent);border-radius:7px;padding:0.35rem 0.75rem;font-size:0.78rem;font-weight:700;"  data-i18n="mockup.cards.nfc.action">Schreiben →</div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ===== STATS ===== -->
-<div class="stats">
+<div id="features" class="stats">
   <div class="stat">
-    <div class="stat-num">10.000+</div>
-    <div class="stat-lbl">Filamentprofile in der Datenbank</div>
+    <div class="stat-num" data-i18n="stats.profiles.num">10.000+</div>
+    <div class="stat-lbl" data-i18n="stats.profiles.label">Filamentprofile in der Datenbank</div>
   </div>
   <div class="stat">
-    <div class="stat-num">3</div>
-    <div class="stat-lbl">Tag-Formate (OpenSpool, OpenPrintTag, QR)</div>
+    <div class="stat-num" data-i18n="stats.formats.num">3</div>
+    <div class="stat-lbl" data-i18n="stats.formats.label">Tag-Formate (OpenSpool, OpenPrintTag, QR)</div>
   </div>
   <div class="stat">
-    <div class="stat-num">100%</div>
-    <div class="stat-lbl">Kostenlos in der Beta-Phase</div>
+    <div class="stat-num" data-i18n="stats.free.num">100%</div>
+    <div class="stat-lbl" data-i18n="stats.free.label">Kostenlos in der Beta-Phase</div>
   </div>
   <div class="stat">
-    <div class="stat-num">DE / EN</div>
-    <div class="stat-lbl">Mehrsprachige Oberfläche</div>
+    <div class="stat-num" data-i18n="stats.languages.num">DE / EN / NL</div>
+    <div class="stat-lbl" data-i18n="stats.languages.label">Mehrsprachige Oberfläche</div>
   </div>
 </div>
 
 <!-- ===== FEATURES ===== -->
-<section id="features">
+<section style="background:var(--bg2);">
   <div class="container">
-    <div class="reveal">
-      <div class="section-badge">Features</div>
-      <h2 class="section-title-lg">Alles, was du brauchst –<br>an einem Ort</h2>
-      <p class="section-sub">Von NFC-Tags über Slicer-Profile bis hin zum Spoolman-Abgleich: Spool Tag Propus deckt jeden Aspekt deines Filament-Workflows ab.</p>
+    <div class="reveal text-center">
+      <div class="section-badge blue" data-i18n="features.badge">Funktionen</div>
+      <h2 class="section-title-lg" data-i18n="features.title">Alles, was du für smartes Filament-Management brauchst</h2>
     </div>
-    <div class="features-grid">
+    <div class="features">
       <div class="feature-card reveal">
-        <div class="feature-icon">🏷️</div>
-        <h3>NFC-Tags beschreiben & lesen</h3>
-        <p>Beschreibe NFC-Tags direkt vom Browser aus – im OpenSpool- oder OpenPrintTag-Format. Halte dein Smartphone ans Tag und alle Filamentdaten werden sofort erkannt.</p>
+        <div class="feature-icon green">⬇️</div>
+        <h3 data-i18n="features.cards.slicer.title">Slicer-Profile herunterladen</h3>
+        <p data-i18n="features.cards.slicer.description">Lade Slicer-Profile für Bambu Studio, PrusaSlicer und OrcaSlicer direkt aus der App herunter. Filter nach Material, Drucker oder Hersteller – ein Klick reicht.</p>
         <div class="feature-tags">
-          <span class="feature-tag">OpenSpool</span>
-          <span class="feature-tag">OpenPrintTag</span>
-          <span class="feature-tag">NFC Web API</span>
-        </div>
-      </div>
-      <div class="feature-card reveal">
-        <div class="feature-icon blue">📷</div>
-        <h3>QR-Code erstellen & scannen</h3>
-        <p>Kein NFC? Kein Problem. Erstelle QR-Codes für jede Spule und scanne sie mit der integrierten Kamera-Funktion – auch ohne spezielle Hardware.</p>
-        <div class="feature-tags">
-          <span class="feature-tag">Browser-Kamera</span>
-          <span class="feature-tag">Druckfertig</span>
-        </div>
-      </div>
-      <div class="feature-card reveal">
-        <div class="feature-icon purple">🔄</div>
-        <h3>Spoolman-Integration</h3>
-        <p>Verbinde Spool Tag Propus direkt mit deiner Spoolman-Instanz. Spulen werden automatisch synchronisiert – inkl. Farbdaten, Temperaturen und Restmengen.</p>
-        <div class="feature-tags">
-          <span class="feature-tag">Spoolman API</span>
-          <span class="feature-tag">Auto-Sync</span>
-          <span class="feature-tag">Echtzeit</span>
-        </div>
-      </div>
-      <div class="feature-card reveal">
-        <div class="feature-icon orange">🗄️</div>
-        <h3>Filament-Datenbank</h3>
-        <p>Über 10.000 Filamentprofile von Bambu Lab, Prusa, eSUN, Polymaker u.v.m. – mit Temperaturen, Dichte und Materialeigenschaften, direkt durchsuchbar.</p>
-        <div class="feature-tags">
-          <span class="feature-tag">10.000+ Profile</span>
-          <span class="feature-tag">Volltextsuche</span>
-          <span class="feature-tag">Offline</span>
-        </div>
-      </div>
-      <div class="feature-card reveal">
-        <div class="feature-icon">⬇️</div>
-        <h3>Slicer-Profile importieren</h3>
-        <p>Lade Slicer-Profile für Bambu Studio, PrusaSlicer und OrcaSlicer direkt aus der App herunter. Filter nach Material, Drucker oder Hersteller – ein Klick reicht.</p>
-        <div class="feature-tags">
-          <span class="feature-tag">Bambu Studio</span>
-          <span class="feature-tag">OrcaSlicer</span>
-          <span class="feature-tag">PrusaSlicer</span>
+          <span class="feature-tag" data-i18n="features.cards.slicer.tags.bambu">Bambu Studio</span>
+          <span class="feature-tag" data-i18n="features.cards.slicer.tags.orca">OrcaSlicer</span>
+          <span class="feature-tag" data-i18n="features.cards.slicer.tags.prusa">PrusaSlicer</span>
         </div>
       </div>
       <div class="feature-card reveal">
         <div class="feature-icon blue">🌡️</div>
-        <h3>Trocknungsprofile</h3>
-        <p>Lass dein Filament richtig trocknen. Die integrierten Trocknungsprofile zeigen dir für jedes Material die optimale Temperatur und Dauer an.</p>
+        <h3 data-i18n="features.cards.drying.title">Trocknungsprofile</h3>
+        <p data-i18n="features.cards.drying.desription">Lass dein Filament richtig trocknen. Die integrierten Trocknungsprofile zeigen dir für jedes Material die optimale Temperatur und Dauer an.</p>
         <div class="feature-tags">
-          <span class="feature-tag">PLA / PETG / ABS</span>
-          <span class="feature-tag">PA / PC / TPU</span>
-          <span class="feature-tag">Alle Materialien</span>
+          <span class="feature-tag" data-i18n="features.cards.drying.tags.pla">PLA / PETG / ABS</span>
+          <span class="feature-tag" data-i18n="features.cards.drying.tags.spezial">PA / PC / TPU</span>
+          <span class="feature-tag" data-i18n="features.cards.drying.tags.alle">Alle Materialien</span>
         </div>
       </div>
       <div class="feature-card reveal">
         <div class="feature-icon purple">💾</div>
-        <h3>Backup & Wiederherstellung</h3>
-        <p>Exportiere deine Einstellungen als JSON-Datei und importiere sie auf einem anderen Gerät. Automatische Server-Backups sichern deine Daten dauerhaft.</p>
+        <h3 data-i18n="features.cards.backup.title">Backup & Wiederherstellung</h3>
+        <p data-i18n="features.backup.description">Exportiere deine Einstellungen als JSON-Datei und importiere sie auf einem anderen Gerät. Automatische Server-Backups sichern deine Daten dauerhaft.</p>
         <div class="feature-tags">
-          <span class="feature-tag">JSON-Export</span>
-          <span class="feature-tag">Auto-Backup</span>
-          <span class="feature-tag">Multi-Device</span>
+          <span class="feature-tag" data-i18n="features.cards.backup.tags.json">JSON-Export</span>
+          <span class="feature-tag" data-i18n="features.cards.backup.tags.backup">Auto-Backup</span>
+          <span class="feature-tag" data-i18n="features.cards.backup.tags.multi">Multi-Device</span>
         </div>
       </div>
       <div class="feature-card reveal">
         <div class="feature-icon orange">🛡️</div>
-        <h3>Multi-User mit Admin-Panel</h3>
-        <p>Mehrere Benutzerkonten, Admin-Rechte vergeben/entziehen, Accounts sperren und Systemstatus überwachen – alles über das eingebaute Admin-Panel.</p>
+        <h3 data-i18n="features.cards.admin.title">Multi-User mit Admin-Panel</h3>
+        <p data-i18n="features.cards.admin.description">Mehrere Benutzerkonten, Admin-Rechte vergeben/entziehen, Accounts sperren und Systemstatus überwachen – alles über das eingebaute Admin-Panel.</p>
         <div class="feature-tags">
-          <span class="feature-tag">JWT-Auth</span>
-          <span class="feature-tag">Admin-Panel</span>
-          <span class="feature-tag">Benutzerverwaltung</span>
+          <span class="feature-tag" data-i18n="features.cards.admin.tags.Jauth">JWT-Auth</span>
+          <span class="feature-tag" data-i18n="features.cards.admin.tags.admin">Admin-Panel</span>
+          <span class="feature-tag" data-i18n="features.cards.admin.tags.user">Benutzerverwaltung</span>
         </div>
       </div>
       <div class="feature-card reveal">
         <div class="feature-icon">🌍</div>
-        <h3>Mehrsprachig & PWA</h3>
-        <p>Die Oberfläche ist vollständig auf Deutsch und Englisch verfügbar. Als Progressive Web App kannst du Spool Tag Propus wie eine native App installieren.</p>
+        <h3 data-i18n="features.cards.sprache.title">Mehrsprachig & PWA</h3>
+        <p data-i18n="features.cards.sprache.description">Die Oberfläche ist vollständig auf Deutsch und Englisch verfügbar. Als Progressive Web App kannst du Spool Tag Propus wie eine native App installieren.</p>
         <div class="feature-tags">
-          <span class="feature-tag">Deutsch / English</span>
-          <span class="feature-tag">PWA</span>
-          <span class="feature-tag">Offline-fähig</span>
+          <span class="feature-tag" data-i18n="features.cards.sprache.tags.sprache">Deutsch / English / Nederlands</span>
+          <span class="feature-tag" data-i18n="features.cards.sprache.tags.pwa">PWA</span>
+          <span class="feature-tag" data-i18n="features.cards.sprache.tags.offline">Offline-fähig</span>
         </div>
       </div>
     </div>
@@ -844,30 +963,30 @@
 <section id="how" class="how-bg">
   <div class="container">
     <div class="reveal text-center">
-      <div class="section-badge green">So funktionierts</div>
-      <h2 class="section-title-lg">In 4 Schritten zum smarten Filament-Management</h2>
-      <p class="section-sub" style="margin: 0 auto 3rem;">Einfach im Browser öffnen und loslegen – keine Installation nötig.</p>
+      <div class="section-badge green" data-i18n="how.badge">So funktionierts</div>
+      <h2 class="section-title-lg" data-i18n="how.title">In 4 Schritten zum smarten Filament-Management</h2>
+      <p class="section-sub" style="margin: 0 auto 3rem;" data-i18n="how.subtitle">Einfach im Browser öffnen und loslegen – keine Installation nötig.</p>
     </div>
     <div class="steps">
       <div class="step reveal">
         <div class="step-num">1</div>
-        <h3>Öffnen & loslegen</h3>
-        <p>Öffne Spool Tag Propus im Browser und installiere es optional als App (PWA) – kein App Store nötig. Wer selbst hosten möchte: Docker Compose in wenigen Minuten.</p>
+        <h3 data-i18n="how.steps.0.title">Öffnen & loslegen</h3>
+        <p data-i18n="how.steps.0.description">Öffne Spool Tag Propus im Browser und installiere es optional als App (PWA) – kein App Store nötig. Wer selbst hosten möchte: Docker Compose in wenigen Minuten.</p>
       </div>
       <div class="step reveal">
         <div class="step-num">2</div>
-        <h3>Einloggen & verbinden</h3>
-        <p>Erstelle deinen Account, gib optional deine Spoolman-URL ein – und alle deine Spulen werden automatisch synchronisiert.</p>
+        <h3 data-i18n="how.steps.1.title">Einloggen & verbinden</h3>
+        <p data-i18n="how.steps.1.description">Erstelle deinen Account, gib optional deine Spoolman-URL ein – und alle deine Spulen werden automatisch synchronisiert.</p>
       </div>
       <div class="step reveal">
         <div class="step-num">3</div>
-        <h3>Filament wählen & Tag erstellen</h3>
-        <p>Suche in der Datenbank nach deinem Filament, passe Farbe und Temperaturen an und schreibe die Daten auf einen NFC-Tag oder QR-Code.</p>
+        <h3 data-i18n="how.steps.2.title">Filament wählen & Tag erstellen</h3>
+        <p data-i18n="how.steps.2.description">Suche in der Datenbank nach deinem Filament, passe Farbe und Temperaturen an und schreibe die Daten auf einen NFC-Tag oder QR-Code.</p>
       </div>
       <div class="step reveal">
         <div class="step-num">4</div>
-        <h3>Scannen & drucken</h3>
-        <p>Smartphone ans Tag halten – dein Drucker erkennt das Filament automatisch. Slicer-Profile direkt herunterladen und loslegen.</p>
+        <h3 data-i18n="how.steps.3.title">Scannen & drucken</h3>
+        <p data-i18n="how.steps.3.description">Smartphone ans Tag halten – dein Drucker erkennt das Filament automatisch. Slicer-Profile direkt herunterladen und loslegen.</p>
       </div>
     </div>
   </div>
@@ -878,69 +997,75 @@
   <div class="container">
     <div class="split reveal">
       <div>
-        <div class="section-badge">NFC & QR</div>
-        <h2 class="section-title-lg">Tags schreiben –<br>in Sekunden</h2>
-        <p style="color:var(--text2);font-size:0.95rem;line-height:1.7;margin-bottom:1.5rem;">
+        <div class="section-badge" data-i18n="nfc.nfc_badge">NFC & QR</div>
+        <h2 class="section-title-lg" data-i18n="nfc.nfc_title">Tags schreiben –<br>in Sekunden</h2>
+        <p style="color:var(--text2);font-size:0.95rem;line-height:1.7;margin-bottom:1.5rem;" data-i18n="nfc.nfc_intro">
           Egal ob NFC-Chip oder gedruckter QR-Code – Spool Tag Propus unterstützt beide Methoden. Alle relevanten Filamentdaten werden sicher in standardisierten Formaten gespeichert.
         </p>
         <div class="list-feature">
           <div class="list-feature-icon">📡</div>
           <div class="list-feature-text">
-            <strong>OpenSpool-Format</strong>
-            <span>Das offene NDEF-Standard-Format für Filament-NFC-Tags. Kompatibel mit Bambu Lab und Co.</span>
+            <strong data-i18n="nfc.nfc_feature1_title">OpenSpool-Format</strong>
+            <span data-i18n="nfc.nfc_feature1_desc">Das offene NDEF-Standard-Format für Filament-NFC-Tags. Kompatibel mit Bambu Lab und Co.</span>
           </div>
         </div>
         <div class="list-feature">
           <div class="list-feature-icon">🏷️</div>
           <div class="list-feature-text">
-            <strong>OpenPrintTag-Format</strong>
-            <span>Erweitertes Format mit noch mehr Datenpunkten – für maximale Kompatibilität mit allen Slicern.</span>
+            <strong data-i18n="nfc.nfc_feature2_title">OpenPrintTag-Format</strong>
+            <span data-i18n="nfc.nfc_feature2_desc">Erweitertes Format mit noch mehr Datenpunkten – für maximale Kompatibilität mit allen Slicern.</span>
           </div>
         </div>
         <div class="list-feature">
           <div class="list-feature-icon">📷</div>
           <div class="list-feature-text">
-            <strong>QR-Code-Fallback</strong>
-            <span>Kein NFC? Kein Problem. Drucke einen QR-Code aus und befestige ihn direkt an der Spule.</span>
+            <strong data-i18n="nfc.nfc_feature3_title">QR-Code-Fallback</strong>
+            <span data-i18n="nfc.nfc_feature3_desc">Kein NFC? Kein Problem. Drucke einen QR-Code aus und befestige ihn direkt an der Spule.</span>
           </div>
         </div>
         <div class="list-feature">
           <div class="list-feature-icon">📖</div>
           <div class="list-feature-text">
-            <strong>Tags lesen & Dateien importieren</strong>
-            <span>Vorhandene Tags auslesen oder Spool-JSON-Dateien direkt hochladen und verarbeiten.</span>
+            <strong data-i18n="nfc.nfc_feature4_title">Tags lesen & Dateien importieren</strong>
+            <span data-i18n="nfc.nfc_feature4_desc">Vorhandene Tags auslesen oder Spool-JSON-Dateien direkt hochladen und verarbeiten.</span>
           </div>
         </div>
       </div>
       <div class="split-visual">
-        <div class="vis-label">Tag-Format wählen</div>
+        <div class="vis-label" data-i18n="nfc.nfc_vis_label1">Tag-Format wählen</div>
         <div class="vis-row">
-          <div class="vis-pill active">📡 OpenSpool<small>Für Bambu Lab & Co.</small></div>
-          <div class="vis-pill">🏷️ OpenPrintTag<small>Erweitertes Format</small></div>
+          <div class="vis-pill active">
+            <span data-i18n="nfc.nfc_vis_pill1">📡 OpenSpool</span>
+            <small data-i18n="nfc.nfc_vis_pill1_sub">Für Bambu Lab & Co.</small>
+          </div>
+          <div class="vis-pill">
+            <span data-i18n="nfc.nfc_vis_pill2">🏷️ OpenPrintTag</span>
+            <small data-i18n="nfc.nfc_vis_pill2_sub">Erweitertes Format</small>
+          </div>
         </div>
         <div class="vis-divider"></div>
-        <div class="vis-label">Filamentdaten</div>
+        <div class="vis-label" data-i18n="nfc.nfc_vis_label2">Filamentdaten</div>
         <div class="vis-tag">
           <div class="vis-tag-header">
-            <span class="vis-tag-name">🟢 PLA+ Bambus Grün</span>
-            <span class="vis-tag-badge">BAMBU LAB</span>
+            <span class="vis-tag-name" data-i18n="nfc.nfc_vis_filament">🟢 PLA+ Bambus Grün</span>
+            <span class="vis-tag-badge" data-i18n="nfc.nfc_vis_brand">BAMBU LAB</span>
           </div>
           <div class="vis-tag-row">
             <div class="vis-tag-field">
-              <div class="vis-tag-field-lbl">Düsentemp.</div>
-              <div class="vis-tag-field-val">220–240°C</div>
+              <div class="vis-tag-field-lbl" data-i18n="nfc.nfc_vis_nozzle_lbl">Düsentemp.</div>
+              <div class="vis-tag-field-val" data-i18n="nfc.nfc_vis_nozzle_val">220–240°C</div>
             </div>
             <div class="vis-tag-field">
-              <div class="vis-tag-field-lbl">Betttemp.</div>
-              <div class="vis-tag-field-val">35–45°C</div>
+              <div class="vis-tag-field-lbl" data-i18n="nfc.nfc_vis_bed_lbl">Betttemp.</div>
+              <div class="vis-tag-field-val" data-i18n="nfc.nfc_vis_bed_val">35–45°C</div>
             </div>
             <div class="vis-tag-field">
-              <div class="vis-tag-field-lbl">Dichte</div>
-              <div class="vis-tag-field-val">1.24 g/cm³</div>
+              <div class="vis-tag-field-lbl" data-i18n="nfc.nfc_vis_density_lbl">Dichte</div>
+              <div class="vis-tag-field-val" data-i18n="nfc.nfc_vis_density_val">1.24 g/cm³</div>
             </div>
           </div>
         </div>
-        <div class="vis-btn">📡 NFC-Tag beschreiben</div>
+        <div class="vis-btn" data-i18n="nfc.nfc_vis_btn">📡 NFC-Tag beschreiben</div>
       </div>
     </div>
   </div>
@@ -951,65 +1076,66 @@
   <div class="container">
     <div class="split rev reveal">
       <div>
-        <div class="section-badge">Filament-Datenbank</div>
-        <h2 class="section-title-lg">10.000+ Profile –<br>sofort durchsuchbar</h2>
-        <p style="color:var(--text2);font-size:0.95rem;line-height:1.7;margin-bottom:1.5rem;">
+        <div class="section-badge" data-i18n="database.badge">Filament-Datenbank</div>
+        <h2 class="section-title-lg" data-i18n="database.title">10.000+ Profile –<br>sofort durchsuchbar</h2>
+        <p style="color:var(--text2);font-size:0.95rem;line-height:1.7;margin-bottom:1.5rem;" data-i18n="database.intro">
           Die eingebaute Filament-Datenbank enthält Profile von allen großen Herstellern. Alle Daten werden täglich aktualisiert und sind offline verfügbar.
         </p>
         <div class="list-feature">
           <div class="list-feature-icon">🔍</div>
           <div class="list-feature-text">
-            <strong>Volltextsuche</strong>
-            <span>Suche nach Hersteller, Material, Farbe oder Temperaturbereich – Ergebnisse erscheinen sofort.</span>
+            <strong data-i18n="database.features.0.title">Volltextsuche</strong>
+            <span data-i18n="database.features.0.description">Suche nach Hersteller, Material, Farbe oder Temperaturbereich – Ergebnisse erscheinen sofort.</span>
           </div>
         </div>
         <div class="list-feature">
           <div class="list-feature-icon">⬇️</div>
           <div class="list-feature-text">
-            <strong>Slicer-Profile herunterladen</strong>
-            <span>Ein Klick genügt: Lade fertige Profile für Bambu Studio, OrcaSlicer oder PrusaSlicer direkt herunter.</span>
+            <strong data-i18n="database.features.1.title">Slicer-Profile herunterladen</strong>
+            <span data-i18n="database.features.1.description">Ein Klick genügt: Lade fertige Profile für Bambu Studio, OrcaSlicer oder PrusaSlicer direkt herunter.</span>
           </div>
         </div>
         <div class="list-feature">
           <div class="list-feature-icon">🔄</div>
           <div class="list-feature-text">
-            <strong>Automatische Synchronisierung</strong>
-            <span>Die Datenbank synchronisiert sich täglich im Hintergrund mit den offiziellen Quellen.</span>
+            <strong data-i18n="database.features.2.title">Automatische Synchronisierung</strong>
+            <span data-i18n="database.features.2.description">Die Datenbank synchronisiert sich täglich im Hintergrund mit den offiziellen Quellen.</span>
           </div>
         </div>
       </div>
       <div class="split-visual">
         <div class="vis-search">
-          <div class="vis-search-inp">🔍 &nbsp;PETG schwarz …</div>
-          <div class="vis-search-btn">Suchen</div>
+          <div class="vis-search-inp" data-i18n="suchen.search">🔍 &nbsp;PETG schwarz …</div>
+          <div class="vis-search-btn" data-i18n="suchen.search_btn">Suchen</div>
         </div>
         <div class="vis-filament-row">
           <div class="vis-color-dot" style="background:#1a1a1a;border:1px solid #444;"></div>
-          <div class="vis-filament-name">PETG Black</div>
-          <div class="vis-filament-mat">Bambu Lab · PETG</div>
-          <span class="tag" style="font-size:0.65rem;">240°C</span>
+          <div class="vis-filament-name" data-i18n="suchen.db_vis_result1_name">PETG Black</div>
+          <div class="vis-filament-mat" data-i18n="suchen.db_vis_result1_brand">Bambu Lab · PETG</div>
+          <span class="tag" style="font-size:0.65rem;" data-i18n="suchen.db_vis_result1_temp">240°C</span>
         </div>
         <div class="vis-filament-row" style="background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);">
           <div class="vis-color-dot" style="background:#222;border:1px solid #555;"></div>
-          <div class="vis-filament-name">PETG HF Black</div>
-          <div class="vis-filament-mat">Bambu Lab · PETG</div>
-          <span class="tag" style="font-size:0.65rem;">250°C</span>
+          <div class="vis-filament-name" data-i18n="suchen.db_vis_result2_name">PETG HF Black</div>
+          <div class="vis-filament-mat" data-i18n="suchen.db_vis_result2_brand">Bambu Lab · PETG</div>
+          <span class="tag" style="font-size:0.65rem;" data-i18n="suchen.db_vis_result2_temp">250°C</span>
         </div>
         <div class="vis-filament-row">
           <div class="vis-color-dot" style="background:#0d0d0d;border:1px solid #333;"></div>
-          <div class="vis-filament-name">PETG Black</div>
-          <div class="vis-filament-mat">eSUN · PETG</div>
-          <span class="tag" style="font-size:0.65rem;">235°C</span>
+          <div class="vis-filament-name" data-i18n="suchen.db_vis_result3_name">PETG Black</div>
+          <div class="vis-filament-mat" data-i18n="suchen.db_vis_result3_brand">eSUN · PETG</div>
+          <span class="tag" style="font-size:0.65rem;" data-i18n="suchen.db_vis_result3_temp">235°C</span>
         </div>
         <div class="vis-filament-row">
           <div class="vis-color-dot" style="background:#111;border:1px solid #3a3a3a;"></div>
-          <div class="vis-filament-name">PETG Black</div>
-          <div class="vis-filament-mat">Polymaker · PETG</div>
-          <span class="tag" style="font-size:0.65rem;">230°C</span>
+          <div class="vis-filament-name" data-i18n="suchen.db_vis_result4_name">PETG Black</div>
+          <div class="vis-filament-mat" data-i18n="suchen.db_vis_result4_brand">Polymaker · PETG</div>
+          <span class="tag" style="font-size:0.65rem;" data-i18n="suchen.db_vis_result4_temp">230°C</span>
         </div>
-        <div style="text-align:center;margin-top:0.6rem;font-size:0.75rem;color:var(--text2);">… und 10.000+ weitere Profile</div>
+        <div style="text-align:center;margin-top:0.6rem;font-size:0.75rem;color:var(--text2);" data-i18n="suchen.db_vis_more">… und 10.000+ weitere Profile</div>
       </div>
     </div>
+  </div>
   </div>
 </section>
 
@@ -1017,50 +1143,50 @@
 <section id="compat">
   <div class="container">
     <div class="reveal text-center">
-      <div class="section-badge">Kompatibilität</div>
-      <h2 class="section-title-lg">Funktioniert mit deinem Setup</h2>
-      <p class="section-sub" style="margin: 0 auto 3rem;">Spool Tag Propus integriert sich nahtlos in bestehende 3D-Druck-Workflows und unterstützt alle gängigen Standards.</p>
+      <div class="section-badge" data-i18n="compatibility.badge">Kompatibilität</div>
+      <h2 class="section-title-lg" data-i18n="compatibility.title">Funktioniert mit deinem Setup</h2>
+      <p class="section-sub" style="margin: 0 auto 3rem;" data-i18n="compatibility.intro">Spool Tag Propus integriert sich nahtlos in bestehende 3D-Druck-Workflows und unterstützt alle gängigen Standards.</p>
     </div>
     <div class="compat-grid reveal">
       <div class="compat-card">
         <div class="compat-icon">🐑</div>
-        <div class="compat-name">Spoolman</div>
-        <div class="compat-sub">Direkte API-Integration</div>
+        <div class="compat-name" data-i18n="compatibility.cards.0.name">Spoolman</div>
+        <div class="compat-sub" data-i18n="compatibility.cards.0.subtitle">Direkte API-Integration</div>
       </div>
       <div class="compat-card">
         <div class="compat-icon">🟩</div>
-        <div class="compat-name">Bambu Lab</div>
-        <div class="compat-sub">OpenSpool-kompatibel</div>
+        <div class="compat-name" data-i18n="compatibility.cards.1.name">Bambu Lab</div>
+        <div class="compat-sub" data-i18n="compatibility.cards.1.subtitle">OpenSpool-kompatibel</div>
       </div>
       <div class="compat-card">
         <div class="compat-icon">🔷</div>
-        <div class="compat-name">OrcaSlicer</div>
-        <div class="compat-sub">Profile-Download</div>
+        <div class="compat-name" data-i18n="compatibility.cards.2.name">OrcaSlicer</div>
+        <div class="compat-sub" data-i18n="compatibility.cards.2.subtitle">Profile-Download</div>
       </div>
       <div class="compat-card">
         <div class="compat-icon">🟧</div>
-        <div class="compat-name">PrusaSlicer</div>
-        <div class="compat-sub">Profile-Download</div>
+        <div class="compat-name" data-i18n="compatibility.cards.3.name">PrusaSlicer</div>
+        <div class="compat-sub" data-i18n="compatibility.cards.3.subtitle">Profile-Download</div>
       </div>
       <div class="compat-card">
         <div class="compat-icon">🐳</div>
-        <div class="compat-name">Docker</div>
-        <div class="compat-sub">NAS · Server · RPi</div>
+        <div class="compat-name" data-i18n="compatibility.cards.4.name">Docker</div>
+        <div class="compat-sub" data-i18n="compatibility.cards.4.subtitle">NAS · Server · RPi</div>
       </div>
       <div class="compat-card">
         <div class="compat-icon">📱</div>
-        <div class="compat-name">Android / iOS</div>
-        <div class="compat-sub">PWA installierbar</div>
+        <div class="compat-name" data-i18n="compatibility.cards.5.name">Android / iOS</div>
+        <div class="compat-sub" data-i18n="compatibility.cards.5.subtitle">PWA installierbar</div>
       </div>
       <div class="compat-card">
         <div class="compat-icon">📡</div>
-        <div class="compat-name">OpenSpool</div>
-        <div class="compat-sub">NDEF Standard</div>
+        <div class="compat-name" data-i18n="compatibility.cards.6.name">OpenSpool</div>
+        <div class="compat-sub" data-i18n="compatibility.cards.6.subtitle">NDEF Standard</div>
       </div>
       <div class="compat-card">
         <div class="compat-icon">🏷️</div>
-        <div class="compat-name">OpenPrintTag</div>
-        <div class="compat-sub">Erweitertes Format</div>
+        <div class="compat-name" data-i18n="compatibility.cards.7.name">OpenPrintTag</div>
+        <div class="compat-sub" data-i18n="compatibility.cards.7.subtitle">Erweitertes Format</div>
       </div>
     </div>
   </div>
@@ -1071,54 +1197,58 @@
   <div class="container">
     <div class="split reveal">
       <div>
-        <div class="section-badge">Multi-User & Admin</div>
-        <h2 class="section-title-lg">Für den ganzen<br>Makerspace</h2>
-        <p style="color:var(--text2);font-size:0.95rem;line-height:1.7;margin-bottom:1.5rem;">
+        <div class="section-badge" data-i18n="admin.badge">Multi-User & Admin</div>
+        <h2 class="section-title-lg" data-i18n="admin.title">Für den ganzen<br>Makerspace</h2>
+        <p style="color:var(--text2);font-size:0.95rem;line-height:1.7;margin-bottom:1.5rem;" data-i18n="admin.intro">
           Spool Tag Propus unterstützt mehrere Benutzerkonten – ideal für Makerspaces, Schulen oder Teams. Admins behalten die volle Kontrolle.
         </p>
         <div class="list-feature">
           <div class="list-feature-icon">👥</div>
           <div class="list-feature-text">
-            <strong>Benutzerverwaltung</strong>
-            <span>Alle Accounts in einer Übersicht. Sperren, löschen oder Admin-Rechte vergeben – direkt im Browser.</span>
+            <strong data-i18n="admin.features.0.title">Benutzerverwaltung</strong>
+            <span data-i18n="admin.features.0.description">Alle Accounts in einer Übersicht. Sperren, löschen oder Admin-Rechte vergeben – direkt im Browser.</span>
           </div>
         </div>
         <div class="list-feature">
           <div class="list-feature-icon">📊</div>
           <div class="list-feature-text">
-            <strong>Systemstatus</strong>
-            <span>API-Version, DB-Größe, Anzahl Profile und Sync-Status auf einen Blick.</span>
+            <strong data-i18n="admin.features.1.title">Systemstatus</strong>
+            <span data-i18n="admin.features.1.description">API-Version, DB-Größe, Anzahl Profile und Sync-Status auf einen Blick.</span>
           </div>
         </div>
         <div class="list-feature">
           <div class="list-feature-icon">💾</div>
           <div class="list-feature-text">
-            <strong>Backup-Übersicht</strong>
-            <span>Alle Benutzer-Backups an einem Ort – mit Zeitstempel und Benutzer-Zuordnung.</span>
+            <strong data-i18n="admin.features.2.title">Backup-Übersicht</strong>
+            <span data-i18n="admin.features.2.description">Alle Benutzer-Backups an einem Ort – mit Zeitstempel und Benutzer-Zuordnung.</span>
           </div>
         </div>
         <div class="list-feature">
           <div class="list-feature-icon">🐛</div>
           <div class="list-feature-text">
-            <strong>Fehlerberichte mit Screenshots</strong>
-            <span>Nutzer können Bugs direkt aus der App melden – inkl. Screenshot-Anhang.</span>
+            <strong data-i18n="admin.features.3.title">Fehlerberichte mit Screenshots</strong>
+            <span data-i18n="admin.features.3.description">Nutzer können Bugs direkt aus der App melden – inkl. Screenshot-Anhang.</span>
           </div>
         </div>
       </div>
       <div class="split-visual">
-        <div class="vis-label">Admin-Panel · Benutzer</div>
+        <div class="vis-label" data-i18n="usersHeader">Admin-Panel · Benutzer</div>
         <div style="display:flex;gap:0.4rem;margin-bottom:0.75rem;flex-wrap:wrap;">
-          <div style="padding:0.25rem 0.65rem;border-radius:7px;background:rgba(0,212,170,0.15);border:1px solid rgba(0,212,170,0.3);color:var(--accent);font-size:0.72rem;font-weight:700;cursor:default;">👥 Benutzer</div>
-          <div style="padding:0.25rem 0.65rem;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:0.72rem;cursor:default;">📊 Status</div>
-          <div style="padding:0.25rem 0.65rem;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:0.72rem;cursor:default;">💾 Backups</div>
-          <div style="padding:0.25rem 0.65rem;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:0.72rem;cursor:default;">🐛 Fehler</div>
+          <div style="padding:0.25rem 0.65rem;border-radius:7px;background:rgba(0,212,170,0.15);border:1px solid rgba(0,212,170,0.3);color:var(--accent);font-size:0.72rem;font-weight:700;cursor:default;" data-i18n="nav_users">👥 Benutzer</div>
+          <div style="padding:0.25rem 0.65rem;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:0.72rem;cursor:default;" data-i18n="nav_status">📊 Status</div>
+          <div style="padding:0.25rem 0.65rem;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:0.72rem;cursor:default;" data-i18n="nav_backups">💾 Backups</div>
+          <div style="padding:0.25rem 0.65rem;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:0.72rem;cursor:default;" data-i18n="nav_fehler">🐛 Fehler</div>
         </div>
         <div class="vis-divider"></div>
-        <div style="font-size:0.72rem;color:var(--text2);margin-bottom:0.4rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Benutzer (3)</div>
+        <div style="font-size:0.72rem;color:var(--text2);margin-bottom:0.4rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;" data-i18n="usersHeader">Benutzer (3)</div>
         <div style="background:var(--bg3);border-radius:8px;overflow:hidden;border:1px solid var(--border);">
           <div style="display:flex;gap:0.5rem;align-items:center;padding:0.5rem 0.75rem;border-bottom:1px solid var(--border);font-size:0.78rem;">
             <span style="flex:1;font-weight:600;">janez@janez.ch</span>
-            <span style="background:rgba(124,58,237,0.15);color:#a78bfa;border-radius:99px;padding:0.1rem 0.45rem;font-size:0.68rem;font-weight:700;">Admin</span>
+            <span style="background:rgba(124,58,237,0.15);color:#a78bfa;border-radius:99px;padding:0.1rem 0.45rem;font-size:0.68rem;font-weight:700;" data-i18n="users.0.badge">Admin</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;align-items:center;padding:0.5rem 0.75rem;border-bottom:1px solid var(--border);font-size:0.78rem;">
+            <span style="flex:1;font-weight:600;">max@maker.ch</span>
+            <span style="color:var(--text2);font-size:0.72rem;">—</span>
           </div>
           <div style="display:flex;gap:0.5rem;align-items:center;padding:0.5rem 0.75rem;border-bottom:1px solid var(--border);font-size:0.78rem;">
             <span style="flex:1;font-weight:600;">max@maker.ch</span>
@@ -1126,13 +1256,13 @@
           </div>
           <div style="display:flex;gap:0.5rem;align-items:center;padding:0.5rem 0.75rem;font-size:0.78rem;opacity:.55;">
             <span style="flex:1;font-weight:600;">old@user.ch</span>
-            <span style="background:rgba(224,85,0,0.15);color:#e05500;border-radius:99px;padding:0.1rem 0.45rem;font-size:0.68rem;font-weight:700;">Gesperrt</span>
+            <span style="background:rgba(224,85,0,0.15);color:#e05500;border-radius:99px;padding:0.1rem 0.45rem;font-size:0.68rem;font-weight:700;" data-i18n="users.3.badge">Gesperrt</span>
           </div>
         </div>
         <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;">
-          <div style="padding:0.3rem 0.7rem;border-radius:7px;background:var(--bg3);border:1px solid var(--border);font-size:0.72rem;cursor:default;">👑 Admin vergeben</div>
-          <div style="padding:0.3rem 0.7rem;border-radius:7px;background:var(--bg3);border:1px solid var(--border);font-size:0.72rem;cursor:default;">🔒 Sperren</div>
-          <div style="padding:0.3rem 0.7rem;border-radius:7px;background:rgba(224,85,0,0.08);border:1px solid rgba(224,85,0,0.2);color:#e05500;font-size:0.72rem;cursor:default;">🗑️ Löschen</div>
+          <div style="padding:0.3rem 0.7rem;border-radius:7px;background:var(--bg3);border:1px solid var(--border);font-size:0.72rem;cursor:default;" data-i18n="actions.0.label">👑 Admin vergeben</div>
+          <div style="padding:0.3rem 0.7rem;border-radius:7px;background:var(--bg3);border:1px solid var(--border);font-size:0.72rem;cursor:default;" data-i18n="actions.1.label">🔒 Sperren</div>
+          <div style="padding:0.3rem 0.7rem;border-radius:7px;background:rgba(224,85,0,0.08);border:1px solid rgba(224,85,0,0.2);color:#e05500;font-size:0.72rem;cursor:default;" data-i18n="actions.2.label">🗑️ Löschen</div>
         </div>
       </div>
     </div>
@@ -1143,37 +1273,37 @@
 <section id="faq">
   <div class="container">
     <div class="reveal">
-      <div class="section-badge">FAQ</div>
-      <h2 class="section-title-lg">Häufige Fragen</h2>
+      <div class="section-badge" data-i18n="faq.badge">FAQ</div>
+      <h2 class="section-title-lg" data-i18n="faq.title">Häufige Fragen</h2>
     </div>
     <div class="faq-list">
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Ist Spool Tag Propus kostenlos? <span>+</span></div>
-        <div class="faq-a">Ja, Spool Tag Propus ist vollständig kostenlos und Open Source. Du kannst es direkt im Browser nutzen – oder optional selbst auf deinem Server, NAS oder Raspberry Pi hosten.</div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.items.0.question">Ist Spool Tag Propus kostenlos?</span> <span>+</span></div>
+        <div class="faq-a" data-i18n="faq.items.0.answer">Ja, Spool Tag Propus ist vollständig kostenlos und Open Source. Du kannst es direkt im Browser nutzen – oder optional selbst auf deinem Server, NAS oder Raspberry Pi hosten.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Welche NFC-Tags werden unterstützt? <span>+</span></div>
-        <div class="faq-a">Es werden standard NDEF-kompatible NFC-Tags benötigt (NTAG213/215/216). Diese gibt es günstig bei Amazon oder AliExpress. NFC schreiben und lesen funktioniert nur auf Android-Geräten mit Chrome-Browser, da iOS die NFC Web API nicht unterstützt.</div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.items.1.question">Welche NFC-Tags werden unterstützt?</span> <span>+</span></div>
+        <div class="faq-a" data-i18n="faq.items.1.answer">Es werden standard NDEF-kompatible NFC-Tags benötigt (NTAG213/215/216). Diese gibt es günstig bei Amazon oder AliExpress. NFC schreiben und lesen funktioniert nur auf Android-Geräten mit Chrome-Browser, da iOS die NFC Web API nicht unterstützt.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Wie installiere ich Spool Tag Propus? <span>+</span></div>
-        <div class="faq-a">Einfach die URL im Browser öffnen – fertig. Wer selbst hosten möchte: Installation via Docker Compose. Ein fertiges <code>docker-compose.yml</code> findest du im Repository. Mit einem einzigen Befehl sind Frontend (Nginx) und Backend (Python/Flask) einsatzbereit – auch auf Synology NAS, UGREEN NAS oder einem Raspberry Pi.</div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.items.2.question">Wie installiere ich Spool Tag Propus?</span> <span>+</span></div>
+        <div class="faq-a" data-i18n="ffaq.items.2.answer">Einfach die URL im Browser öffnen – fertig. Wer selbst hosten möchte: Installation via Docker Compose. Ein fertiges <code>docker-compose.yml</code> findest du im Repository. Mit einem einzigen Befehl sind Frontend (Nginx) und Backend (Python/Flask) einsatzbereit – auch auf Synology NAS, UGREEN NAS oder einem Raspberry Pi.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Funktioniert die App ohne Internetzugang? <span>+</span></div>
-        <div class="faq-a">Ja! Als Progressive Web App (PWA) mit Service Worker können alle Kernfunktionen – inkl. der Filament-Datenbank – offline genutzt werden. Lediglich die Datenbankaktualisierung und Spoolman-Sync benötigen eine Netzwerkverbindung.</div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="ffaq.items.3.question">Funktioniert die App ohne Internetzugang?</span> <span>+</span></div>
+        <div class="faq-a" data-i18n="ffaq.items.3.answer">Ja! Als Progressive Web App (PWA) mit Service Worker können alle Kernfunktionen – inkl. der Filament-Datenbank – offline genutzt werden. Lediglich die Datenbankaktualisierung und Spoolman-Sync benötigen eine Netzwerkverbindung.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Kann ich Spool Tag Propus auf dem Handy nutzen? <span>+</span></div>
-        <div class="faq-a">Ja! Die App ist vollständig mobil-optimiert und kann als PWA auf Android und iOS installiert werden. NFC-Tag schreiben/lesen ist auf Android mit Chrome verfügbar. QR-Code-Scanning funktioniert auf allen Geräten mit Kamera.</div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.items.4.question">Kann ich Spool Tag Propus auf dem Handy nutzen?</span> <span>+</span></div>
+        <div class="faq-a" data-i18n="faq.items.4.answer">Ja! Die App ist vollständig mobil-optimiert und kann als PWA auf Android und iOS installiert werden. NFC-Tag schreiben/lesen ist auf Android mit Chrome verfügbar. QR-Code-Scanning funktioniert auf allen Geräten mit Kamera.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Wie werden meine Daten gespeichert? <span>+</span></div>
-        <div class="faq-a">Alle Daten werden lokal in einer SQLite-Datenbank auf deinem eigenen Server gespeichert. Es werden keine Daten an externe Dienste übertragen (außer du aktivierst GitHub-Issue-Erstellung für Fehlerberichte).</div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.items.5.question">Wie werden meine Daten gespeichert?</span> <span>+</span></div>
+        <div class="faq-a" data-i18n="faq.items.5.answer">Alle Daten werden lokal in einer SQLite-Datenbank auf deinem eigenen Server gespeichert. Es werden keine Daten an externe Dienste übertragen (außer du aktivierst GitHub-Issue-Erstellung für Fehlerberichte).</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">Gibt es einen Unterschied zwischen OpenSpool und OpenPrintTag? <span>+</span></div>
-        <div class="faq-a">Beide sind offene NFC-Standards für Filament-Tags. OpenSpool ist einfacher und fokussiert auf grundlegende Materialdaten (Hersteller, Material, Farbe, Temperaturen). OpenPrintTag ist ein erweitertes Format mit zusätzlichen Parametern wie Flussverhältnis, maximaler volumetrischer Geschwindigkeit und mehr – ideal für fortgeschrittene Setups.</div>
+        <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq.items.6.question">Gibt es einen Unterschied zwischen OpenSpool und OpenPrintTag?</span> <span>+</span></div>
+        <div class="faq-a" data-i18n="faq.items.6.answer">Beide sind offene NFC-Standards für Filament-Tags. OpenSpool ist einfacher und fokussiert auf grundlegende Materialdaten (Hersteller, Material, Farbe, Temperaturen). OpenPrintTag ist ein erweitertes Format mit zusätzlichen Parametern wie Flussverhältnis, maximaler volumetrischer Geschwindigkeit und mehr – ideal für fortgeschrittene Setups.</div>
       </div>
     </div>
   </div>
@@ -1182,15 +1312,15 @@
 <!-- ===== CTA ===== -->
 <div class="cta-section">
   <div class="container">
-    <h2>Bereit loszulegen?</h2>
-    <p>Starte jetzt – kostenlos, Open Source, direkt im Browser nutzbar.</p>
+    <h2 data-i18n="cta.title">Bereit loszulegen?</h2>
+    <p data-i18n="cta.subtitle">Starte jetzt – kostenlos, Open Source, direkt im Browser nutzbar.</p>
     <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
-      <a href="index.html" class="btn-cta-lg">🚀 App starten</a>
-      <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener" class="btn-outline-lg">
+      <a href="index.html" class="btn-cta-lg" data-i18n="cta.buttons.0.label">🚀 App starten</a>
+      <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener" class="btn-outline-lg" data-i18n="cta.buttons.1.label">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
         Discord Community
       </a>
-      <a href="https://buymeacoffee.com/propuscode" target="_blank" rel="noopener" class="btn-outline-lg" style="background:#FFDD00;color:#000;border-color:#FFDD00;">☕ Unterstützen</a>
+      <a href="https://buymeacoffee.com/propuscode" target="_blank" rel="noopener" class="btn-outline-lg" style="background:#FFDD00;color:#000;border-color:#FFDD00;" data-i18n="cta.buttons.2.label">☕ Unterstützen</a>
     </div>
   </div>
 </div>
@@ -1198,13 +1328,13 @@
 <!-- ===== FOOTER ===== -->
 <footer>
   <div class="footer-left">
-    © 2026 Spool Tag Propus · v1.6.66 · Mit ❤️ für die 3D-Druck-Community
+    <span data-i18n="footer.copyright">© 2026 Spool Tag Propus · v1.6.66 · Mit ❤️ für die 3D-Druck-Community</span>
   </div>
   <div class="footer-right">
-    <a href="index.html">App öffnen</a>
-    <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener">Discord</a>
-    <a href="https://buymeacoffee.com/propuscode" target="_blank" rel="noopener">☕ Unterstützen</a>
-    <a href="index.html#" onclick="app&&app.showErrorReportModal&&app.showErrorReportModal()">🐛 Bug melden</a>
+    <a href="index.html" data-i18n="footer.linkApp">App öffnen</a>
+    <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener" data-i18n="footer.linkDiscord">Discord</a>
+    <a href="https://buymeacoffee.com/propuscode" target="_blank" rel="noopener" data-i18n="footer.linkSupport">☕ Unterstützen</a>
+    <a href="index.html#" onclick="app&&app.showErrorReportModal&&app.showErrorReportModal()" data-i18n="footer.linkBug">🐛 Bug melden</a>
   </div>
 </footer>
 
@@ -1212,6 +1342,10 @@
   // FAQ accordion
   function toggleFaq(el) {
     el.parentElement.classList.toggle('open');
+  }
+  function toggleMenu() {
+  const navLinks = document.querySelector('.nav-links');
+  navLinks.classList.toggle('open');
   }
 
   // Scroll reveal
@@ -1243,6 +1377,48 @@
         backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,.08)'
       });
     }
+  });
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    await I18n.init(); // Initialize i18n
+    I18n.refreshElements(); // Refresh UI elements after loading translations
+
+    // Select the language buttons
+    const langButtons = document.querySelectorAll('.lang-btn');
+
+    langButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const lang = this.getAttribute('data-lang'); // Get the language from the button
+            I18n.setLanguage(lang); // Change the language
+
+            // Update active button visually
+            langButtons.forEach(btn => btn.classList.remove('active')); // Remove active class from all buttons
+            this.classList.add('active'); // Add active class to clicked button
+        });
+    });
+
+    // Set the active button based on the current language on initialization
+    langButtons.forEach(button => {
+        if (button.getAttribute('data-lang') === I18n.getLanguage()) {
+            button.classList.add('active'); // Mark the button as active
+        }
+    });
+
+    // Hamburger Menu Toggle
+    const navToggle = document.getElementById('navToggle');
+    const navMobile = document.getElementById('navMobile');
+    const navMobileLinks = navMobile.querySelectorAll('a');
+
+    navToggle.addEventListener('click', () => {
+      navMobile.classList.toggle('active');
+    });
+
+    // Close menu when link is clicked
+    navMobileLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        navMobile.classList.remove('active');
+      });
+    });
   });
 </script>
 </body>
