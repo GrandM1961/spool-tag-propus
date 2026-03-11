@@ -15,6 +15,10 @@ from database import init_db, get_db as _get_db_raw
 from sync import run_full_sync
 import requests
 
+# Suppress SSL warnings for internal container-to-container communication
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
 log = logging.getLogger(__name__)
 
@@ -366,7 +370,7 @@ def auth_login():
         if _looks_like_email(identifier):
             ident_email = identifier.lower()
             row = db.execute(
-                'SELECT id, email, username, role, password_hash, is_locked, is_admin FROM users WHERE email = ?',
+                'SELECT id, email, username, role, password_hash, is_locked, is_admin FROM users WHERE lower(email) = ?',
                 (ident_email,)
             ).fetchone()
         else:
@@ -1456,10 +1460,10 @@ def spoolman_proxy():
         return jsonify({'error': 'missing_url'}), 400
     if not spoolman_url.startswith(('http://', 'https://')):
         spoolman_url = 'http://' + spoolman_url
-    # Only allow private/local IPs or explicit hosts (basic safety)
     try:
+        # Use the exact URL provided (supports both internal containers and external HTTPS)
         target = f"{spoolman_url}{path}"
-        resp = requests.get(target, timeout=6)
+        resp = requests.get(target, timeout=6, verify=False)
         return Response(resp.content, status=resp.status_code,
                         content_type=resp.headers.get('Content-Type', 'application/json'))
     except requests.exceptions.ConnectionError:
@@ -1487,7 +1491,8 @@ def spoolman_spools_proxy():
     if not spoolman_url.startswith(('http://', 'https://')):
         spoolman_url = 'http://' + spoolman_url
     try:
-        resp = requests.get(f"{spoolman_url}/api/v1/spool", timeout=8)
+        # Use the exact URL provided by the user (supports both internal and external)
+        resp = requests.get(f"{spoolman_url}/api/v1/spool", timeout=8, verify=False)
         return Response(resp.content, status=resp.status_code,
                         content_type=resp.headers.get('Content-Type', 'application/json'))
     except requests.exceptions.ConnectionError:
@@ -1515,7 +1520,8 @@ def spoolman_filaments_proxy():
     if not spoolman_url.startswith(('http://', 'https://')):
         spoolman_url = 'http://' + spoolman_url
     try:
-        resp = requests.get(f"{spoolman_url}/api/v1/filament", timeout=10)
+        # Use the exact URL provided by the user (supports both internal and external)
+        resp = requests.get(f"{spoolman_url}/api/v1/filament", timeout=10, verify=False)
         return Response(resp.content, status=resp.status_code,
                         content_type=resp.headers.get('Content-Type', 'application/json'))
     except requests.exceptions.ConnectionError:

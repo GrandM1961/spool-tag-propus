@@ -8,6 +8,7 @@ services:
     volumes:
       - ./public:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/ssl:ro
     depends_on:
       - api
     restart: unless-stopped
@@ -19,21 +20,12 @@ services:
     container_name: spool-propus-api
     volumes:
       - spool-data:/data
-      # Chat exports written here will appear in the repo workspace:
       - ./.chat:/chat-exports
-    environment:
-      - DB_PATH=/data/spool_propus.db
-      - SYNC_INTERVAL=24
-      # Admin KI-Assistent: write exports into bind mount
-      - CHAT_EXPORT_DIR=/chat-exports
-      # Auth (required for login)
-      - JWT_SECRET=change-me-in-production
-      # Optional: Create GitHub issues from error reports (see README)
-      # - GITHUB_TOKEN=ghp_xxxx
-      # - GITHUB_REPO=Janez76/spool-tag-propus
+    env_file: .env
     restart: unless-stopped
     networks:
       - spool-net
+      - spoolman_default
 
 volumes:
   spool-data:
@@ -41,3 +33,5 @@ volumes:
 networks:
   spool-net:
     driver: bridge
+  spoolman_default:
+    external: true
