@@ -1,42 +1,69 @@
+# Dependencies
 node_modules/
+npm-debug.log
+package-lock.json
+
+# Build output
+dist/
+build/
+*.min.js
+*.min.css
+
+# Environment
 .env
-*.log
+.env.local
+.env.*.local
+
+# macOS
 .DS_Store
-Thumbs.db
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+*~
 
-# Deploy scripts (contain credentials)
-deploy_*.py
-fix_*.py
-
-# Database files
-*.db
-*.sqlite3
-
-# SSL certificates
-*.pem
-*.key
-*.crt
-ssl/
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-venv/
-
-# IDE
+# IDE/Editor
 .vscode/
 .idea/
-.cursor/
-
-# Unrelated files
-login-page.html
+*.sublime-project
+*.sublime-workspace
+.code/
 
 # OS
-Desktop.ini
-ehthumbs.db
+Thumbs.db
+.DS_Store
 
-# KI-Chat Exports (lokal gespeicherte Transkripte)
-# Entferne diese Zeile wenn du Chats im Repo versionieren willst
-.chat/
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.pid
+
+# Docker
+docker-compose.override.yml
+
+# Backups
+*.backup
+*.bak
+*.old
+*_copy.*
+*_kopie.*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Certificates (if temporary)
+certs/*.pem
+certs/*.key
+certs/*.crt
+!certs/README.md
+
+# Cache
+.cache/
+*.cache
+
+# Lock files (optional - usually should be committed)
+# package-lock.json
+# yarn.lock
