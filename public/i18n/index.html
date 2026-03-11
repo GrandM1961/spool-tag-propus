@@ -1,0 +1,2752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1120">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Spool Tag Propus">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <link rel="apple-touch-icon" href="logo.svg">
+  <title>Spool Tag Propus - Filament Tag Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="dark"] {
+      --bg-primary: #0b1120;
+      --bg-secondary: #111827;
+      --bg-tertiary: #1a2540;
+      --text-primary: #f0f4f8;
+      --text-secondary: #8b9dc3;
+      --accent: #00d4aa;
+      --accent-hover: #00e8bb;
+      --accent-secondary: #38bdf8;
+      --border: rgba(255, 255, 255, 0.06);
+      --success: #00d4aa;
+      --error: #f87171;
+      --warning: #fbbf24;
+      --focus-ring: rgba(0, 212, 170, 0.15);
+      --bg-body-grad-a: #0b1120;
+      --bg-body-grad-b: #0f1b33;
+      --glow-a: rgba(0, 212, 170, 0.03);
+      --glow-b: rgba(56, 189, 248, 0.03);
+      --btn-sec-hover: #243352;
+      --toast-bg: rgba(17,24,39,0.95);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f0f4f8;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e8ecf1;
+      --text-primary: #1a202c;
+      --text-secondary: #5a6a82;
+      --accent: #00a88a;
+      --accent-hover: #00c49e;
+      --accent-secondary: #2196f3;
+      --border: rgba(0, 0, 0, 0.08);
+      --success: #00a88a;
+      --error: #d32f2f;
+      --warning: #f57f17;
+      --focus-ring: rgba(0, 168, 138, 0.15);
+      --bg-body-grad-a: #f0f4f8;
+      --bg-body-grad-b: #e0e6ed;
+      --glow-a: rgba(0, 168, 138, 0.05);
+      --glow-b: rgba(33, 150, 243, 0.04);
+      --btn-sec-hover: #d5dce6;
+      --toast-bg: rgba(255,255,255,0.95);
+    }
+
+    .floating-tip {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: 1px solid var(--accent-hover);
+      color: var(--bg-primary);
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(0,212,170,0.35);
+      width: auto !important;
+      margin: 0;
+      animation: tip-pulse 2s ease-out infinite;
+    }
+
+    .floating-tip:hover { background: var(--accent-hover); }
+    .floating-tip:active { transform: translateY(1px); }
+
+    @keyframes tip-pulse {
+      0% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(0,212,170,0.35); }
+      70% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 14px rgba(0,212,170,0); }
+      100% { box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 0 0 rgba(0,212,170,0); }
+    }
+
+    @media (min-width: 641px) {
+      .floating-tip { display: none !important; }
+    }
+
+    .mobile-toast {
+      position: fixed;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      z-index: 1000;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: rgba(17,24,39,0.95);
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      display: none;
+      max-width: 90%;
+      text-align: center;
+    }
+    .mobile-toast.show { display: block; }
+    .mobile-toast.success { background: rgba(0,212,170,0.95); color: var(--bg-primary); border-color: rgba(0,212,170,0.8); }
+    .mobile-toast.error { background: rgba(248,113,113,0.95); color: var(--bg-primary); border-color: rgba(248,113,113,0.8); }
+
+    @media (min-width: 641px) {
+      .mobile-toast { display: none !important; }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, var(--bg-body-grad-a) 0%, var(--bg-body-grad-b) 50%, var(--bg-body-grad-a) 100%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      width: 500px;
+      height: 500px;
+      background: var(--glow-a);
+      top: -150px;
+      right: -150px;
+    }
+
+    body::after {
+      width: 400px;
+      height: 400px;
+      background: var(--glow-b);
+      bottom: -100px;
+      left: -100px;
+    }
+
+    header {
+      background: var(--bg-secondary);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 1.75rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    #subNav {
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 1.25rem;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 99;
+    }
+    #subNavBack {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    #subNavBack:hover { background: var(--bg-card); border-color: var(--accent); color: var(--accent); }
+    #subNavTitle {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      flex: 1;
+    }
+    #subNavBreadcrumb {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 0.35rem;
+      letter-spacing: -0.02em;
+    }
+    header h1 .brand-text {
+      background: linear-gradient(135deg, #00d4aa 0%, #38bdf8 50%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header .brand {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      text-decoration: none;
+    }
+    header .brand:hover { text-decoration: none; }
+    header .brand-logo {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      vertical-align: middle;
+    }
+    body.sub-mode header .brand-logo {
+      width: 22px;
+      height: 22px;
+    }
+
+    header p {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      transition: opacity 0.2s, max-height 0.2s;
+    }
+    body.sub-mode header {
+      padding: 0.9rem 1.5rem;
+    }
+    body.sub-mode header p {
+      display: none;
+    }
+    body.sub-mode header h1 {
+      font-size: 1.15rem;
+      margin-bottom: 0;
+    }
+
+    header a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    header a:hover {
+      color: var(--accent-hover);
+      text-decoration: underline;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Spoolman import (Settings) */
+    .spool-import-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      margin-bottom: 0.4rem;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s, background 0.15s, transform 0.05s;
+    }
+    .spool-import-row:hover { border-color: rgba(0, 212, 170, 0.35); }
+    .spool-import-row:active { transform: translateY(1px); }
+    .spool-import-row.is-selected {
+      border-color: var(--accent);
+      background: rgba(0, 212, 170, 0.08);
+    }
+    .spool-import-row.is-imported {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+    .spool-import-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+    .spool-import-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.18rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      background: rgba(255,255,255,0.02);
+      white-space: nowrap;
+    }
+    .spool-import-badge.ok {
+      color: var(--accent);
+      border-color: rgba(0, 212, 170, 0.35);
+      background: rgba(0, 212, 170, 0.08);
+    }
+    .spool-import-badge.sel {
+      color: #fff;
+      border-color: rgba(56, 189, 248, 0.45);
+      background: rgba(56, 189, 248, 0.15);
+    }
+
+    .section {
+      background: var(--bg-secondary);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 2rem;
+      border: 1px solid var(--border);
+      margin-bottom: 1rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+      animation: fadeSlideUp 0.35s ease-out;
+    }
+
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00d4aa 0%, #38bdf8 60%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus-ring), 0 2px 8px rgba(0, 212, 170, 0.08);
+    }
+
+    input:hover:not(:focus), select:hover:not(:focus) {
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-top: 0.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+      color: var(--bg-primary);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 4px 20px rgba(0, 212, 170, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--btn-sec-hover);
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #00d4aa, #00b896);
+      color: var(--bg-primary);
+    }
+
+    .btn-success:hover:not(:disabled) {
+      box-shadow: 0 4px 20px rgba(0, 212, 170, 0.35);
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    /* === Mode Selection Card Grid === */
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-top: 0.25rem;
+    }
+
+    .mode-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1.25rem 0.75rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: center;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mode-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,212,170,0.06), rgba(56,189,248,0.04));
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+
+    .mode-card:hover {
+      border-color: rgba(0, 212, 170, 0.3);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 212, 170, 0.1);
+    }
+
+    .mode-card:hover::before {
+      opacity: 1;
+    }
+
+    .mode-card:active {
+      transform: translateY(-1px);
+    }
+
+    .mode-card-icon {
+      font-size: 1.8rem;
+      line-height: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    .mode-card-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+      position: relative;
+      z-index: 1;
+    }
+
+    .mode-card-desc {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      line-height: 1.3;
+      position: relative;
+      z-index: 1;
+    }
+
+    .mode-card.accent-card {
+      background: linear-gradient(135deg, rgba(0,212,170,0.1), rgba(56,189,248,0.08));
+      border-color: rgba(0,212,170,0.2);
+    }
+
+    .mode-divider {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 0.25rem 0;
+    }
+
+    .mode-divider::before,
+    .mode-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .mode-divider span {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .mode-bottom-row {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .mode-bottom-row .btn-secondary,
+    .mode-bottom-row a.btn-secondary {
+      flex: 1;
+      margin-top: 0;
+      font-size: 0.8rem;
+      padding: 0.7rem;
+      justify-content: center;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .mode-bottom-row a.btn-secondary:hover {
+      background: var(--btn-sec-hover);
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    @media (max-width: 360px) {
+      .mode-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .nfc-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .nfc-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--error);
+      box-shadow: 0 0 6px rgba(248, 113, 113, 0.5);
+      flex-shrink: 0;
+    }
+
+    .nfc-indicator.ready {
+      background: var(--accent);
+      box-shadow: 0 0 6px rgba(0, 212, 170, 0.5);
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 6px rgba(0, 212, 170, 0.5); }
+      50% { box-shadow: 0 0 12px rgba(0, 212, 170, 0.8); }
+    }
+
+    .status-message {
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      display: none;
+      animation: fadeSlideUp 0.25s ease-out;
+    }
+
+    .status-message.show {
+      display: block;
+    }
+
+    .status-message.success {
+      background: rgba(0, 212, 170, 0.1);
+      border: 1px solid rgba(0, 212, 170, 0.3);
+      color: var(--accent);
+    }
+
+    .status-message.error {
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      color: var(--error);
+    }
+
+    .status-message.warning {
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      color: var(--warning);
+    }
+
+    .info-box {
+      padding: 0.75rem 1rem;
+      background: rgba(56, 189, 248, 0.06);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 12px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .color-palette {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .picker-row canvas { min-width: 0; }
+
+    .palette-group-title {
+      margin: 0.25rem 0 0.35rem 0;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .material-palette {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .material-swatch {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.45rem 0.5rem;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      line-height: 1.2;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .material-swatch:hover {
+      background: #243352;
+      transform: translateY(-1px);
+    }
+
+    .material-swatch.selected {
+      background: linear-gradient(135deg, var(--accent), #00b896);
+      color: var(--bg-primary);
+      border-color: var(--accent);
+      box-shadow: 0 2px 12px rgba(0, 212, 170, 0.35);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 640px) {
+      .material-palette {
+        grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+        gap: 0.25rem;
+      }
+      .material-swatch {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.78rem;
+        border-radius: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .material-palette {
+        grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+        gap: 0.2rem;
+      }
+      .material-swatch {
+        padding: 0.25rem 0.35rem;
+        font-size: 0.72rem;
+      }
+    }
+
+    .color-swatch {
+      width: 100%;
+      height: 35px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 2px solid var(--border);
+      transition: all 0.2s;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.1);
+    }
+
+    .color-swatch.selected {
+      border-color: var(--accent);
+      border-width: 3px;
+      box-shadow: 0 0 10px rgba(0, 212, 170, 0.5);
+    }
+
+    .collapsible {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      margin: 1.5rem 0 0.5rem;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+
+    .collapsible:hover {
+      background: #243352;
+      border-color: rgba(255,255,255,0.1);
+    }
+
+    .collapsible-icon {
+      transition: transform 0.2s;
+    }
+
+    .collapsible.collapsed .collapsible-icon {
+      transform: rotate(-90deg);
+    }
+
+    .collapsible-content {
+      max-height: 2000px;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .collapsible-content.collapsed {
+      max-height: 0;
+    }
+
+    .decoded-data {
+      background: var(--bg-tertiary);
+      padding: 1rem;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .spool-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem;
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .spool-card:hover {
+      border-color: rgba(0, 212, 170, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 212, 170, 0.1);
+    }
+
+    .spool-card:active {
+      transform: translateY(0);
+    }
+
+    .spool-color-dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .spool-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .spool-info strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .spool-info small {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    .spool-weight {
+      text-align: right;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .spoolman-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.5rem;
+      background: rgba(76, 175, 80, 0.15);
+      border: 1px solid var(--success);
+      border-radius: 12px;
+      font-size: 0.75rem;
+      color: var(--success);
+    }
+
+    .spoolman-badge.disconnected {
+      background: rgba(244, 67, 54, 0.15);
+      border-color: var(--error);
+      color: var(--error);
+    }
+
+    .tag-summary {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .tag-summary-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tag-summary-color {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tag-summary-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .tag-summary-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-top: 0.15rem;
+    }
+
+    .tag-summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+    }
+
+    .tag-summary-item {
+      padding: 0.5rem 0.6rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+    }
+
+    .tag-summary-item.full {
+      grid-column: 1 / -1;
+    }
+
+    .tag-summary-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 0.15rem;
+    }
+
+    .tag-summary-value {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .profile-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.6rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .profile-card:hover {
+      border-color: rgba(0, 212, 170, 0.25);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .pcard-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .pcard-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .pcard-name {
+      font-size: 0.95rem;
+      line-height: 1.2;
+    }
+
+    .pcard-vendor {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      white-space: nowrap;
+      padding-top: 0.15rem;
+    }
+
+    .profile-badge {
+      display: inline-block;
+      background: rgba(0, 212, 170, 0.15);
+      color: var(--accent);
+      padding: 0.15rem 0.45rem;
+      border-radius: 5px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .pcard-mat {
+      flex-shrink: 0;
+    }
+
+    .pcard-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.45rem;
+    }
+
+    .pcard-chip {
+      display: inline-block;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .pcard-downloads {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .profile-dl-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.73rem;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    .profile-dl-btn:hover {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+
+    .filament-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .filament-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.6rem 0.75rem;
+    }
+
+    .filament-color {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+    }
+
+    .filament-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .filament-info strong {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .install-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      background: rgba(17,24,39,0.92);
+      border-top: 1px solid var(--border);
+      z-index: 1000;
+      font-size: 0.9rem;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      animation: fadeSlideUp 0.3s ease-out;
+    }
+
+    .install-banner.hidden {
+      display: none;
+    }
+
+    .color-swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+      gap: 6px;
+      margin-bottom: 0.5rem;
+    }
+
+    .color-swatch-grid .cs {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+      position: relative;
+    }
+
+    .color-swatch-grid .cs:hover {
+      transform: scale(1.15);
+      z-index: 1;
+    }
+
+    .color-swatch-grid .cs.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(0, 212, 170, 0.5);
+      transform: scale(1.1);
+    }
+
+    .color-swatch-grid .cs[title]::after {
+      content: attr(title);
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      white-space: nowrap;
+      color: var(--text-secondary);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .color-swatch-grid .cs:hover[title]::after {
+      opacity: 1;
+    }
+
+    .color-variant-swatch {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.6rem;
+      background: var(--bg-tertiary);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      user-select: none;
+      min-width: 0;
+    }
+
+    .color-variant-swatch:hover {
+      border-color: var(--accent);
+    }
+
+    .color-variant-swatch.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(0, 212, 170, 0.4);
+    }
+
+    .color-variant-swatch .cv-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+
+    .color-variant-swatch .cv-name {
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 50%;
+      right: 1rem;
+      transform: translateY(-50%);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 0;
+      margin: 0;
+      transition: background 0.2s, border-color 0.2s;
+      z-index: 25;
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .profile-menu-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 0.6rem 1rem;
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .profile-menu-item:hover { background: var(--bg-tertiary); }
+    .profile-menu-item--danger { color: var(--error, #e05); }
+
+    /* Admin panel */
+    .admin-panel-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1100;
+      background: rgba(0,0,0,0.75);
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .admin-panel-overlay.hidden { display: none !important; }
+    .admin-panel-inner {
+      background: var(--bg-primary);
+      width: 100%;
+      max-width: 920px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+    }
+    .admin-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+    .admin-panel-header h2 { margin: 0; font-size: 1.15rem; flex: 1; }
+    .admin-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+    .admin-tab-btn {
+      padding: 0.65rem 1.25rem;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .admin-tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .admin-tab-btn:hover:not(.active) { color: var(--text-primary); }
+    .admin-tab-panel { display: none; flex: 1; overflow-y: auto; padding: 1.25rem 1.5rem; }
+    .admin-tab-panel.active { display: block; }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .admin-table th { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 2px solid var(--border); color: var(--text-secondary); font-weight: 600; white-space: nowrap; }
+    .admin-table td { padding: 0.45rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .admin-table tr:hover td { background: var(--bg-tertiary); }
+    .badge { display: inline-block; padding: 0.15rem 0.45rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+    .badge-admin { background: #7c3aed22; color: #7c3aed; }
+    .badge-locked { background: #e0550022; color: #e05500; }
+    .badge-ok { background: #0a0; color: #0f0; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; text-align: center; }
+    .stat-card .stat-val { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+    .stat-card .stat-lbl { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem; }
+
+    .qr-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .qr-overlay.hidden { display: none !important; }
+    .qr-modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2rem;
+      max-width: 360px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+      animation: fadeSlideUp 0.3s ease-out;
+    }
+    .qr-modal h3 { margin-bottom: 1rem; }
+    .qr-modal .qr-canvas { margin: 0 auto 1rem; }
+    .qr-modal .qr-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+    .qr-modal .qr-actions button { flex: 1; }
+
+    .qr-scanner-box {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+    }
+    .qr-scanner-box video {
+      width: 100%;
+      display: block;
+      border-radius: 12px;
+    }
+    .qr-scanner-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .qr-scanner-frame {
+      width: 60%;
+      aspect-ratio: 1;
+      border: 3px solid var(--accent);
+      border-radius: 16px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);
+    }
+
+    .drying-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 0.6rem;
+    }
+    .drying-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.85rem 1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      transition: all 0.2s;
+    }
+    .drying-card:hover {
+      border-color: rgba(255,255,255,0.1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .drying-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      padding-top: 0.1rem;
+    }
+    .drying-info { flex: 1; min-width: 0; }
+    .drying-info strong { font-size: 0.95rem; }
+    .drying-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-top: 0.3rem;
+    }
+    .drying-chip {
+      display: inline-block;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      padding: 0.15rem 0.45rem;
+      border-radius: 5px;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+    .drying-note {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+      font-style: italic;
+    }
+
+    .about-feature {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .about-feature:last-child { border-bottom: none; }
+    .about-feature-icon { font-size: 1.3rem; flex-shrink: 0; padding-top: 0.1rem; }
+    .about-feature-text strong { display: block; font-size: 0.9rem; margin-bottom: 0.15rem; }
+    .about-feature-text span { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; }
+    .release-entry { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+    .release-entry:last-child { border-bottom: none; }
+    .release-version {
+      display: inline-block;
+      background: rgba(0,212,170,0.15);
+      color: var(--accent);
+      padding: 0.15rem 0.5rem;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-right: 0.5rem;
+    }
+    .release-version.latest {
+      background: var(--accent);
+      color: #fff;
+    }
+    .release-date { font-size: 0.75rem; color: var(--text-secondary); }
+    .release-changes { margin-top: 0.35rem; padding-left: 1rem; }
+    .release-changes li {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.2rem;
+      line-height: 1.4;
+    }
+    .release-notes-hidden { display: none; }
+
+    .hidden {
+      display: none !important;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    footer p:first-child {
+      margin-bottom: 0.25rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    footer a:hover {
+      color: var(--accent-hover);
+      text-decoration: underline;
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        margin: 1rem auto;
+      }
+      .section {
+        padding: 1rem;
+        border-radius: 12px;
+      }
+      .form-row, .button-group {
+        grid-template-columns: 1fr;
+      }
+      .color-palette {
+        grid-template-columns: repeat(6, 1fr);
+      }
+    }
+  </style>
+  <script src="./i18n.js"></script>
+</head>
+<body>
+  <!-- Floating write button (mobile only) -->
+  <button id="floatingWriteBtn" class="floating-tip hidden" onclick="app.toggleWrite()">📝 Write NFC</button>
+  <!-- Mobile toast -->
+  <div id="mobileToast" class="mobile-toast"></div>
+
+  <header>
+    <h1>
+      <a class="brand" href="/landing.html" title="Zur Landingpage">
+        <img class="brand-logo" src="logo.svg" alt="" aria-hidden="true">
+        <span class="brand-text">Spool Tag Propus</span>
+      </a>
+    </h1>
+    <p>Filament Tag Manager mit
+      <a href="https://openspool.io/rfid.html" target="_blank">OpenSpool</a> &amp;
+      <a href="https://specs.openprinttag.org/" target="_blank">OpenPrintTag</a> |
+      <a href="https://github.com/Janez76/spool-tag-propus" target="_blank" rel="noopener">GitHub</a> |
+      <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener" title="Discord Community" style="display:inline-flex;align-items:center;gap:0.25rem;color:var(--accent);"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>Discord</a>
+    </p>
+    <span id="langSwitcher" style="display:inline-flex;gap:0.25rem;margin-left:0.5rem;">
+      <button class="btn-secondary lang-btn" id="langBtnDe" data-lang="de" style="padding:0.25rem 0.5rem;font-size:0.8rem;">DE</button>
+      <button class="btn-secondary lang-btn" id="langBtnEn" data-lang="en" style="padding:0.25rem 0.5rem;font-size:0.8rem;">EN</button>
+      <button class="btn-secondary lang-btn" id="langBtnNl" data-lang="nl" style="padding:0.25rem 0.5rem;font-size:0.8rem;">NL</button>
+    </span>
+    <button id="themeToggle" class="theme-toggle" title="Hell-/Dunkelmodus">🌙</button>
+    <button id="logoutBtn" class="btn-secondary" style="display:none;margin-left:0.5rem;padding:0.35rem 0.75rem;font-size:0.85rem;" data-i18n="auth.logout">Abmelden</button>
+
+    <!-- Profile avatar button -->
+    <div id="profileMenuWrap" style="display:none;position:absolute;top:50%;right:calc(1rem + 38px + 8px);transform:translateY(-50%);z-index:20;">
+      <button id="profileAvatarBtn"
+              style="width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:700;font-size:0.9rem;display:flex;align-items:center;justify-content:center;"
+              title="Mein Profil">
+        <span id="profileAvatarInitials">?</span>
+      </button>
+      <div id="profileDropdown"
+           style="display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;overflow:hidden;">
+        <div id="profileDropEmail" style="padding:0.65rem 1rem;font-size:0.8rem;color:var(--text-secondary);border-bottom:1px solid var(--border);word-break:break-all;"></div>
+        <button class="profile-menu-item" onclick="app.openProfileModal()">👤 Profil bearbeiten</button>
+        <button id="adminPanelBtn" class="profile-menu-item" style="display:none;" onclick="app.openAdminPanel()">🛡️ Admin-Panel</button>
+        <div style="border-top:1px solid var(--border);"></div>
+        <button class="profile-menu-item profile-menu-item--danger" id="profileLogoutBtn">🚪 Abmelden</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sub-page navigation bar -->
+  <div id="subNav">
+    <button id="subNavBack" onclick="app.setMode('menu')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      <span data-i18n="common.back">Zurück</span>
+    </button>
+    <div id="subNavBreadcrumb">
+      <span style="color:var(--text-secondary)">Menü</span>
+      <span>›</span>
+      <span id="subNavTitle" style="color:var(--accent)"></span>
+    </div>
+  </div>
+
+  <!-- Login / Register -->
+  <div id="authSection" class="container" style="max-width: 400px; margin-top: 2rem;">
+    <form id="loginForm" class="section">
+      <h2 class="section-title" data-i18n="auth.login">Anmelden</h2>
+      <div class="form-group">
+        <label data-i18n="auth.identifier">E-Mail oder Benutzername</label>
+        <input type="text" id="loginEmail" data-i18n-placeholder="auth.identifierPlaceholder" placeholder="E-Mail oder Benutzername" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label data-i18n="auth.password">Passwort</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">
+        <input type="checkbox" id="loginRemember" checked style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);">
+        <label for="loginRemember" style="font-size:0.88rem;color:var(--text-secondary);cursor:pointer;" data-i18n="auth.rememberMe">Angemeldet bleiben (30 Tage)</label>
+      </div>
+      <div id="authError" class="status-message error" style="display:none;margin-bottom:0.5rem;"></div>
+      <button type="submit" class="btn-primary" id="loginBtn" style="width:100%;" data-i18n="auth.loginBtn">Anmelden</button>
+      <p style="margin-top:1rem;text-align:center;">
+        <a href="#" id="showRegisterLink" style="color:var(--accent);" data-i18n="auth.noAccount">Noch kein Konto? Registrieren</a>
+      </p>
+    </form>
+    <form id="registerForm" class="section hidden">
+      <h2 class="section-title" data-i18n="auth.register">Registrieren</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Vorname</label>
+          <input type="text" id="registerFirstName" placeholder="Max" autocomplete="given-name">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Nachname</label>
+          <input type="text" id="registerLastName" placeholder="Mustermann" autocomplete="family-name">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:0.75rem;">
+        <label>Geburtsdatum</label>
+        <input type="date" id="registerBirthDate" autocomplete="bday">
+      </div>
+      <div class="form-group">
+        <label>Adresse (optional)</label>
+        <input type="text" id="registerAddress" placeholder="Musterstrasse 1, 3000 Bern" autocomplete="street-address">
+      </div>
+      <div class="form-group">
+        <label data-i18n="auth.username">Benutzername</label>
+        <input type="text" id="registerUsername" data-i18n-placeholder="auth.usernamePlaceholder" placeholder="z.B. janez" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label data-i18n="auth.email">E-Mail</label>
+        <input type="email" id="registerEmail" placeholder="deine@email.de" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label data-i18n="auth.password">Passwort</label>
+        <input type="password" id="registerPassword" data-i18n-placeholder="auth.passwordHint" placeholder="min. 8 Zeichen" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label data-i18n="auth.passwordConfirm">Passwort bestätigen</label>
+        <input type="password" id="registerPasswordConfirm" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div id="registerError" class="status-message error" style="display:none;margin-bottom:0.5rem;"></div>
+      <button type="submit" class="btn-primary" id="registerBtn" style="width:100%;" data-i18n="auth.registerBtn">Registrieren</button>
+      <p style="margin-top:1rem;text-align:center;">
+        <a href="#" id="showLoginLink" style="color:var(--accent);" data-i18n="auth.backToLogin">Zurück zur Anmeldung</a>
+      </p>
+    </form>
+  </div>
+
+  <div id="appContainer" class="container" style="display:none;">
+    <!-- Spoolman Settings (shown at top when not configured) -->
+    <div id="spoolmanSetup" class="section hidden">
+      <h2 class="section-title">⚙️ Spoolman Verbindung</h2>
+      <div class="form-group">
+        <label>Spoolman Server URL</label>
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="text" id="spoolmanUrl" placeholder="http://your-server:7912" style="flex: 1;">
+          <button class="btn-primary" onclick="app.testSpoolman()" style="width: auto; padding: 0.5rem 1rem;">Testen</button>
+        </div>
+        <small style="color: var(--text-secondary)">z.B. http://192.168.1.4:7912 oder 192.168.1.4:7912 – beides funktioniert</small>
+      </div>
+      <div id="spoolmanTestStatus" class="status-message"></div>
+      <button class="btn-success" onclick="app.saveSpoolmanUrl()" style="margin-top: 0.5rem;">💾 Speichern</button>
+      <button class="btn-secondary" onclick="app.closeSpoolmanSetup()" style="margin-top: 0.5rem;">← Zurück</button>
+    </div>
+
+    <!-- Mode Selection -->
+    <div id="modeSelection" class="section">
+      <h2 class="section-title" data-i18n="mode.title">Was möchtest du tun?</h2>
+
+      <!-- Platform NFC Status -->
+      <div id="platformStatus" class="info-box" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; line-height: 1.4;">
+        <div id="nfcIndicatorMain" class="nfc-indicator"></div>
+        <span id="nfcStatusMain" data-i18n="mode.nfcChecking">NFC wird geprüft...</span>
+      </div>
+
+      <div class="mode-grid">
+        <div class="mode-card accent-card" onclick="app.setMode('read')">
+          <span class="mode-card-icon">📖</span>
+          <span class="mode-card-label" data-i18n="mode.readTag">Tag Lesen</span>
+          <span class="mode-card-desc" data-i18n="mode.readTagDesc">NFC lesen & aktualisieren</span>
+        </div>
+        <div class="mode-card accent-card" onclick="app.setMode('create')">
+          <span class="mode-card-icon">✏️</span>
+          <span class="mode-card-label" data-i18n="mode.newTag">Neuer Tag</span>
+          <span class="mode-card-desc" data-i18n="mode.newTagDesc">Tag manuell erstellen</span>
+        </div>
+
+        <div class="mode-divider"><span data-i18n="mode.databases">Datenbanken</span></div>
+
+        <div class="mode-card accent-card" onclick="app.setMode('myspoolman')" id="mySpoolmanCard">
+          <span class="mode-card-icon">🧵</span>
+          <span class="mode-card-label" data-i18n="mode.mySpoolman">Mein Spoolman</span>
+          <span class="mode-card-desc" data-i18n="mode.mySpoolmanDesc">Meine Filamente verwalten</span>
+        </div>
+        <div class="mode-card" onclick="app.setMode('profiles')">
+          <span class="mode-card-icon">⬇️</span>
+          <span class="mode-card-label" data-i18n="mode.slicerProfile">Slicer Profile</span>
+          <span class="mode-card-desc" data-i18n="mode.slicerProfileDesc">Orca & Bambu Studio</span>
+        </div>
+        <div class="mode-card" onclick="app.setMode('filamentlist')">
+          <span class="mode-card-icon">🗄️</span>
+          <span class="mode-card-label" data-i18n="mode.allFilaments">Alle Filamente</span>
+          <span class="mode-card-desc" data-i18n="mode.allFilamentsDesc">Komplette Datenbank</span>
+        </div>
+
+        <div class="mode-divider"><span data-i18n="mode.tools">Werkzeuge</span></div>
+
+        <div class="mode-card" onclick="app.setMode('drying')">
+          <span class="mode-card-icon">🌡️</span>
+          <span class="mode-card-label" data-i18n="mode.drying">Trocknung</span>
+          <span class="mode-card-desc" data-i18n="mode.dryingDesc">Trocknungsprofile</span>
+        </div>
+        <div class="mode-card" onclick="app.setMode('qrscan')">
+          <span class="mode-card-icon">📷</span>
+          <span class="mode-card-label" data-i18n="mode.qrScanner">QR-Scanner</span>
+          <span class="mode-card-desc" data-i18n="mode.qrScannerDesc">QR-Code scannen</span>
+        </div>
+        <div class="mode-card" onclick="app.setMode('settings')">
+          <span class="mode-card-icon">⚙️</span>
+          <span class="mode-card-label" data-i18n="mode.settings">Einstellungen</span>
+          <span class="mode-card-desc" data-i18n="mode.settingsDesc">Spoolman, Backup & mehr</span>
+        </div>
+
+        <div class="mode-bottom-row">
+          <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener" class="btn-secondary" style="display:inline-flex;align-items:center;gap:0.35rem;text-decoration:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>Discord</a>
+          <button class="btn-secondary" onclick="app.setMode('about')">ℹ️ <span data-i18n="mode.about">Über</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backup Section -->
+    <div id="backupSection" class="section hidden">
+      <h2 class="section-title" data-i18n="backup.title">Backup &amp; Wiederherstellung</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;" data-i18n="backup.description">Sichere deine Einstellungen (Spoolman-URL, Theme, Sprache). Bei Updates gehen keine Daten verloren.</p>
+      <div id="backupStatus" class="status-message"></div>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem;">
+        <button class="btn-primary" onclick="app.exportUserData()" data-i18n="backup.exportData">📤 Meine Daten exportieren</button>
+        <label class="btn-secondary" style="margin:0;cursor:pointer;">
+          <span data-i18n="backup.importData">📥 Daten wiederherstellen</span>
+          <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="app.importUserData(event)">
+        </label>
+      </div>
+      <h3 style="font-size: 1rem; margin-bottom: 0.5rem;" data-i18n="backup.serverBackups">Server-Backups (automatisch)</h3>
+      <div id="backupList" class="info-box" style="min-height: 80px;">
+        <p style="color: var(--text-secondary);" data-i18n="backup.loading">Lade Backups...</p>
+      </div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem">← <span data-i18n="common.backToMenu">Zurück zum Menü</span></button>
+    </div>
+
+    <!-- Settings Section -->
+    <div id="settingsSection" class="section hidden">
+      <h2 class="section-title" data-i18n="settings.title">⚙️ Einstellungen</h2>
+
+      <!-- Settings Tabs -->
+      <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:1.5rem;overflow-x:auto;">
+        <button class="settings-tab-btn active" data-stab="spoolman" onclick="app.switchSettingsTab('spoolman')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:3px solid var(--accent);color:var(--accent);font-weight:700;font-size:0.9rem;cursor:pointer;white-space:nowrap;margin-bottom:-2px;">📦 <span data-i18n="settings.spoolmanTab">Spoolman</span></button>
+        <button class="settings-tab-btn" data-stab="backup" onclick="app.switchSettingsTab('backup')" style="padding:0.6rem 1.2rem;background:none;border:none;border-bottom:3px solid transparent;color:var(--text-secondary);font-weight:600;font-size:0.9rem;cursor:pointer;white-space:nowrap;margin-bottom:-2px;">💾 <span data-i18n="settings.backupTab">Backup</span></button>
+      </div>
+
+      <!-- Tab: Spoolman -->
+      <div id="stab-spoolman">
+        <h3 style="font-size:.78rem;margin-bottom:0.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;" data-i18n="settings.connectionSection">Verbindung</h3>
+        <div class="form-group">
+          <label data-i18n="spoolman.urlLabel">Spoolman Server URL</label>
+          <div style="display:flex;gap:0.5rem;">
+            <input type="text" id="spoolmanUrlSettings" placeholder="http://192.168.1.4:7912" style="flex:1;">
+            <button class="btn-primary" onclick="app.testSpoolmanSettings()" style="width:auto;padding:0.5rem 1rem;" data-i18n="common.test">Testen</button>
+          </div>
+          <small style="color:var(--text-secondary)" data-i18n="spoolman.urlHint">z.B. http://192.168.1.4:7912 – beides mit oder ohne http:// funktioniert</small>
+        </div>
+        <div id="spoolmanSettingsTestStatus" class="status-message"></div>
+        <button class="btn-success" onclick="app.saveSpoolmanUrlSettings()" style="margin-top:0.5rem;">💾 <span data-i18n="common.save">Speichern</span></button>
+
+        <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+          <h3 style="font-size:.78rem;margin-bottom:0.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;" data-i18n="spoolman.importSpools">Spulen importieren</h3>
+          <div id="spoolmanSettingsStatus" class="status-message" style="margin-bottom:0.5rem;"></div>
+          <input type="text" id="spoolmanSearchSettings" data-i18n-placeholder="spoolman.searchPlaceholder" placeholder="Suche nach Name, Material, Marke..." oninput="app.filterSpoolmanSpoolsSettings()" style="margin-bottom:0.5rem;">
+          <div id="spoolmanImportActions" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin:0.25rem 0 0.5rem;">
+            <div id="spoolmanImportHint" style="flex:1;min-width:220px;color:var(--text-secondary);font-size:0.8rem;" data-i18n="spoolman.importHint">
+              Spule auswählen, dann „Jetzt importieren“.
+            </div>
+            <button id="spoolmanImportNowBtn" class="btn-success" disabled style="width:auto;padding:0.45rem 0.9rem;" data-i18n="spoolman.importNow">⬇️ Jetzt importieren</button>
+            <button id="spoolmanImportClearBtn" class="btn-secondary" disabled style="width:auto;padding:0.45rem 0.9rem;" data-i18n="spoolman.clearSelection">✕ Auswahl</button>
+          </div>
+          <!-- Bulk import -->
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:0.5rem;">
+            <button id="spoolmanImportAllBtn" class="btn-primary" onclick="app.importAllSpoolmanSpools()" style="width:auto;padding:0.45rem 0.9rem;" data-i18n="spoolman.importAll">📦 Alle importieren</button>
+            <span id="spoolmanImportAllStatus" style="font-size:0.8rem;color:var(--text-secondary);"></span>
+          </div>
+          <div id="spoolmanSpoolListSettings" style="margin-top:0.75rem;"></div>
+          <button class="btn-secondary" style="margin-top:0.75rem;" onclick="app.loadSpoolmanSpoolsSettings()" data-i18n="spoolman.loadSpools">🔄 Spulen laden</button>
+        </div>
+      </div>
+
+      <!-- Tab: Backup -->
+      <div id="stab-backup" style="display:none;">
+        <h3 style="font-size:.78rem;margin-bottom:0.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;" data-i18n="backup.title">Daten exportieren / importieren</h3>
+        <p style="color:var(--text-secondary);margin-bottom:1rem;font-size:0.9rem;" data-i18n="backup.description">Sichere deine Einstellungen (Spoolman-URL, Theme, Sprache). Bei Updates gehen keine Daten verloren.</p>
+        <div id="backupSettingsStatus" class="status-message"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem;">
+          <button class="btn-primary" onclick="app.exportUserData()">📤 <span data-i18n="backup.exportData">Meine Daten exportieren</span></button>
+          <label class="btn-secondary" style="margin:0;cursor:pointer;">
+            <span data-i18n="backup.importData">📥 Daten wiederherstellen</span>
+            <input type="file" id="backupFileInputSettings" accept=".json" style="display:none" onchange="app.importUserDataSettings(event)">
+          </label>
+        </div>
+        <h3 style="font-size:.78rem;margin-bottom:0.5rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:.05em;" data-i18n="backup.serverBackups">Server-Backups (automatisch)</h3>
+        <div id="backupListSettings" class="info-box" style="min-height:80px;">
+          <p style="color:var(--text-secondary);" data-i18n="backup.loading">Lade Backups...</p>
+        </div>
+      </div>
+
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top:1.5rem;" data-i18n="common.backToMenu">← Zurück zum Menü</button>
+    </div>
+
+    <!-- My Spoolman Section -->
+    <div id="mySpoolmanSection" class="section hidden">
+      <h2 class="section-title" data-i18n="mySpoolman.title">🧵 Mein Spoolman</h2>
+      <p style="color:var(--text-secondary);margin-bottom:1rem;font-size:0.9rem;">Alle deine Filamente aus Spoolman – auswählen, Tag erstellen oder bearbeiten.</p>
+
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;align-items:center;">
+        <input type="text" id="mySpoolmanSearch" data-i18n-placeholder="mySpoolman.searchPlaceholder" placeholder="Suche nach Name, Material, Marke, Farbe…"
+               oninput="app.filterMySpoolman()" style="flex:1;min-width:180px;">
+        <select id="mySpoolmanMaterialFilter" onchange="app.filterMySpoolman()" style="width:auto;min-width:120px;">
+          <option value="" data-i18n="mySpoolman.allMaterials">Alle Materialien</option>
+        </select>
+        <button class="btn-secondary" onclick="app.loadMySpoolman()" style="width:auto;padding:0.45rem 0.9rem;">🔄</button>
+      </div>
+
+      <div id="mySpoolmanStatus" class="status-message" style="margin-bottom:0.5rem;"></div>
+      <div id="mySpoolmanCount" style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.5rem;"></div>
+      <div id="mySpoolmanList"></div>
+
+
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top:1.5rem;" data-i18n="common.backToMenu">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Filament Database Browser -->
+    <div id="filamentDbSection" class="section hidden">
+      <h2 class="section-title" data-i18n="filamentDb.title">🔍 Filament Datenbank</h2>
+      <small style="color: var(--text-secondary); display: block; margin-bottom: 1rem;">
+        126 Marken &amp; 13.000+ Farbvarianten aus der <a href="https://api.openfilamentdatabase.org/" target="_blank">Open Filament Database</a>
+      </small>
+
+      <div class="form-group">
+        <label>Marke</label>
+        <select id="dbBrandSelect" onchange="app.onDbBrandChange()">
+          <option value="">-- Marke wählen --</option>
+        </select>
+      </div>
+
+      <div class="form-group hidden" id="dbMaterialGroup">
+        <label>Material</label>
+        <select id="dbMaterialSelect" onchange="app.onDbMaterialChange()">
+          <option value="">-- Material wählen --</option>
+        </select>
+      </div>
+
+      <div class="form-group hidden" id="dbFilamentGroup">
+        <label>Filament</label>
+        <select id="dbFilamentSelect" onchange="app.onDbFilamentChange()">
+          <option value="">-- Filament wählen --</option>
+        </select>
+      </div>
+
+      <div class="form-group hidden" id="dbVariantGroup">
+        <label>Farbvariante</label>
+        <div id="dbVariantList" class="material-palette" style="margin-top: 0.5rem;"></div>
+      </div>
+
+      <div id="dbPreview" class="hidden" style="margin-top: 1rem; padding: 1rem; background: var(--bg-tertiary); border-radius: 8px;">
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
+          <div id="dbPreviewColor" style="width: 50px; height: 50px; border-radius: 8px; border: 2px solid var(--border);"></div>
+          <div>
+            <strong id="dbPreviewName" style="font-size: 1.1rem;"></strong>
+            <div id="dbPreviewDetails" style="color: var(--text-secondary); font-size: 0.85rem;"></div>
+          </div>
+        </div>
+        <button class="btn-success" onclick="app.applyDbSelection()">✅ Übernehmen &amp; Tag erstellen</button>
+      </div>
+
+      <div id="dbStatus" class="status-message"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Spoolman Import Section -->
+    <div id="spoolmanSection" class="section hidden">
+      <h2 class="section-title">📦 Spoolman Spulen</h2>
+      <input type="text" id="spoolmanSearch" placeholder="Suche nach Name, Material, Marke..." oninput="app.filterSpoolmanSpools()" style="margin-bottom: 0.5rem;">
+      <div id="spoolmanStatus" class="status-message"></div>
+      <div id="spoolmanSpoolList" style="margin-top: 1rem;"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Read Section -->
+    <div id="readSection" class="section hidden">
+      <h2 class="section-title">📖 Tag Lesen / Datei Hochladen</h2>
+
+      <div class="nfc-status">
+        <div id="nfcIndicator" class="nfc-indicator"></div>
+        <span id="nfcStatusText">NFC wird geprüft...</span>
+      </div>
+
+      <button id="scanBtn" class="btn-success" onclick="app.toggleScan()" disabled>🔍 NFC Scannen</button>
+
+      <div id="readStatus" class="status-message"></div>
+
+      <div class="form-group" style="margin-top: 1rem">
+        <label>Oder Datei hochladen</label>
+        <input type="file" id="fileInput" accept=".json,.bin">
+        <small style="color: var(--text-secondary)">Unterstützt .json (OpenSpool) und .bin (OpenPrintTag)</small>
+      </div>
+
+      <div id="decodedDataContainer" class="hidden">
+        <h3>Gelesene Daten</h3>
+        <div id="decodedData" class="decoded-data"></div>
+      </div>
+
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Tag Summary (Read-Only View) -->
+    <div id="tagSummarySection" class="section hidden">
+      <h2 class="section-title">📋 Tag Inhalt</h2>
+      <div id="tagSummaryContent" class="tag-summary"></div>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
+        <button class="btn-success" onclick="app.rewriteTag()" id="rewriteBtn" style="flex:1; min-width: 140px;">📝 Auf neuen Tag kopieren</button>
+        <button class="btn-primary" onclick="app.editTagData()" style="flex:1; min-width: 140px;">✏️ Bearbeiten</button>
+      </div>
+      <div id="rewriteStatus" class="status-message"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Form Section (Create / Update) -->
+    <div id="formSection" class="section hidden">
+      <h2 id="formTitle" class="section-title">✏️ Create New Tag</h2>
+
+      <!-- Format Selection -->
+      <div class="form-group">
+        <label>Tag Format</label>
+        <select id="formatSelect" onchange="app.updateFormat()"></select>
+        <small style="color: var(--text-secondary)">OpenSpool: Simple JSON | OpenPrintTag: Advanced CBOR</small>
+      </div>
+
+      <div class="form-group">
+        <label>Spoolman</label>
+        <button type="button" class="btn-secondary" onclick="app.openSpoolmanPicker('spools')" style="width:100%;">🧵 Aus Spoolman wählen (Spulen/Filamente)</button>
+        <small style="color: var(--text-secondary)">Wählt eine Spule oder ein Filament aus deiner Spoolman-Instanz und füllt das Formular automatisch.</small>
+      </div>
+
+      <!-- Brand -->
+      <div class="form-group">
+        <label>Brand Name</label>
+        <input type="hidden" id="brandValue" value="Generic">
+        <div id="brandPalette" class="material-palette"></div>
+        <input type="text" id="brandInput" class="hidden" placeholder="Enter brand name">
+      </div>
+
+      <!-- Material Type -->
+      <div class="form-group">
+        <label>Material Type</label>
+        <input type="hidden" id="materialType" value="PLA">
+        <div id="materialPalette" class="material-palette"></div>
+        <small style="color: var(--text-secondary)">Tap to select material</small>
+      </div>
+
+      <!-- Material Variant -->
+      <div class="form-group" data-field="extendedSubType">
+        <label>Material Variant</label>
+        <input type="hidden" id="extendedSubType" value="Basic">
+        <div id="variantPalette" class="material-palette"></div>
+      </div>
+
+      <!-- Color 1 (Primary) -->
+      <div class="form-group">
+        <label>Farbe (Hauptfarbe)</label>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <div id="colorPreview1" style="width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+          <input type="text" id="colorHex1" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
+        </div>
+        <div id="colorSwatchGrid1" class="color-swatch-grid"></div>
+        <small style="color: var(--text-secondary)">Farbe wählen oder Hex-Code eingeben (ohne #)</small>
+        <canvas id="colorSV1" style="display:none;"></canvas>
+        <canvas id="colorHue1" style="display:none;"></canvas>
+      </div>
+
+      <!-- Temperature Settings -->
+      <div class="form-row" data-field="minTemp">
+        <div class="form-group">
+          <label>Min Nozzle Temp (°C)</label>
+          <input type="number" id="minTemp" placeholder="190">
+        </div>
+        <div class="form-group">
+          <label>Max Nozzle Temp (°C)</label>
+          <input type="number" id="maxTemp" placeholder="220">
+        </div>
+      </div>
+
+      <div class="form-row" data-field="bedTempMin">
+        <div class="form-group">
+          <label>Min Bed Temp (°C)</label>
+          <input type="number" id="bedTempMin" placeholder="50">
+        </div>
+        <div class="form-group">
+          <label>Max Bed Temp (°C)</label>
+          <input type="number" id="bedTempMax" placeholder="60">
+        </div>
+      </div>
+
+      <!-- Spoolman & Lot -->
+      <div class="form-row" data-field="spoolmanId">
+        <div class="form-group">
+          <label>Spoolman ID</label>
+          <input type="number" id="spoolmanId" placeholder="0">
+          <small style="color: var(--text-secondary)">Optional: Only saved if non-zero</small>
+        </div>
+        <div class="form-group">
+          <label>Lot Number</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="lotNr" maxlength="8" placeholder="00000000" style="flex: 1;">
+            <button class="btn-secondary" onclick="app.randomizeLotNr()" style="width: auto; padding: 0.5rem 0.75rem;">🎲</button>
+          </div>
+          <small style="color: var(--text-secondary)">8 hex characters (auto-generated for new tags)</small>
+        </div>
+      </div>
+
+      <!-- Advanced Section -->
+      <div id="advancedSection">
+        <div class="collapsible collapsed" onclick="app.toggleAdvanced()">
+          <span class="collapsible-icon">▼</span>
+          <strong>Advanced</strong>
+        </div>
+        <div class="collapsible-content collapsed">
+          <!-- Visual Properties -->
+          <div class="form-group" data-field="matteFinish" style="margin-top: 1rem;">
+            <label>Visual Properties</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="matteFinish"> Matte Finish
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="silkFinish"> Silk Finish
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="translucent"> Translucent
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="transparent"> Transparent
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="glitter"> Glitter
+              </label>
+            </div>
+            <small style="color: var(--text-secondary)">Surface finish and material properties</small>
+          </div>
+
+          <!-- Color Behavior -->
+          <div class="form-group" data-field="gradualColorChange">
+            <label>Color Behavior</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="gradualColorChange"> Gradual Color Change
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" id="coextruded"> Coextruded
+              </label>
+            </div>
+            <small style="color: var(--text-secondary)">Color transition and mixing properties</small>
+          </div>
+
+          <!-- Additional Colors -->
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+              <input type="checkbox" id="showAdditionalColors"> Additional Colors (Multi-color filament)
+            </label>
+            <small style="color: var(--text-secondary)">Enable fields for colors 2, 3, and 4</small>
+          </div>
+
+          <!-- Color 2 -->
+          <div class="additional-colors" style="display: none;">
+            <div class="form-group">
+              <label>Farbe 2 (Optional)</label>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div id="colorPreview2" style="width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+                <input type="text" id="colorHex2" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
+              </div>
+              <div id="colorSwatchGrid2" class="color-swatch-grid"></div>
+              <canvas id="colorSV2" style="display:none;"></canvas>
+              <canvas id="colorHue2" style="display:none;"></canvas>
+            </div>
+          </div>
+
+          <!-- Color 3 -->
+          <div class="additional-colors" style="display: none;">
+            <div class="form-group">
+              <label>Farbe 3 (Optional)</label>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div id="colorPreview3" style="width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+                <input type="text" id="colorHex3" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
+              </div>
+              <div id="colorSwatchGrid3" class="color-swatch-grid"></div>
+              <canvas id="colorSV3" style="display:none;"></canvas>
+              <canvas id="colorHue3" style="display:none;"></canvas>
+            </div>
+          </div>
+
+          <!-- Color 4 -->
+          <div class="additional-colors" style="display: none;">
+            <div class="form-group">
+              <label>Farbe 4 (Optional)</label>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div id="colorPreview4" style="width: 40px; height: 40px; border-radius: 8px; border: 2px solid var(--border); background: #FFFFFF;"></div>
+                <input type="text" id="colorHex4" value="FFFFFF" maxlength="6" placeholder="FFFFFF" style="flex: 1;">
+              </div>
+              <div id="colorSwatchGrid4" class="color-swatch-grid"></div>
+              <canvas id="colorSV4" style="display:none;"></canvas>
+              <canvas id="colorHue4" style="display:none;"></canvas>
+            </div>
+          </div>
+
+          <!-- Advanced OpenPrintTag fields -->
+          <div class="form-group" data-field="materialName">
+            <label>Material Name</label>
+            <input type="text" id="materialName" placeholder="e.g. PLA Basic">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" data-field="gtin">
+              <label>GTIN</label>
+              <input type="text" id="gtin" placeholder="e.g. 1234567890123">
+            </div>
+            <div class="form-group" data-field="materialAbbreviation">
+              <label>Material Abbreviation</label>
+              <input type="text" id="materialAbbr" maxlength="7" placeholder="e.g. PLA">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" data-field="density">
+              <label>Density (g/cm³)</label>
+              <input type="number" id="density" step="0.01" placeholder="1.24">
+            </div>
+            <div class="form-group" data-field="filamentDiameter">
+              <label>Filament Diameter (mm)</label>
+              <input type="number" id="diameter" step="0.01" value="1.75" placeholder="1.75">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" data-field="preheatTemp">
+              <label>Preheat Temp (°C)</label>
+              <input type="number" id="preheatTemp" placeholder="170">
+            </div>
+            <div class="form-group" data-field="manufacturedDate">
+              <label>Manufactured Date</label>
+              <input type="date" id="mfgDate">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" data-field="nominalWeight">
+              <label>Nominal Weight (g)</label>
+              <input type="number" id="nominalWeight" placeholder="1000">
+            </div>
+            <div class="form-group" data-field="actualWeight">
+              <label>Actual Weight (g)</label>
+              <input type="number" id="actualWeight" placeholder="1000">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" data-field="emptySpoolWeight">
+              <label>Empty Spool Weight (g)</label>
+              <input type="number" id="spoolWeight" placeholder="200">
+            </div>
+            <div class="form-group" data-field="countryOfOrigin">
+              <label>Country of Origin</label>
+              <input type="text" id="countryCode" maxlength="2" placeholder="DE">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="button-group" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        <button id="writeBtn" class="btn-success" onclick="app.toggleWrite()" disabled style="flex: 1; min-width: 140px;">📝 NFC Beschreiben</button>
+        <button id="downloadBtn" class="btn-primary" onclick="app.downloadFile()" style="flex: 1; min-width: 140px;">💾 Datei Speichern</button>
+        <button id="shareBtn" class="btn-primary hidden" onclick="app.shareFile()" style="flex: 1; min-width: 140px;">📤 Teilen</button>
+        <button class="btn-secondary" onclick="app.showQRCode()" style="flex: 1; min-width: 140px;">📱 QR-Code</button>
+      </div>
+
+      <!-- Alternative NFC Method (shown when Web NFC not available) -->
+      <div id="altNfcMethod" class="info-box hidden" style="margin-top: 1rem; line-height: 1.6;">
+        <strong>📲 NFC Tag ohne Chrome schreiben:</strong>
+        <ol style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+          <li>Lade dir <strong>«NFC Tools»</strong> herunter
+            (<a href="https://apps.apple.com/app/nfc-tools/id1252962749" target="_blank" rel="noopener" style="color: var(--accent);">iOS</a> /
+            <a href="https://play.google.com/store/apps/details?id=com.wakdev.wdnfc" target="_blank" rel="noopener" style="color: var(--accent);">Android</a>)
+          </li>
+          <li>Klicke oben auf <strong>«💾 Datei Speichern»</strong> oder <strong>«📤 Teilen»</strong></li>
+          <li>Öffne die Datei in NFC Tools → <em>Schreiben → Datensatz hinzufügen → Datei</em></li>
+          <li>Halte den NFC-Tag an dein Handy</li>
+        </ol>
+      </div>
+
+      <!-- Record Size Info -->
+      <div id="recordSizeInfo" class="info-box" style="margin-top: 1rem;">
+        📊 <strong>NDEF Record:</strong> <span id="recordSize">?</span>
+      </div>
+
+      <!-- Orca Profile Info -->
+
+      <div id="writeStatus" class="status-message"></div>
+
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Slicer Profiles Section -->
+    <div id="profilesSection" class="section hidden">
+      <h2 class="section-title" data-i18n="slicerProfiles.title">⬇️ Slicer Profile</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">Filament-Profile für Orca Slicer und Bambu Studio – automatisch von GitHub synchronisiert.</p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+        <select id="profileVendorFilter" onchange="app.onProfileVendorChange()" style="flex: 1; min-width: 140px;">
+          <option value="">Alle Hersteller</option>
+        </select>
+        <select id="profileMaterialFilter" onchange="app.loadProfiles()" style="flex: 1; min-width: 120px;">
+          <option value="" data-i18n="mySpoolman.allMaterials">Alle Materialien</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <input type="text" id="profileSearch" placeholder="Suche nach Name..." style="flex: 1;" onkeyup="if(event.key==='Enter')app.loadProfiles()">
+        <button class="btn-primary" onclick="app.loadProfiles()" style="width: auto; padding: 0.5rem 1rem;">🔍</button>
+      </div>
+
+      <div id="profileSyncInfo" class="info-box" style="margin-bottom: 1rem; font-size: 0.85rem;"></div>
+      <div id="profileResults"></div>
+      <div id="profilePagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;"></div>
+      <div id="profileStatus" class="status-message"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Filament Database Section -->
+    <div id="filamentListSection" class="section hidden">
+      <h2 class="section-title" data-i18n="allFilaments.title">🗄️ Filament Datenbank</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;" data-i18n="allFilaments.subtitle">Alle Filamente aus der Open Filament Database – wird täglich automatisch aktualisiert.</p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+        <select id="filListBrandFilter" onchange="app.onFilListBrandChange()" style="flex: 1; min-width: 140px;">
+          <option value="">Alle Marken</option>
+        </select>
+        <select id="filListMaterialFilter" onchange="app.loadFilamentList()" style="flex: 1; min-width: 120px;">
+          <option value="" data-i18n="mySpoolman.allMaterials">Alle Materialien</option>
+        </select>
+        <select id="filListSpoolmanFilter" onchange="app.loadFilamentList()" style="flex: 1; min-width: 130px;">
+          <option value="">Alle Quellen</option>
+          <option value="spoolman">🧵 In Spoolman</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <input type="text" id="filListSearch" placeholder="Suche nach Name, Farbe..." style="flex: 1;" onkeyup="if(event.key==='Enter')app.loadFilamentList()">
+        <button class="btn-primary" onclick="app.loadFilamentList()" style="width: auto; padding: 0.5rem 1rem;">🔍</button>
+      </div>
+
+      <div id="filListSyncInfo" class="info-box" style="margin-bottom: 1rem; font-size: 0.85rem;"></div>
+      <div id="filListResults"></div>
+      <div id="filListPagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;"></div>
+      <div id="filListStatus" class="status-message"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Drying Profiles Section -->
+    <div id="dryingSection" class="section hidden">
+      <h2 class="section-title" data-i18n="drying.title">🌡️ Trocknungsprofile</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 0.5rem;" data-i18n="drying.subtitle">Empfohlene Trocknungstemperaturen und -zeiten für alle gängigen Filamente.</p>
+      <div style="margin-bottom: 1rem;">
+        <input type="text" id="dryingSearch" placeholder="Material suchen..." oninput="app.filterDryingProfiles()">
+      </div>
+      <div id="dryingGrid" class="drying-grid"></div>
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
+    </div>
+
+    <!-- QR Scanner Section -->
+    <div id="qrScanSection" class="section hidden">
+      <h2 class="section-title">📷 QR-Code Scannen</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">Scanne einen Spool Tag Propus QR-Code um die Filament-Daten zu laden.</p>
+      <div id="qrScannerContainer" class="qr-scanner-box hidden">
+        <video id="qrVideo" playsinline muted></video>
+        <div class="qr-scanner-overlay"><div class="qr-scanner-frame"></div></div>
+      </div>
+      <div id="qrScanStatus" class="status-message"></div>
+      <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+        <button id="qrScanBtn" class="btn-success" onclick="app.toggleQRScan()" style="flex:1;">📷 Kamera starten</button>
+        <button class="btn-secondary" onclick="app.setMode('menu')" style="flex:1;">← Zurück</button>
+      </div>
+    </div>
+
+    <!-- QR Code Overlay/Modal -->
+    <div id="qrOverlay" class="qr-overlay hidden" onclick="if(event.target===this)app.closeQRModal()">
+      <div class="qr-modal">
+        <h3>📱 QR-Code</h3>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">Diesen Code mit dem Handy scannen, um die Filament-Daten zu übertragen.</p>
+        <div id="qrCodeContainer" class="qr-canvas"></div>
+        <div class="qr-actions">
+          <button class="btn-primary" onclick="app.downloadQR()">💾 Speichern</button>
+          <button class="btn-secondary" onclick="app.closeQRModal()">Schliessen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- About / Release Notes -->
+    <div id="aboutSection" class="section hidden">
+      <h2 class="section-title" data-i18n="about.title">ℹ️ Über Spool Tag Propus</h2>
+      <div style="display:inline-block;background:rgba(251,191,36,0.15);border:1px solid var(--warning);color:var(--warning);padding:0.3rem 0.7rem;border-radius:6px;font-size:0.8rem;font-weight:700;margin-bottom:1rem;" data-i18n="about.beta">⚠️ BETA — Dieses Projekt befindet sich in aktiver Entwicklung</div>
+      <p style="color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.6;">
+        <strong style="color: var(--text-primary);">Spool Tag Propus</strong> <span data-i18n="about.description">ist ein Open-Source Filament Tag Manager für 3D-Drucker. Erstelle, lese und verwalte NFC-Tags und QR-Codes für deine Filament-Spulen — kompatibel mit</span>
+        <a href="https://openspool.io/rfid.html" target="_blank" style="color:var(--accent);">OpenSpool</a> &amp;
+        <a href="https://specs.openprinttag.org/" target="_blank" style="color:var(--accent);">OpenPrintTag</a>.
+      </p>
+
+      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);" data-i18n="about.featuresTitle">Features</h3>
+      <div style="margin-bottom: 1.5rem;">
+        <div class="about-feature">
+          <span class="about-feature-icon">📝</span>
+          <div class="about-feature-text">
+            <strong data-i18n="about.feature1Title">NFC Tags Lesen &amp; Schreiben</strong>
+            <span data-i18n="about.feature1Desc">Beschreibe NFC-Tags direkt vom Handy (Android Chrome) mit Filament-Daten in OpenSpool (JSON) oder OpenPrintTag (CBOR) Format. Kompatibel mit Bambu Lab, OrcaSlicer und allen OpenSpool-fähigen Druckern.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">📱</span>
+          <div class="about-feature-text">
+            <strong data-i18n="about.feature2Title">QR-Code Generator &amp; Scanner</strong>
+            <span data-i18n="about.feature2Desc">Generiere QR-Codes mit deinen Filament-Daten zum Ausdrucken und Aufkleben auf die Spule. Scanne QR-Codes mit der Kamera, um Daten sofort zu laden — funktioniert auf allen Geräten.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">🔍</span>
+          <div class="about-feature-text">
+            <strong data-i18n="about.feature3Title">Filament Datenbank</strong>
+            <span data-i18n="about.feature3Desc">Durchsuche über 13.000 Farbvarianten von 126+ Marken aus der Open Filament Database. Wähle ein Filament und erstelle direkt einen Tag.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">⬇️</span>
+          <div class="about-feature-text">
+            <strong data-i18n="about.feature4Title">Slicer Profile</strong>
+            <span data-i18n="about.feature4Desc">4.000+ Filament-Profile für OrcaSlicer und Bambu Studio — automatisch von GitHub synchronisiert. Lade Profile direkt herunter, gefiltert nach Hersteller, Material und Drucker.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">📦</span>
+          <div class="about-feature-text">
+            <strong data-i18n="about.feature5Title">Spoolman Integration</strong>
+            <span data-i18n="about.feature5Desc">Verbinde dich mit deiner Spoolman-Instanz, durchsuche dein Spulen-Inventar und importiere Filament-Daten direkt in einen Tag.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">🌡️</span>
+          <div class="about-feature-text">
+            <strong data-i18n="about.feature6Title">Trocknungsprofile</strong>
+            <span data-i18n="about.feature6Desc">Empfohlene Trocknungstemperaturen und -zeiten für 20+ Materialien — von PLA bis PEEK. Mit Feuchtigkeitsempfindlichkeit und Hinweisen.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">🎨</span>
+          <div class="about-feature-text">
+            <strong data-i18n="about.feature7Title">Farbpalette &amp; Marken-Filter</strong>
+            <span data-i18n="about.feature7Desc">45 vordefinierte Filament-Farben. Materialien und Varianten werden automatisch auf die gewählte Marke gefiltert (z.B. Bambu Lab zeigt nur deren Materialien).</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">📲</span>
+          <div class="about-feature-text">
+            <strong data-i18n="about.feature8Title">Progressive Web App (PWA)</strong>
+            <span data-i18n="about.feature8Desc">Installierbar auf dem Handy-Homescreen. Funktioniert offline für Tag-Erstellung und Trocknungsprofile.</span>
+          </div>
+        </div>
+        <div class="about-feature">
+          <span class="about-feature-icon">☀️</span>
+          <div class="about-feature-text">
+            <strong data-i18n="about.feature9Title">Hell- &amp; Dunkelmodus</strong>
+            <span data-i18n="about.feature9Desc">Umschaltbar über den Button oben rechts. Deine Einstellung wird gespeichert.</span>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);" data-i18n="about.platformTitle">Plattform-Unterstützung</h3>
+      <div style="margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+        <p><strong style="color:var(--text-primary);" data-i18n="about.platformNfc">NFC Schreiben:</strong> <span data-i18n="about.platformNfcVal">Android Chrome (HTTPS erforderlich)</span></p>
+        <p><strong style="color:var(--text-primary);" data-i18n="about.platformQr">QR-Code Scanner:</strong> <span data-i18n="about.platformQrVal">Chrome 83+, Safari 17.2+, Edge 83+</span></p>
+        <p><strong style="color:var(--text-primary);" data-i18n="about.platformDownload">Datei-Download:</strong> <span data-i18n="about.platformDownloadVal">Alle Browser — Datei mit NFC Tools App auf Tag schreiben (iOS &amp; Android)</span></p>
+        <p><strong style="color:var(--text-primary);" data-i18n="about.platformShare">Web Share:</strong> <span data-i18n="about.platformShareVal">Mobile Browser mit Web Share API</span></p>
+      </div>
+
+      <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--accent);" data-i18n="about.releaseTitle">Release Notes</h3>
+      <div id="releaseNotesList">
+        <div style="color:var(--text-secondary);font-size:0.85rem;" data-i18n="about.releaseLoading">⏳ Wird geladen…</div>
+      </div>
+      <button id="releaseNotesMoreBtn" onclick="app.showAllReleaseNotes()" style="display:none;margin-top:0.75rem;width:auto;padding:0.45rem 1.1rem;font-size:0.85rem;" class="btn-secondary" data-i18n="about.releaseMoreBtn">
+        ▼ Ältere Versionen anzeigen
+      </button>
+
+      <div style="margin-top:1.5rem;padding:1rem;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;text-align:center;">
+        <p style="font-size:0.9rem;margin-bottom:0.75rem;" data-i18n="about.supportTitle">Gefällt dir Spool Tag Propus? Unterstütze die Entwicklung!</p>
+        <div style="display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:center;align-items:center;">
+          <a href="https://buymeacoffee.com/propuscode" target="_blank" rel="noopener"
+             style="display:inline-flex;align-items:center;gap:0.5rem;background:#FFDD00;color:#000;padding:0.5rem 1rem;border-radius:8px;font-weight:700;font-size:0.9rem;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 2px 8px rgba(255,221,0,0.4);">
+            <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height:28px;width:auto;" />
+            <span data-i18n="about.supportBtn">Unterstützen</span>
+          </a>
+          <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener"
+             style="display:inline-flex;align-items:center;gap:0.5rem;background:#5865F2;color:#fff;padding:0.5rem 1rem;border-radius:8px;font-weight:700;font-size:0.9rem;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+            Discord
+          </a>
+        </div>
+        <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.6rem;" data-i18n="about.supportHint">Jede Unterstützung hilft, Spool Tag Propus weiterzuentwickeln.</p>
+      </div>
+
+      <button class="btn-secondary" onclick="app.setMode('menu')" style="margin-top: 1rem" data-i18n="common.backToMenu">← Zurück zum Menü</button>
+    </div>
+
+    <!-- Write NFC Modal (placeholder) -->
+    <div id="writeSection" class="section hidden">
+      <h2 class="section-title">📝 Write NFC</h2>
+      <div id="writeNfcStatus" class="status-message"></div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Spool Tag Propus - Filament Tag Manager</p>
+    <p>© 2026 Spool Tag Propus · v1.6.109 · <a href="https://buymeacoffee.com/propuscode" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.35rem;background:#FFDD00;color:#000;padding:0.25rem 0.6rem;border-radius:6px;font-weight:700;font-size:0.8rem;text-decoration:none;"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height:20px;width:auto;" /> Unterstützen</a> · <a href="https://discord.gg/bv5MzXUSdP" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.3rem;background:#5865F2;color:#fff;padding:0.25rem 0.5rem;border-radius:6px;font-weight:700;font-size:0.8rem;text-decoration:none;">Discord</a> · <a href="#" onclick="app.showErrorReportModal(); return false;" style="color:var(--text-secondary);font-size:0.85rem;">🐛 Fehler melden</a></p>
+  </footer>
+
+  <!-- Error Report Modal -->
+  <div id="errorReportOverlay" class="qr-overlay hidden" onclick="if(event.target===this)app.closeErrorReportModal()">
+    <div class="qr-modal" style="max-width: 460px;">
+      <h3>🐛 Fehler melden</h3>
+      <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">Hilf uns, Fehler zu finden. Der letzte Fehler (falls vorhanden) und deine Beschreibung werden an unseren Server gesendet.</p>
+      <div id="errorReportPreview" class="info-box" style="margin-bottom: 1rem; max-height: 120px; overflow-y: auto; font-size: 0.8rem; display: none;"></div>
+      <div class="form-group">
+        <label>Beschreibung (optional)</label>
+        <textarea id="errorReportUserMessage" rows="3" placeholder="Was hast du gemacht, als der Fehler auftrat?" style="width: 100%; resize: vertical; padding: 0.5rem;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Screenshot / Datei anhängen (optional)</label>
+        <div id="errorReportDropZone"
+             style="border: 2px dashed var(--border); border-radius: 8px; padding: 1rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; background: var(--bg-secondary);"
+             onclick="document.getElementById('errorReportFile').click()"
+             ondragover="event.preventDefault(); this.style.borderColor='var(--accent)'; this.style.background='rgba(0,200,200,0.05)'"
+             ondragleave="this.style.borderColor='var(--border)'; this.style.background='var(--bg-secondary)'"
+             ondrop="event.preventDefault(); this.style.borderColor='var(--border)'; this.style.background='var(--bg-secondary)'; app.handleErrorReportFileDrop(event.dataTransfer.files)">
+          <div id="errorReportDropLabel" style="color: var(--text-secondary); font-size: 0.9rem;">
+            📎 Klicken oder Datei hierher ziehen<br>
+            <small style="font-size: 0.75rem;">Bilder: PNG, JPG, WebP · max. 5 MB</small>
+          </div>
+          <div id="errorReportThumb" style="display:none; position:relative; display:inline-block; margin-top: 0.5rem;">
+            <img id="errorReportThumbImg" style="max-width:100%; max-height:120px; border-radius:6px; border:1px solid var(--border);" alt="Vorschau" />
+            <button onclick="event.stopPropagation(); app.clearErrorReportFile()" style="position:absolute; top:-8px; right:-8px; background:var(--error); color:#fff; border:none; border-radius:50%; width:22px; height:22px; font-size:14px; cursor:pointer; line-height:1;">✕</button>
+          </div>
+        </div>
+        <input type="file" id="errorReportFile" accept="image/*" style="display:none" onchange="app.handleErrorReportFileChange(this.files)">
+        <div id="errorReportFileInfo" style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.3rem;"></div>
+      </div>
+      <div id="errorReportStatus" class="status-message" style="margin-bottom: 0.5rem;"></div>
+      <div class="qr-actions">
+        <button id="errorReportSubmitBtn" class="btn-primary" onclick="app.submitErrorReport()">Absenden</button>
+        <button id="errorReportCancelBtn" class="btn-secondary" onclick="app.closeErrorReportModal()">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Admin Panel ===== -->
+  <div id="adminPanelOverlay" class="admin-panel-overlay hidden">
+    <div class="admin-panel-inner">
+      <div class="admin-panel-header">
+        <h2>🛡️ Admin-Panel</h2>
+        <button class="btn-secondary" style="padding:0.3rem 0.8rem;font-size:0.85rem;" onclick="app.closeAdminPanel()">✕ Schließen</button>
+      </div>
+      <div class="admin-tabs">
+        <button class="admin-tab-btn active" data-tab="users" onclick="app.switchAdminTab('users')">👥 Benutzer</button>
+        <button class="admin-tab-btn" data-tab="status" onclick="app.switchAdminTab('status')">📊 Systemstatus</button>
+        <button class="admin-tab-btn" data-tab="backups" onclick="app.switchAdminTab('backups')">💾 Backups</button>
+        <button class="admin-tab-btn" data-tab="errors" onclick="app.switchAdminTab('errors')">🐛 Fehlerberichte</button>
+        <button class="admin-tab-btn" data-tab="groups" onclick="app.switchAdminTab('groups')">🧩 Gruppen</button>
+        <button class="admin-tab-btn" data-tab="chat" onclick="app.switchAdminTab('chat')">🤖 KI-Assistent</button>
+      </div>
+
+      <!-- Tab: Users -->
+      <div id="adminTab-users" class="admin-tab-panel active">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <strong>Alle Benutzer</strong>
+          <button class="btn-secondary" style="font-size:0.8rem;padding:0.3rem 0.7rem;" onclick="app.adminLoadUsers()">🔄 Aktualisieren</button>
+        </div>
+        <div id="adminUsersBody">
+          <p style="color:var(--text-secondary);">Wird geladen…</p>
+        </div>
+      </div>
+
+      <!-- Tab: Status -->
+      <div id="adminTab-status" class="admin-tab-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <strong>Systemstatus</strong>
+          <button class="btn-secondary" style="font-size:0.8rem;padding:0.3rem 0.7rem;" onclick="app.adminLoadStatus()">🔄 Aktualisieren</button>
+        </div>
+        <div id="adminStatusBody">
+          <p style="color:var(--text-secondary);">Wird geladen…</p>
+        </div>
+      </div>
+
+      <!-- Tab: Backups -->
+      <div id="adminTab-backups" class="admin-tab-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <strong>Backup-Übersicht aller Benutzer</strong>
+          <button class="btn-secondary" style="font-size:0.8rem;padding:0.3rem 0.7rem;" onclick="app.adminLoadBackups()">🔄 Aktualisieren</button>
+        </div>
+        <div id="adminBackupsBody">
+          <p style="color:var(--text-secondary);">Wird geladen…</p>
+        </div>
+      </div>
+
+      <!-- Tab: Error Reports -->
+      <div id="adminTab-errors" class="admin-tab-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <strong>Eingegangene Fehlerberichte</strong>
+          <button class="btn-secondary" style="font-size:0.8rem;padding:0.3rem 0.7rem;" onclick="app.adminLoadErrors()">🔄 Aktualisieren</button>
+        </div>
+        <div id="adminErrorsBody">
+          <p style="color:var(--text-secondary);">Wird geladen…</p>
+        </div>
+      </div>
+
+      <!-- Tab: Groups -->
+      <div id="adminTab-groups" class="admin-tab-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <strong>Gruppen &amp; Rechte</strong>
+          <button class="btn-secondary" style="font-size:0.8rem;padding:0.3rem 0.7rem;" onclick="app.adminLoadGroups()">🔄 Aktualisieren</button>
+        </div>
+        <div id="adminGroupsBody">
+          <p style="color:var(--text-secondary);">Wird geladen…</p>
+        </div>
+      </div>
+
+      <!-- Tab: KI-Assistent -->
+      <div id="adminTab-chat" class="admin-tab-panel" style="padding:0;">
+        <div style="display:flex;height:calc(100vh - 180px);min-height:400px;overflow:hidden;">
+
+          <!-- Sidebar: Konversationen -->
+          <div id="chatSidebar" style="width:220px;flex-shrink:0;border-right:1px solid var(--border);
+               display:flex;flex-direction:column;background:var(--bg-secondary);">
+            <div style="padding:0.75rem;border-bottom:1px solid var(--border);display:flex;gap:0.4rem;">
+              <button class="btn-primary" onclick="app.chatNewConversation()"
+                style="flex:1;font-size:0.8rem;padding:0.4rem 0.5rem;">✏️ Neu</button>
+              <button class="btn-secondary" onclick="app.chatLoadConversations()"
+                style="width:auto;font-size:0.8rem;padding:0.4rem 0.6rem;" title="Aktualisieren">🔄</button>
+            </div>
+            <div id="chatConvList" style="flex:1;overflow-y:auto;padding:0.4rem 0;"></div>
+            <!-- API-Key Bereich -->
+            <div style="padding:0.6rem;border-top:1px solid var(--border);">
+              <div style="font-size:0.7rem;color:var(--text-secondary);margin-bottom:0.35rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">OpenAI API-Key</div>
+              <div id="chatKeyStatus" style="font-size:0.72rem;color:var(--text-secondary);margin-bottom:0.35rem;"></div>
+              <div style="display:flex;gap:0.3rem;">
+                <input type="password" id="chatKeyInput" placeholder="sk-..." autocomplete="off"
+                  style="flex:1;font-size:0.75rem;padding:0.3rem 0.5rem;border-radius:8px;min-width:0;">
+                <button class="btn-success" onclick="app.chatSaveKey()"
+                  style="width:auto;font-size:0.75rem;padding:0.3rem 0.5rem;">💾</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hauptbereich: Chat -->
+          <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+            <!-- Konversations-Header -->
+            <div id="chatHeader" style="padding:0.65rem 1rem;border-bottom:1px solid var(--border);
+                 display:flex;align-items:center;gap:0.5rem;background:var(--bg-secondary);">
+              <span id="chatTitle" style="font-weight:600;font-size:0.9rem;flex:1;overflow:hidden;
+                    text-overflow:ellipsis;white-space:nowrap;color:var(--text-secondary);">
+                Wähle ein Gespräch oder starte ein neues
+              </span>
+              <button id="chatExportBtn" onclick="app.chatExport()" title="Als Markdown exportieren"
+                style="display:none;width:auto;font-size:0.75rem;padding:0.25rem 0.55rem;" class="btn-secondary">
+                📥 Export
+              </button>
+              <button id="chatDeleteBtn" onclick="app.chatDeleteConversation()" title="Gespräch löschen"
+                style="display:none;width:auto;font-size:0.75rem;padding:0.25rem 0.55rem;color:var(--error);border-color:var(--error)33;" class="btn-secondary">
+                🗑️
+              </button>
+            </div>
+
+            <!-- Nachrichten -->
+            <div id="chatMessages" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:0.75rem;">
+              <div style="text-align:center;color:var(--text-secondary);font-size:0.85rem;margin-top:2rem;">
+                🤖 KI-Assistent für Spool Tag Propus<br>
+                <span style="font-size:0.78rem;opacity:0.7;">Stelle Fragen zum Projekt, Code, Bugs oder Features.</span>
+              </div>
+            </div>
+
+            <!-- Eingabe -->
+            <div style="padding:0.75rem;border-top:1px solid var(--border);background:var(--bg-secondary);">
+              <div id="chatStatus" style="font-size:0.78rem;color:var(--text-secondary);min-height:1.2em;margin-bottom:0.4rem;"></div>
+              <div style="display:flex;gap:0.5rem;align-items:flex-end;">
+                <textarea id="chatInput" rows="2" placeholder="Nachricht eingeben… (Enter = senden, Shift+Enter = Zeilenumbruch)"
+                  style="flex:1;resize:none;font-size:0.88rem;padding:0.5rem 0.75rem;border-radius:10px;
+                         line-height:1.4;max-height:120px;overflow-y:auto;"
+                  onkeydown="app.chatInputKeydown(event)"></textarea>
+                <button id="chatSendBtn" class="btn-primary" onclick="app.chatSend()"
+                  style="width:auto;padding:0.5rem 0.9rem;font-size:0.88rem;align-self:flex-end;">
+                  ➤ Senden
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== Profil-Modal ===== -->
+  <div id="profileModalOverlay" class="qr-overlay hidden" onclick="if(event.target===this)app.closeProfileModal()">
+    <div class="qr-modal" style="max-width:460px;max-height:90vh;overflow-y:auto;">
+      <h3>👤 Mein Profil</h3>
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1.25rem;" id="profileModalEmail"></p>
+
+      <p style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:0.5rem;">Persönliche Daten</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Vorname</label>
+          <input type="text" id="profileFirstName" placeholder="Max" style="width:100%;padding:0.5rem;" autocomplete="given-name">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Nachname</label>
+          <input type="text" id="profileLastName" placeholder="Mustermann" style="width:100%;padding:0.5rem;" autocomplete="family-name">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Benutzername</label>
+        <input type="text" id="profileUsername" placeholder="z.B. janez" style="width:100%;padding:0.5rem;" autocomplete="username">
+        <small style="color:var(--text-secondary)">3–30 Zeichen: a-z, 0-9, . _ -</small>
+      </div>
+      <div class="form-group">
+        <label>Design</label>
+        <div style="display:flex;gap:0.75rem;">
+          <button type="button" id="themeOptDark"
+            onclick="app._selectProfileTheme('dark')"
+            style="display:flex;align-items:center;gap:0.5rem;padding:0.55rem 1rem;border:2px solid var(--border);border-radius:8px;flex:1;justify-content:center;cursor:pointer;background:var(--bg-tertiary);color:var(--text-primary);font-size:0.95rem;transition:border-color 0.15s,background 0.15s;">
+            🌙 Dunkel
+          </button>
+          <button type="button" id="themeOptLight"
+            onclick="app._selectProfileTheme('light')"
+            style="display:flex;align-items:center;gap:0.5rem;padding:0.55rem 1rem;border:2px solid var(--border);border-radius:8px;flex:1;justify-content:center;cursor:pointer;background:var(--bg-tertiary);color:var(--text-primary);font-size:0.95rem;transition:border-color 0.15s,background 0.15s;">
+            ☀️ Hell
+          </button>
+        </div>
+        <input type="hidden" id="profileThemeValue" value="dark">
+      </div>
+      <div class="form-group">
+        <label>Geburtsdatum</label>
+        <input type="date" id="profileBirthDate" style="width:100%;padding:0.5rem;" autocomplete="bday">
+      </div>
+      <div class="form-group">
+        <label>Adresse</label>
+        <input type="text" id="profileAddress" placeholder="Musterstrasse 1, 3000 Bern" style="width:100%;padding:0.5rem;" autocomplete="street-address">
+      </div>
+
+      <div style="border-top:1px solid var(--border);margin:1rem 0 0.75rem;"></div>
+      <p style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:0.5rem;">Zugangsdaten ändern <span style="font-weight:400;text-transform:none;">(Passwort erforderlich)</span></p>
+      <div class="form-group">
+        <label>Aktuelles Passwort</label>
+        <input type="password" id="profileCurrentPw" placeholder="Nur bei E-Mail- oder PW-Änderung" style="width:100%;padding:0.5rem;" autocomplete="current-password">
+      </div>
+      <div class="form-group">
+        <label>Neue E-Mail-Adresse (optional)</label>
+        <input type="email" id="profileNewEmail" placeholder="Leer lassen = keine Änderung" style="width:100%;padding:0.5rem;" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Neues Passwort (optional, min. 8 Zeichen)</label>
+        <input type="password" id="profileNewPw" placeholder="Leer lassen = keine Änderung" style="width:100%;padding:0.5rem;" autocomplete="new-password">
+      </div>
+      <div id="profileModalStatus" class="status-message" style="margin-bottom:0.5rem;"></div>
+      <div class="qr-actions">
+        <button class="btn-primary" onclick="app.submitProfileUpdate()">Speichern</button>
+        <button class="btn-secondary" onclick="app.closeProfileModal()">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Spoolman Picker (Create Tag) ===== -->
+  <div id="spoolmanPickerOverlay" class="qr-overlay hidden" onclick="if(event.target===this)app.closeSpoolmanPicker()">
+    <div class="qr-modal" style="max-width:720px;max-height:90vh;overflow-y:auto;">
+      <h3>🧵 Spoolman Auswahl</h3>
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1rem;">Wähle eine Spule oder ein Filament – die Felder werden ins „Neuer Tag“-Formular übernommen.</p>
+
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+        <button id="spoolmanPickerTabSpools" class="btn-primary" type="button" style="width:auto;" onclick="app.setSpoolmanPickerTab('spools')">Spulen</button>
+        <button id="spoolmanPickerTabFilaments" class="btn-secondary" type="button" style="width:auto;" onclick="app.setSpoolmanPickerTab('filaments')">Filamente</button>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0.75rem;">
+        <input type="text" id="spoolmanPickerSearch" placeholder="Suche…" oninput="app.filterSpoolmanPicker()" style="width:100%;">
+      </div>
+
+      <div id="spoolmanPickerStatus" class="status-message" style="margin-bottom:0.5rem;"></div>
+      <div id="spoolmanPickerList"></div>
+
+      <div class="qr-actions" style="margin-top:1rem;">
+        <button class="btn-secondary" type="button" onclick="app.closeSpoolmanPicker()">Schliessen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Install Banner -->
+  <div id="installBanner" class="install-banner hidden">
+    <span>📲 Spool Tag Propus als App installieren</span>
+    <button id="installBtn" class="btn-success" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem;">Installieren</button>
+    <button onclick="document.getElementById('installBanner').classList.add('hidden')" class="btn-secondary" style="width: auto; padding: 0.4rem 0.6rem; font-size: 0.85rem;">✕</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script src="auth.js?v=109"></script>
+  <script src="i18n.js?v=109"></script>
+  <script src="cbor.js?v=109"></script>
+  <script src="ndef.js?v=109"></script>
+  <script src="openspool.js?v=109"></script>
+  <script src="openprinttag.js?v=109"></script>
+  <script src="formats.js?v=109"></script>
+  <script src="color.js?v=109"></script>
+  <script src="filamentdb.js?v=109"></script>
+  <script src="profiledb.js?v=109"></script>
+  <script src="drying.js?v=109"></script>
+  <script src="qr.js?v=109"></script>
+  <script src="app.js?v=109"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      // Cloudflare caches sw.js aggressively; version query forces updates.
+      navigator.serviceWorker.register('sw.js?v=109').catch(() => {});
+      // Force update check on every page load
+      navigator.serviceWorker.ready.then(reg => reg.update()).catch(() => {});
+    }
+
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.classList.remove('hidden');
+    });
+    document.getElementById('installBtn').addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      document.getElementById('installBanner').classList.add('hidden');
+    });
+  </script>
+
+  <!-- Spule bearbeiten – global modal (immer über allem, unabhängig vom Scroll) -->
+  <div id="mySpoolmanEditOverlay" class="qr-overlay hidden" onclick="if(event.target===this)app.closeMySpoolmanEdit()">
+    <div class="qr-modal" style="max-width:480px;">
+      <h3>✏️ Spule bearbeiten</h3>
+      <div id="mySpoolmanEditFields"></div>
+      <div id="mySpoolmanEditStatus" class="status-message" style="margin-top:0.5rem;"></div>
+      <div class="qr-actions" style="margin-top:1rem;">
+        <button class="btn-success" onclick="app.saveMySpoolmanEdit()">💾 Speichern</button>
+        <button class="btn-secondary" onclick="app.closeMySpoolmanEdit()">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
